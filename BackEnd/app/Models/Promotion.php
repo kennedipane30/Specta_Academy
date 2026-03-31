@@ -6,11 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Promotion extends Model
 {
-    // 1. Beritahu Laravel nama Primary Key sesuai ERD kamu
-    protected $primaryKey = 'promotionsID';
+    protected $primaryKey = 'promotionsID'; // Sesuai ERD
 
-    // 2. Izinkan kolom ini diisi secara massal
     protected $fillable = [
+        'class_id',
         'image_banner',
         'code',
         'discount_percent',
@@ -20,10 +19,11 @@ class Promotion extends Model
     ];
 
     /**
-     * Relasi ke tabel Penggunaan Promo (Jika nanti ingin ditarik datanya)
+     * RELASI INI YANG TADI HILANG (WAJIB ADA)
      */
-    public function usages()
+    public function classModel()
     {
-        return $this->hasMany(PromotionUsage::class, 'promotion_id', 'promotionsID');
+        // Menghubungkan class_id di tabel promotions ke class_modelsID di tabel class_models
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_modelsID');
     }
 }

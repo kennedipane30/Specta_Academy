@@ -37,7 +37,7 @@
                             </a>
                         </div>
                     </div>
-                    <a href="{{ route('admin.promo') }}" class="block py-3 px-6 hover:bg-red-800">🎁 Kode Promo</a>
+                   <a href="{{ route('admin.promo.index') }}" class="block py-3 px-6 hover:bg-red-800">🎁 Kode Promo</a>
                     <a href="{{ route('admin.manajemen-pengajar.index') }}" class="block py-3 px-6 hover:bg-red-800">👨‍🏫 Manajemen Pengajar</a>
                     <a href="{{ route('admin.galeri.index') }}" class="block py-3 px-6 hover:bg-red-800">🖼️ Galeri & Info</a>
 

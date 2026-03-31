@@ -12,38 +12,35 @@ class PromoController extends Controller
     /**
      * Tampil Daftar Promo
      */
-    public function index() {
-        $promos = Promotion::latest()->get();
-        return view('admin.promo.index', compact('promos'));
-    }
+   public function index() {
+    $promos = Promotion::with('classModel')->latest()->get();
+    $classes = \App\Models\ClassModel::all(); // Ambil 4 program Spekta
+    return view('admin.promo.index', compact('promos', 'classes'));
+}
 
-    /**
-     * Simpan Promo Baru (Mata Kuliah: Software Security & Cloud Storage)
-     */
-    public function store(Request $request) {
-        $request->validate([
-            'image_banner' => 'required|image|mimes:jpg,png,jpeg|max:2048', // Max 2MB
-            'code' => 'required|string|unique:promotions,code',
-            'discount_percent' => 'required|numeric|min:1|max:100',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-        ]);
+public function store(Request $request) {
+    $request->validate([
+        'class_id' => 'required', // Validasi pilihan kelas
+        'image_banner' => 'required|image|max:2048',
+        'code' => 'required|unique:promotions,code',
+        'discount_percent' => 'required|numeric',
+        'start_date' => 'required|date',
+        'end_date' => 'required|date|after:start_date',
+    ]);
 
-        // 1. Simpan Gambar Banner ke folder public/storage/promos
-        $path = $request->file('image_banner')->store('promos', 'public');
+    $path = $request->file('image_banner')->store('promos', 'public');
 
-        // 2. Simpan Data ke Database (Integritas Data)
-        Promotion::create([
-            'image_banner'     => $path,
-            'code'             => strtoupper($request->code), // Paksa huruf besar agar rapi
-            'discount_percent' => $request->discount_percent,
-            'start_date'       => $request->start_date,
-            'end_date'         => $request->end_date,
-            'is_active'        => true
-        ]);
+    Promotion::create([
+        'class_id'         => $request->class_id,
+        'image_banner'     => $path,
+        'code'             => strtoupper($request->code),
+        'discount_percent' => $request->discount_percent,
+        'start_date'       => $request->start_date,
+        'end_date'         => $request->end_date,
+    ]);
 
-        return back()->with('success', 'Promo Spekta Berhasil Diterbitkan!');
-    }
+    return back()->with('success', 'Promo Berhasil Diterbitkan!');
+}
 
     /**
      * Hapus Promo

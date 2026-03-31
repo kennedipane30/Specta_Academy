@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('materials', function (Blueprint $table) {
-            $table->id('materialsID'); // Primary Key sesuai ERD kamu
-
-            // Relasi ke tabel class_models (Induknya)
+        Schema::create('promotions', function (Blueprint $table) {
+            $table->id('promotionsID');
+            // TAMBAHKAN RELASI KE KELAS (Target Promo)
             $table->foreignId('class_id')->constrained('class_models', 'class_modelsID')->onDelete('cascade');
 
-            $table->string('title');
-
-            // CUKUP TULIS SATU KALI SAJA DI SINI
-            $table->string('file_path')->nullable();
-
+            $table->string('image_banner');
+            $table->string('code')->unique();
+            $table->integer('discount_percent');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('materials');
+        Schema::dropIfExists('promotions');
     }
 };

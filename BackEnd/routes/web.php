@@ -6,15 +6,15 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\ManajemenSiswaController;
-use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
+use App\Http\Controllers\Admin\PromoController; // Import Controller Promo Admin
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
-use App\Http\Controllers\Pengajar\PromoController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes - Spekta Academy
@@ -31,11 +31,6 @@ Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-
-    // // Manajemen Pengumuman
-    // Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman.index');
-    // Route::post('/pengumuman', [PengumumanController::class, 'store'])->name('pengumuman.store');
-    // Route::delete('/pengumuman/{id}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
 
     // Manajemen Galeri
     Route::get('/galeri', [GaleriController::class, 'index'])->name('galeri.index');
@@ -56,15 +51,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/tambah-kelas/proses/{id}', [ManajemenSiswaController::class, 'prosesAktivasi'])->name('proses_aktivasi');
     });
 
-    // Keuangan & Promo
+    // Keuangan & Verifikasi Pembayaran
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
-    Route::get('/promo', [PembayaranController::class, 'promo'])->name('promo');
 
-        // Rute Manajemen Promo (CRUD)
-    Route::get('/promo', [App\Http\Controllers\Admin\PromoController::class, 'index'])->name('promo.index');
-    Route::post('/promo', [App\Http\Controllers\Admin\PromoController::class, 'store'])->name('promo.store');
-    Route::delete('/promo/{id}', [App\Http\Controllers\Admin\PromoController::class, 'destroy'])->name('promo.destroy');
+    // MODIFIKASI: Manajemen Promo (Hanya satu set rute yang aktif)
+    Route::get('/promo', [PromoController::class, 'index'])->name('promo.index');
+    Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
+    Route::delete('/promo/{id}', [PromoController::class, 'destroy'])->name('promo.destroy');
 });
 
 
@@ -74,17 +68,14 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/dashboard', [PengajarDashboardController::class, 'index'])->name('dashboard');
     Route::get('/jadwal-mengajar', [PengajarDashboardController::class, 'jadwalSaya'])->name('jadwal.index');
 
-    // Absensi
+    // Absensi Per Kelas
     Route::get('/absensi', [PengajarDashboardController::class, 'absensi'])->name('absensi.index');
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
 
-    // --- FITUR MATERI (SUDAH DIRAPIKAN) ---
-    // 1. Pilih Kelas
+    // Materi
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
-    // 2. Pilih Mata Pelajaran di Kelas tersebut
     Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
-    // 3. Proses Upload File (Menggunakan ID Materi)
     Route::post('/materi/upload/{material_id}', [MateriController::class, 'store'])->name('materi.store');
 
     // Tryout
@@ -93,18 +84,11 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('tryout.nilai');
 });
 
+// Jalur tampilan foto tanpa Symlink
 Route::get('/view-galeri/{filename}', function ($filename) {
     $path = 'public/galeri/' . $filename;
-
-    if (!Storage::exists($path)) {
-        abort(404);
-    }
-
+    if (!Storage::exists($path)) abort(404);
     $file = Storage::get($path);
     $type = Storage::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
+    return Response::make($file, 200)->header("Content-Type", $type);
 });
