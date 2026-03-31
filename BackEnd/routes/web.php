@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ManajemenPengajarController;
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
+use App\Http\Controllers\Pengajar\PromoController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 /*
