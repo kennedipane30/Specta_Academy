@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('file_path')->nullable(); // Untuk link video atau path file
             $table->timestamps();
+            $table->string('file_path')->nullable()->after('title');
         });
     }
 

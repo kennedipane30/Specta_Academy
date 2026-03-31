@@ -59,6 +59,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
     Route::get('/promo', [PembayaranController::class, 'promo'])->name('promo');
+
+        // Rute Manajemen Promo (CRUD)
+    Route::get('/promo', [App\Http\Controllers\Admin\PromoController::class, 'index'])->name('promo.index');
+    Route::post('/promo', [App\Http\Controllers\Admin\PromoController::class, 'store'])->name('promo.store');
+    Route::delete('/promo/{id}', [App\Http\Controllers\Admin\PromoController::class, 'destroy'])->name('promo.destroy');
 });
 
 
@@ -68,19 +73,22 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/dashboard', [PengajarDashboardController::class, 'index'])->name('dashboard');
     Route::get('/jadwal-mengajar', [PengajarDashboardController::class, 'jadwalSaya'])->name('jadwal.index');
 
-    // Absensi Per Kelas
+    // Absensi
     Route::get('/absensi', [PengajarDashboardController::class, 'absensi'])->name('absensi.index');
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
 
-    // Materi
+    // --- FITUR MATERI (SUDAH DIRAPIKAN) ---
+    // 1. Pilih Kelas
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
-    Route::post('/materi/upload', [MateriController::class, 'store'])->name('materi.store');
+    // 2. Pilih Mata Pelajaran di Kelas tersebut
+    Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
+    // 3. Proses Upload File (Menggunakan ID Materi)
+    Route::post('/materi/upload/{material_id}', [MateriController::class, 'store'])->name('materi.store');
 
-    // MODIFIKASI: Tryout (Sesuai dengan pemanggilan di file Blade)
+    // Tryout
     Route::get('/soal-tryout', [TryoutController::class, 'buatSoal'])->name('tryout.create');
     Route::post('/soal-tryout/import', [TryoutController::class, 'importSoal'])->name('tryout.import');
-
     Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('tryout.nilai');
 });
 
