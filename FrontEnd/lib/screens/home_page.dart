@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'pendaftaran_kelas_promo_page.dart'; // IMPORT BARU: Halaman khusus pendaftaran promo
 
 class HomePage extends StatefulWidget {
   final String userName;
-  const HomePage({super.key, required this.userName});
+  final String token; // TAMBAHKAN: Token untuk kirim ke page selanjutnya
+  final Map userData; // TAMBAHKAN: Data user untuk page selanjutnya
+
+  const HomePage({
+    super.key, 
+    required this.userName, 
+    required this.token, 
+    required this.userData
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -15,37 +24,54 @@ class _HomePageState extends State<HomePage> {
   final Color spektaRed = const Color(0xFF990000);
   
   List galeriData = [];
+  List promoData = []; 
   late PageController _pageController;
+  late PageController _promoController; 
   int _currentPage = 0;
   Timer? _timer;
+  Timer? _promoTimer;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    _promoController = PageController(initialPage: 0);
     fetchGaleri();
+    fetchPromos(); 
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _promoTimer?.cancel();
     _pageController.dispose();
+    _promoController.dispose();
     super.dispose();
+  }
+
+  // Ambil Data Promo dari Laravel
+  Future<void> fetchPromos() async {
+    try {
+      final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/promos'));
+      if (response.statusCode == 200) {
+        setState(() {
+          promoData = jsonDecode(response.body)['data'] ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching promos: $e");
+    }
   }
 
   Future<void> fetchGaleri() async {
     try {
-      // Mengambil data galeri dari API Laravel
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/galeri'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          // Mengambil array dari 'data' sesuai format JSON kita
           galeriData = data['data'] ?? [];
         });
-        if (galeriData.isNotEmpty) {
-          _startAutoSlide();
-        }
+        if (galeriData.isNotEmpty) _startAutoSlide();
       }
     } catch (e) {
       debugPrint("Error fetching galeri: $e");
@@ -59,13 +85,8 @@ class _HomePageState extends State<HomePage> {
       } else {
         _currentPage = 0;
       }
-
       if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 900),
-          curve: Curves.easeInOut,
-        );
+        _pageController.animateToPage(_currentPage, duration: const Duration(milliseconds: 900), curve: Curves.easeInOut);
       }
     });
   }
@@ -83,16 +104,12 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 35),
               decoration: BoxDecoration(
                 color: spektaRed,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(35),
-                  bottomRight: Radius.circular(35),
-                ),
+                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(35), bottomRight: Radius.circular(35)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Hai, ${widget.userName}", 
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text("Hai, ${widget.userName}", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                   const Row(
                     children: [
                       Icon(Icons.notifications_none, color: Colors.white),
@@ -124,42 +141,52 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 35),
 
-                  // --- 2. BANNER PROMO ---
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF990000), Color(0xFFD32F2F)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  // --- 2. SECTION PROMO DINAMIS ---
+                  if (promoData.isNotEmpty) ...[
+                    const Text("Promo Spesial Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 15),
+                    SizedBox(
+                      height: 160,
+                      child: PageView.builder(
+                        controller: _promoController,
+                        itemCount: promoData.length,
+                        itemBuilder: (context, index) {
+                          var p = promoData[index];
+                          return InkWell(
+                            onTap: () {
+                              // MODIFIKASI: ARAHKAN KE HALAMAN PENDAFTARAN PROMO
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PendaftaranKelasPromoPage(
+                                    classId: p['class_id'],
+                                    className: p['class_model']['nama_program'],
+                                    token: widget.token,
+                                    userData: widget.userData,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 5),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                image: DecorationImage(
+                                  image: NetworkImage('http://10.0.2.2:8000/view-galeri/${p['image_banner'].split('/').last}'),
+                                  fit: BoxFit.cover
+                                ),
+                                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 3))]
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("TIM GERCEP SIAPIN UTBK", 
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                              SizedBox(height: 5),
-                              Text("Paket Hanya 900rb", 
-                                style: TextStyle(color: Colors.yellow, fontSize: 18, fontWeight: FontWeight.w900)),
-                              SizedBox(height: 10),
-                              Text("Cuma Hari Ini!", style: TextStyle(color: Colors.white, fontSize: 10)),
-                            ],
-                          ),
-                        ),
-                        Image.network('https://cdn-icons-png.flaticon.com/512/3429/3429153.png', height: 70),
-                      ],
-                    ),
-                  ),
+                  ],
 
                   const SizedBox(height: 35),
 
-                  // --- 3. SECTION GALERI KEGIATAN (DIPERBAIKI) ---
+                  // --- 3. SECTION GALERI KEGIATAN ---
                   if (galeriData.isNotEmpty) ...[
                     const Center(child: Text("Kegiatan Spekta Terbaru", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                     const SizedBox(height: 15),
@@ -171,15 +198,10 @@ class _HomePageState extends State<HomePage> {
                         onPageChanged: (index) => _currentPage = index,
                         itemBuilder: (context, index) {
                           var item = galeriData[index];
-                          
-                          // SOLUSI: Menggunakan IP 10.0.2.2 untuk emulator dan folder storage
-                          String imageUrl = 'http://10.0.2.2:8000/storage/${item['foto']}';
-                          
+                          String imageUrl = 'http://10.0.2.2:8000/view-galeri/${item['foto'].split('/').last}';
                           return Column(
                             children: [
-                              Text(item['judul'], 
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF990000)),
-                                textAlign: TextAlign.center),
+                              Text(item['judul'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF990000)), textAlign: TextAlign.center),
                               const SizedBox(height: 12),
                               Expanded(
                                 child: Container(
@@ -194,25 +216,7 @@ class _HomePageState extends State<HomePage> {
                                       imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      // Handler saat loading
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
-                                        return const Center(child: CircularProgressIndicator(color: Color(0xFF990000)));
-                                      },
-                                      // HANDLER ERROR AGAR TIDAK BLANK ABU-ABU
-                                      errorBuilder: (context, error, stackTrace) {
-                                        debugPrint("Gagal muat gambar dari: $imageUrl");
-                                        return Container(
-                                          color: Colors.grey[200],
-                                          child: const Center(child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                                              Text("Gambar gagal dimuat", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                            ],
-                                          )),
-                                        );
-                                      },
+                                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 40, color: Colors.grey)),
                                     ),
                                   ),
                                 ),
@@ -238,10 +242,7 @@ class _HomePageState extends State<HomePage> {
       children: [
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
-          ),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(18)),
           child: Icon(icon, color: color, size: 30),
         ),
         const SizedBox(height: 8),

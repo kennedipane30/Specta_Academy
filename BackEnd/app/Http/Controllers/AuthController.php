@@ -156,6 +156,35 @@ public function resetPassword(Request $request): JsonResponse {
         return response()->json(['status' => 'success', 'message' => 'Pendaftaran terkirim!']);
     }
 
+    // Tambahkan fungsi ini di AuthController.php (JANGAN UBAH YANG LAIN)
+
+public function joinClassPromo(Request $request): JsonResponse {
+    $request->validate([
+        'class_id' => 'required',
+        'promo_code' => 'required', // Tambahan untuk jalur promo
+        'payment_proof' => 'required|image|max:2048',
+    ]);
+
+    $user = Auth::user();
+
+    // Cari ID Promo berdasarkan kode yang diketik siswa
+    $promo = \App\Models\Promotion::where('code', $request->promo_code)->first();
+
+    // Simpan file bukti transfer
+    $path = $request->file('payment_proof')->store('proofs', 'public');
+
+    // SIMPAN KE TABEL ENROLLMENTS (Sama seperti jalur manual agar muncul di daftar Admin)
+    Enrollment::create([
+        'user_id' => $user->usersID,
+        'class_id' => $request->class_id,
+        'payment_proof' => $path,
+        'status' => 'pending', // WAJIB 'pending' agar muncul di Dashboard Admin
+        // Kamu bisa simpan info promo di kolom catatan atau buat kolom promo_id di enrollments
+    ]);
+
+    return response()->json(['status' => 'success', 'message' => 'Pendaftaran Promo Berhasil Dikirim!']);
+}
+
     // 6. AMBIL KONTEN MATERI & TRYOUT
     public function getClassContent(Request $request): JsonResponse {
         try {
@@ -209,5 +238,34 @@ public function resetPassword(Request $request): JsonResponse {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['status' => 'success', 'message' => 'Berhasil Logout']);
     }
+
+    public function checkPromo(Request $request): JsonResponse {
+    $v = Validator::make($request->all(), [
+        'code' => 'required|string',
+        'class_id' => 'required',
+        'price' => 'required|numeric'
+    ]);
+
+    // Cari promo yang kodenya cocok, aktif, dan sesuai dengan kelas yang didaftar
+    $promo = \App\Models\Promotion::where('code', strtoupper($request->code))
+                ->where('class_id', $request->class_id)
+                ->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->first();
+
+    if (!$promo) {
+        return response()->json(['status' => 'error', 'message' => 'Kode promo tidak valid untuk kelas ini!'], 404);
+    }
+
+    // Hitung potongan (Matkul: Software Quality)
+    $potongan = $request->price * ($promo->discount_percent / 100);
+    $hargaAkhir = $request->price - $potongan;
+
+    return response()->json([
+        'status' => 'success',
+        'discount_percent' => $promo->discount_percent,
+        'new_price' => $hargaAkhir
+    ]);
+}
 
 } // <--- KURUNG TUTUP CLASS HARUS DI SINI

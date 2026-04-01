@@ -33,19 +33,32 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _getBody() {
     switch (_selectedIndex) {
-      case 0: return HomePage(userName: widget.userName);
-      case 1: return KelasPage(token: widget.token, userData: widget.userProfileData);
+      case 0: 
+        // MODIFIKASI: Mengirim data lengkap ke HomePage agar Promo bisa jalan
+        return HomePage(
+          userName: widget.userName, 
+          token: widget.token, 
+          userData: widget.userProfileData
+        );
+      case 1: 
+        return KelasPage(token: widget.token, userData: widget.userProfileData);
       case 2: 
-        // MODIFIKASI: Mengganti Notifikasi menjadi Jadwal
         return JadwalPage(token: widget.token);
-      case 3: return AkunPage(token: widget.token, userData: widget.userProfileData);
-      default: return HomePage(userName: widget.userName);
+      case 3: 
+        return AkunPage(token: widget.token, userData: widget.userProfileData);
+      default: 
+        return HomePage(
+          userName: widget.userName, 
+          token: widget.token, 
+          userData: widget.userProfileData
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Properti ini agar body memenuhi layar sampai bawah lekukan
       extendBody: true, 
       body: _getBody(),
 
@@ -64,19 +77,20 @@ class _MainScreenState extends State<MainScreen> {
               offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(color: Colors.white, width: 4),
+          border: Border.all(color: Colors.white, width: 4), // Border putih agar premium
         ),
         child: FloatingActionButton(
           onPressed: () {
+            // Aksi utama: misal masuk ke menu belajar cepat
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(backgroundColor: Color(0xFF990000), content: Text("🎓 Mulai Belajar di Spekta Academy!")),
             );
           },
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.transparent, // Mengikuti container
           elevation: 0,
           highlightElevation: 0,
           child: const Icon(
-            Icons.school_rounded,
+            Icons.school_rounded, // Ikon Toga Wisuda
             color: Colors.white,
             size: 35,
           ),
@@ -86,8 +100,8 @@ class _MainScreenState extends State<MainScreen> {
 
       // --- BOTTOM APP BAR DENGAN LUBANG (NOTCH) ---
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
+        shape: const CircularNotchedRectangle(), // Membuat lekukan bulat
+        notchMargin: 10.0, // Jarak lubang dengan tombol Toga
         color: Colors.white,
         elevation: 15,
         child: Container(
@@ -104,12 +118,11 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
               
-              const SizedBox(width: 40), 
+              const SizedBox(width: 40), // Jarak kosong untuk Toga di tengah
 
               // SISI KANAN: Jadwal & Akun
               Row(
                 children: [
-                  // MODIFIKASI: Ikon dan Label diganti menjadi Jadwal
                   _buildNavItem(2, Icons.calendar_month_rounded, "Jadwal"),
                   _buildNavItem(3, Icons.account_circle_rounded, "Akun"),
                 ],
@@ -121,11 +134,12 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  // Widget Pembantu untuk Navigasi Bar
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
     return MaterialButton(
       minWidth: 40,
-      splashColor: Colors.transparent,
+      splashColor: Colors.transparent, 
       highlightColor: Colors.transparent,
       onPressed: () => _onItemTapped(index),
       child: Column(
