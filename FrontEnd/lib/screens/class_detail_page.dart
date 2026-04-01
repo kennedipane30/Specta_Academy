@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart'; // MENGGUNAKAN URL LAUNCHER (RINGAN)
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
 
@@ -37,7 +38,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
-  // 1. Fungsi Ambil Konten (Beda ID Beda Isi)
+  // 1. Ambil Konten (Sinkronisasi Database)
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -54,7 +55,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     } catch (e) {
       debugPrint("Error fetch detail: $e");
     } finally {
-      // Pastikan loading berhenti apapun yang terjadi
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -76,13 +76,13 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       var response = await http.Response.fromStream(streamedResp);
 
       if (!mounted) return;
-      Navigator.pop(context); // Tutup Loading
+      Navigator.pop(context);
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil! Menunggu Verifikasi Admin."))
         );
-        _fetchDetail(); // Refresh gembok materi
+        _fetchDetail(); 
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,11 +92,9 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      debugPrint("Error: $e");
     }
   }
 
-  // 3. Form Pendaftaran (Nama & NISN Otomatis)
   void _showDaftarForm() {
     File? _imageFile;
     final nameController = TextEditingController(text: widget.userData['name']);
@@ -115,12 +113,9 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               children: [
                 const Text("Konfirmasi Pendaftaran", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Divider(),
-                
                 _buildField(nameController, "Nama Pendaftar", Icons.person, true),
-                _buildField(nisnController, "NISN Siswa", Icons.numbers, true),
-                
+                _buildField(nisnController, "NISN Anda", Icons.numbers, true),
                 const SizedBox(height: 20),
-
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(15),
@@ -133,9 +128,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                     ],
                   ),
                 ),
-                
                 const SizedBox(height: 20),
-
                 InkWell(
                   onTap: () async {
                     final picker = ImagePicker();
@@ -144,13 +137,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   },
                   child: Container(
                     height: 150, width: double.infinity,
-                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
+                    decoration: BoxDecoration(color: Colors.grey[100]!, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
                     child: _imageFile == null 
                       ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate, size: 40, color: spektaRed), const Text("Klik Upload Bukti Transfer", style: TextStyle(fontSize: 12))])
                       : ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.file(_imageFile!, fit: BoxFit.cover)),
                   ),
                 ),
-
                 const SizedBox(height: 25),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
@@ -188,7 +180,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 children: [
                   _buildStatusBanner(),
                   
-                  // --- BAGIAN TRYOUT (HANYA TAMPIL JIKA ADA DATA) ---
+                  // --- BAGIAN TRYOUT ---
                   if (tryouts.isNotEmpty) ...[
                     const Padding(
                       padding: EdgeInsets.only(left: 20, top: 20),
@@ -214,6 +206,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
+  // --- LOGIKA ONTAP DIPERBAIKI AGAR TIDAK EROR "FILE BELUM TERSEDIA" ---
   Widget _buildListContent(List items, bool isRegistered, IconData activeIcon, Color activeColor, bool isTryout) {
     if (items.isEmpty) return const Padding(padding: EdgeInsets.all(20), child: Text("Belum ada konten tersedia."));
     
@@ -232,13 +225,27 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             ),
             title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(isRegistered ? "Klik untuk akses" : "Akses Terkunci"),
-            onTap: isRegistered ? () {
+            onTap: isRegistered ? () async {
               if (isTryout) {
+                // Navigasi ke Tryout
                 Navigator.push(context, MaterialPageRoute(
                   builder: (context) => TryoutDetailPage(tryoutData: items[index], token: widget.token)
                 ));
               } else {
-                // Aksi buka Video Materi
+                // LOGIKA MATERI PDF
+                var filePath = items[index]['file_path'];
+                if (filePath != null && filePath != "") {
+                   String fileName = filePath.split('/').last;
+                   final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
+
+                   if (await canLaunchUrl(url)) {
+                     await launchUrl(url, mode: LaunchMode.externalApplication);
+                   }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(backgroundColor: Colors.orange, content: Text("Maaf, file materi ini belum di-upload."))
+                  );
+                }
               }
             } : () {
               ScaffoldMessenger.of(context).showSnackBar(

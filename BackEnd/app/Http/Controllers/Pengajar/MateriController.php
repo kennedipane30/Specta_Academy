@@ -27,29 +27,22 @@ class MateriController extends Controller
     /**
      * FUNGSI UPLOAD (Sesuai Alur: Hanya Simpan)
      */
-    public function store(Request $request, $material_id)
-    {
-        // 1. Validasi File (Max 10MB PDF)
-        $request->validate([
-            'file_pdf' => 'required|mimes:pdf|max:10240',
-        ]);
+   public function store(Request $request, $material_id) {
+    $request->validate([
+        'file_pdf' => 'required|mimes:pdf|max:10240',
+    ]);
 
-        // 2. Cari data materi berdasarkan ID kustom (materialsID)
-        $material = Material::findOrFail($material_id);
+    $material = Material::findOrFail($material_id);
 
-        // 3. Hapus file lama jika pengajar ingin menimpa (Integritas Storage)
-        if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
-            Storage::disk('public')->delete($material->file_path);
-        }
-
-        // 4. Simpan file baru ke public/storage/materi
-        $path = $request->file('file_pdf')->store('materi', 'public');
-
-        // 5. Update Path di Database
-        $material->update([
-            'file_path' => $path
-        ]);
-
-        return back()->with('success', 'Berhasil! Materi ' . $material->title . ' telah di-upload.');
+    // LOGIKA PENCEGAHAN: Cek apakah file_path sudah terisi
+    // Jika sudah ada, sampaikan bahwa materi harus di-edit/hapus dulu, jangan asal upload baru
+    if ($material->file_path != null) {
+        return back()->with('error', 'Materi ini sudah memiliki file. Silakan hapus file lama jika ingin mengganti.');
     }
+
+    $path = $request->file('file_pdf')->store('materi', 'public');
+    $material->update(['file_path' => $path]);
+
+    return back()->with('success', 'Materi Berhasil Di-upload!');
+}
 }

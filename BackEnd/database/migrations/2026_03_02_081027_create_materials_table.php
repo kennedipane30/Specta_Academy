@@ -12,17 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('materials', function (Blueprint $table) {
-            $table->id('materialsID'); // Primary Key sesuai ERD kamu
-
-            // Relasi ke tabel class_models (Induknya)
+            $table->id('materialsID');
             $table->foreignId('class_id')->constrained('class_models', 'class_modelsID')->onDelete('cascade');
-
             $table->string('title');
-
-            // CUKUP TULIS SATU KALI SAJA DI SINI
             $table->string('file_path')->nullable();
-
             $table->timestamps();
+
+            // MODIFIKASI SAKTI: Gabungan class_id dan title harus UNIK
+            $table->unique(['class_id', 'title']);
         });
     }
 

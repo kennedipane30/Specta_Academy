@@ -186,16 +186,23 @@ public function joinClassPromo(Request $request): JsonResponse {
 }
 
     // 6. AMBIL KONTEN MATERI & TRYOUT
-    public function getClassContent(Request $request): JsonResponse {
-        try {
-            $classId = $request->class_id;
-            $materi = Material::where('class_id', $classId)->get();
-            $tryouts = Tryout::where('class_id', $classId)->get();
-            $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
-            return response()->json(['status' => 'success', 'enroll_status' => $enroll ? $enroll->status : 'none', 'price' => '900.000', 'duration' => '30 Hari', 'materi' => $materi, 'tryouts' => $tryouts], 200);
-        } catch (\Exception $e) { return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
-    }
+public function getClassContent(Request $request): JsonResponse {
+    try {
+        $classId = $request->class_id;
+        $materi = Material::where('class_id', $classId)->get();
+        $tryouts = Tryout::where('class_id', $classId)->get();
+        $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
 
+        return response()->json([
+            'status' => 'success',
+            'enroll_status' => $enroll ? $enroll->status : 'none',
+            'materi' => $materi, // Pastikan kolom file_path ikut terkirim
+            'tryouts' => $tryouts
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
     // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();

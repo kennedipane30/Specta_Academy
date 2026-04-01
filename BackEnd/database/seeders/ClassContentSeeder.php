@@ -20,10 +20,10 @@ class ClassContentSeeder extends Seeder
 
         foreach ($data as $classId => $subjects) {
             foreach ($subjects as $s) {
-                Material::create([
-                    'class_id' => $classId,
-                    'title'    => 'Materi ' . $s
-                ]);
+                \App\Models\Material::updateOrCreate(
+                    ['class_id' => $classId, 'title' => 'Materi ' . $s], // Cek apakah kombinasi ini ada
+                    ['title' => 'Materi ' . $s] // Jika tidak ada, buat. Jika ada, biarkan.
+                );
             }
         }
     }
