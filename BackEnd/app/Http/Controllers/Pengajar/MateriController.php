@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
 use App\Models\Material;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage; // Pastikan ini ada
+use Illuminate\Support\Facades\Storage;
 
 class MateriController extends Controller
 {
@@ -19,30 +19,31 @@ class MateriController extends Controller
     public function pilihMateri($class_id)
     {
         $class = ClassModel::findOrFail($class_id);
+        // Mengambil semua materi untuk kelas ini agar bisa ditampilkan di list bawah
         $materis = Material::where('class_id', $class_id)->get();
 
         return view('pengajar.materi.pilih', compact('class', 'materis'));
     }
 
-    /**
-     * FUNGSI UPLOAD (Sesuai Alur: Hanya Simpan)
-     */
-   public function store(Request $request, $material_id) {
-    $request->validate([
-        'file_pdf' => 'required|mimes:pdf|max:10240',
-    ]);
+    public function store(Request $request, $class_id)
+        {
+            $request->validate([
+                'title'       => 'required', // Ini kategori (Bahasa Inggris, dll)
+                'nama_materi' => 'required|string|max:255', // Ini judul spesifiknya
+                'file_pdf'    => 'required|mimes:pdf|max:10240',
+                'minggu'      => 'required|integer|min:1|max:20',
+            ]);
 
-    $material = Material::findOrFail($material_id);
+            $path = $request->file('file_pdf')->store('materi', 'public');
 
-    // LOGIKA PENCEGAHAN: Cek apakah file_path sudah terisi
-    // Jika sudah ada, sampaikan bahwa materi harus di-edit/hapus dulu, jangan asal upload baru
-    if ($material->file_path != null) {
-        return back()->with('error', 'Materi ini sudah memiliki file. Silakan hapus file lama jika ingin mengganti.');
-    }
+            \App\Models\Material::create([
+                'class_id'    => $class_id,
+                'title'       => $request->title,
+                'nama_materi' => $request->nama_materi,
+                'minggu'      => $request->minggu,
+                'file_path'   => $path,
+            ]);
 
-    $path = $request->file('file_pdf')->store('materi', 'public');
-    $material->update(['file_path' => $path]);
-
-    return back()->with('success', 'Materi Berhasil Di-upload!');
-}
+            return back()->with('success', 'Modul berhasil ditambahkan!');
+        }
 }

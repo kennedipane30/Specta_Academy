@@ -1,70 +1,81 @@
 @extends('layouts.spekta')
-@section('title', 'Upload Materi PDF')
+@section('title', 'Kelola Modul Pembelajaran')
 
 @section('content')
 <div class="bg-white p-8 rounded-3xl shadow-md border-t-8 border-[#990000]">
+    {{-- HEADER --}}
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h3 class="text-2xl font-bold uppercase text-gray-800">{{ $class->nama_program }}</h3>
-            <p class="text-sm text-gray-500">Silakan kelola file PDF untuk setiap mata pelajaran.</p>
+            <h3 class="text-2xl font-black uppercase text-gray-800 tracking-tight">{{ $class->nama_program }}</h3>
+            <p class="text-sm text-gray-500 font-medium">Unggah modul PDF dengan judul berbeda untuk setiap pertemuan.</p>
         </div>
-        <a href="{{ route('pengajar.materi.index') }}" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
-            &larr; KEMBALI
-        </a>
+        <a href="{{ route('pengajar.materi.index') }}" class="bg-gray-100 text-gray-600 px-5 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition">&larr; KEMBALI</a>
     </div>
 
-    <!-- NOTIFIKASI BERHASIL -->
     @if(session('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-xl font-bold flex items-center animate-pulse">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-xl font-bold flex items-center shadow-sm">
             {{ session('success') }}
         </div>
     @endif
 
-    <div class="space-y-6">
-        @forelse($materis as $m)
-            <div class="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gray-50 rounded-2xl border border-gray-200 hover:shadow-sm transition">
+    <div class="space-y-10">
+        @php $subjects = ['Materi Bahasa Inggris', 'Materi Matematika', 'Materi Psikotes', 'Materi TIU', 'Materi TWK']; @endphp
 
-                <!-- SISI KIRI: Nama Materi & Status -->
-                <div class="flex items-center gap-4">
-                    <div class="bg-white p-3 rounded-xl text-[#990000] shadow-sm">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-bold text-gray-800">{{ $m->title }}</h4>
+        @foreach($subjects as $subject)
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-                        {{-- LOGIKA STATUS: BERUBAH JIKA FILE ADA --}}
-                        @if($m->file_path)
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter animate-bounce">File Ready</span>
-                                <a href="{{ asset('storage/' . $m->file_path) }}" target="_blank" class="text-[#990000] font-bold text-xs underline flex items-center hover:text-red-700">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                    Buka Materi PDF
-                                </a>
-                            </div>
-                        @else
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Belum Ada File</span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                {{-- HEADER MAPEL + FORM TAMBAH --}}
+                <div class="bg-gray-50 px-6 py-4 border-b flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <h4 class="text-xl font-black text-gray-800 uppercase">{{ $subject }}</h4>
 
-                <!-- SISI KANAN: Form Upload -->
-                <div class="mt-4 md:mt-0 bg-white p-3 rounded-2xl border border-gray-100 flex items-center shadow-inner">
-                    <form action="{{ route('pengajar.materi.store', $m->materialsID) }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-3">
+                    <form action="{{ route('pengajar.materi.store', $class->class_modelsID) }}" method="POST" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3 bg-white p-3 border rounded-xl shadow-inner w-full lg:w-auto">
                         @csrf
-                        <input type="file" name="file_pdf" class="text-[10px] text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-red-50 file:text-[#990000] hover:file:bg-red-100" accept=".pdf" required>
-                        <button type="submit" class="bg-[#990000] text-white px-4 py-2 rounded-xl text-[11px] font-bold hover:bg-red-800 transition shadow-md">
-                            {{ $m->file_path ? 'UPDATE PDF' : 'UPLOAD PDF' }}
-                        </button>
+                        <input type="hidden" name="title" value="{{ $subject }}">
+
+                        {{-- INPUT JUDUL MODUL --}}
+                        <input type="text" name="nama_materi" placeholder="Judul Modul (Contoh: Grammar Dasar)" required class="text-[11px] border-gray-200 bg-gray-50 rounded-lg py-1.5 px-3 focus:ring-[#990000] flex-1 lg:w-48">
+
+                        <select name="minggu" required class="text-[11px] font-bold border-gray-200 bg-gray-50 rounded-lg py-1.5">
+                            <option value="" disabled selected>Minggu...</option>
+                            @for($i = 1; $i <= 20; $i++) <option value="{{ $i }}">Minggu {{ $i }}</option> @endfor
+                        </select>
+
+                        <input type="file" name="file_pdf" accept=".pdf" required class="text-[10px] w-32">
+
+                        <button type="submit" class="bg-[#990000] text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase hover:bg-red-800 transition">TAMBAH</button>
                     </form>
                 </div>
 
+                {{-- LIST MODUL KE BAWAH --}}
+                <div class="p-6">
+                    @php
+                        $uploadedItems = $materis->where('title', $subject)->whereNotNull('file_path')->sortBy('minggu');
+                    @endphp
+
+                    @if($uploadedItems->count() > 0)
+                        <div class="space-y-3">
+                            @foreach($uploadedItems as $item)
+                                <div class="flex items-center justify-between p-4 bg-gray-50 border rounded-2xl hover:bg-white transition duration-200 shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <div class="bg-red-100 text-[#990000] w-12 h-12 flex items-center justify-center rounded-xl font-black text-xs">
+                                            W-{{ $item->minggu }}
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold text-gray-400 uppercase">Minggu ke-{{ $item->minggu }}</p>
+                                            {{-- TAMPILKAN NAMA MATERI SPESIFIK --}}
+                                            <h5 class="text-sm font-black text-gray-800 uppercase">{{ $item->nama_materi ?? 'Modul Tanpa Judul' }}</h5>
+                                        </div>
+                                    </div>
+                                    <a href="{{ asset('storage/' . $item->file_path) }}" target="_blank" class="bg-white border border-[#990000] text-[#990000] px-4 py-2 rounded-xl text-[10px] font-black hover:bg-[#990000] hover:text-white transition uppercase shadow-sm">Lihat PDF</a>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-6 border border-dashed rounded-2xl"><p class="text-xs text-gray-400 italic">Belum ada modul yang di-upload</p></div>
+                    @endif
+                </div>
             </div>
-        @empty
-            <div class="text-center py-20 text-gray-400 italic">Data materi belum tersedia.</div>
-        @endforelse
+        @endforeach
     </div>
 </div>
 @endsection

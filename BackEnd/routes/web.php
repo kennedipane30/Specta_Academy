@@ -73,10 +73,12 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
 
-    // Materi
+    // Materi (Hanya baris upload yang diubah parameternya)
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
-    Route::post('/materi/upload/{material_id}', [MateriController::class, 'store'])->name('materi.store');
+
+    // PERBAIKAN: Ganti {material_id} menjadi {class_id}
+    Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
 
     // Tryout
     Route::get('/soal-tryout', [TryoutController::class, 'buatSoal'])->name('tryout.create');

@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('file_path')->nullable();
             $table->timestamps();
 
-            // MODIFIKASI SAKTI: Gabungan class_id dan title harus UNIK
-            $table->unique(['class_id', 'title']);
+            // HAPUS ATAU KOMENTARI BARIS DI BAWAH INI:
+            // $table->unique(['class_id', 'title']);
         });
     }
 
