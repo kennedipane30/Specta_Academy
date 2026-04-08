@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\PromoController; // Import PromoController
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Material;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,5 +54,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tryout/download/{id}', [AuthController::class, 'downloadPembahasan']);
 
         Route::post('/class/join-promo', [AuthController::class, 'joinClassPromo']);
+
+        Route::get('/materials', function (Request $request) {
+            $classId = $request->query('class_id');
+            $data = Material::where('class_id', $classId)->get();
+            return response()->json(['data' => $data]);
+        });
     });
 });

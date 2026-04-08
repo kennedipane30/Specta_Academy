@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'pendaftaran_kelas_promo_page.dart'; // IMPORT BARU: Halaman khusus pendaftaran promo
+import 'pendaftaran_kelas_promo_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
-  final String token; // TAMBAHKAN: Token untuk kirim ke page selanjutnya
-  final Map userData; // TAMBAHKAN: Data user untuk page selanjutnya
+  final String token;
+  final Map userData;
 
   const HomePage({
     super.key, 
@@ -25,229 +25,286 @@ class _HomePageState extends State<HomePage> {
   
   List galeriData = [];
   List promoData = []; 
-  late PageController _pageController;
+  List materiData = []; 
+  bool isLoadingMateri = true;
+
+  late PageController _galeriController;
   late PageController _promoController; 
-  int _currentPage = 0;
-  Timer? _timer;
-  Timer? _promoTimer;
+  int _currentGaleriPage = 0;
+  Timer? _galeriTimer;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
-    _promoController = PageController(initialPage: 0);
+    _galeriController = PageController();
+    _promoController = PageController();
+    
     fetchGaleri();
     fetchPromos(); 
+    fetchMateri(); 
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _promoTimer?.cancel();
-    _pageController.dispose();
+    _galeriTimer?.cancel();
+    _galeriController.dispose();
     _promoController.dispose();
     super.dispose();
   }
 
-  // Ambil Data Promo dari Laravel
+  // --- AMBIL DATA DARI API ---
+
+  Future<void> fetchMateri() async {
+    try {
+      // DEBUG: Sangat penting! Cek isi userData di console VS Code
+      debugPrint("DEBUG FULL USERDATA: ${widget.userData}");
+
+      // Berdasarkan api.php -> user.load('student'), id_kelas biasanya ada di sini:
+      var classId = widget.userData['student']?['class_id'] ?? 
+                    widget.userData['class_id'] ?? 
+                    widget.userData['id_kelas'];
+
+      debugPrint("ID KELAS TERDETEKSI: $classId");
+
+      if (classId == null) {
+        setState(() => isLoadingMateri = false);
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/materials?class_id=$classId'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          materiData = jsonDecode(response.body)['data'] ?? [];
+          isLoadingMateri = false;
+        });
+      } else {
+        setState(() => isLoadingMateri = false);
+      }
+    } catch (e) {
+      debugPrint("Error Fetch Materi: $e");
+      setState(() => isLoadingMateri = false);
+    }
+  }
+
   Future<void> fetchPromos() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/promos'));
       if (response.statusCode == 200) {
-        setState(() {
-          promoData = jsonDecode(response.body)['data'] ?? [];
-        });
+        setState(() => promoData = jsonDecode(response.body)['data'] ?? []);
       }
-    } catch (e) {
-      debugPrint("Error fetching promos: $e");
-    }
+    } catch (e) {}
   }
 
   Future<void> fetchGaleri() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/galeri'));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          galeriData = data['data'] ?? [];
-        });
+        setState(() => galeriData = jsonDecode(response.body)['data'] ?? []);
         if (galeriData.isNotEmpty) _startAutoSlide();
       }
-    } catch (e) {
-      debugPrint("Error fetching galeri: $e");
-    }
+    } catch (e) {}
   }
 
   void _startAutoSlide() {
-    _timer = Timer.periodic(const Duration(seconds: 10), (Timer timer) {
-      if (_currentPage < galeriData.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(_currentPage, duration: const Duration(milliseconds: 900), curve: Curves.easeInOut);
+    _galeriTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_galeriController.hasClients && galeriData.isNotEmpty) {
+        _currentGaleriPage = (_currentGaleriPage + 1) % galeriData.length;
+        _galeriController.animateToPage(_currentGaleriPage, 
+            duration: const Duration(milliseconds: 800), curve: Curves.easeInOut);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Ambil nama program (Misal: CALON ABDI NEGARA)
+    String namaProgram = widget.userData['student']?['class_model']?['nama_program'] ?? 
+                         widget.userData['nama_program'] ?? "Layanan Spekta";
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // --- HEADER MERAH ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 35),
-              decoration: BoxDecoration(
-                color: spektaRed,
-                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(35), bottomRight: Radius.circular(35)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("Hai, ${widget.userName}", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                  const Row(
-                    children: [
-                      Icon(Icons.notifications_none, color: Colors.white),
-                      SizedBox(width: 15),
-                      Icon(Icons.bookmark_border, color: Colors.white),
-                    ],
-                  )
-                ],
-              ),
-            ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          fetchMateri();
+          fetchGaleri();
+          fetchPromos();
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildHeader(),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 25.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- 1. LAYANAN SPEKTA ---
-                  const Text("Layanan Spekta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildMenuIcon(Icons.play_circle_fill, "Materi", Colors.purple),
-                      _buildMenuIcon(Icons.edit_document, "Ujian", Colors.orange),
-                      _buildMenuIcon(Icons.bolt, "Latihan", Colors.indigo),
-                      _buildMenuIcon(Icons.emoji_events, "Try-Out", Colors.amber),
-                    ],
-                  ),
+              // --- 1. GALERI (PALING ATAS) ---
+              if (galeriData.isNotEmpty) _buildGallerySlider(),
 
-                  const SizedBox(height: 35),
-
-                  // --- 2. SECTION PROMO DINAMIS ---
-                  if (promoData.isNotEmpty) ...[
-                    const Text("Promo Spesial Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 25.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- 2. MATERI (TENGAH - RUANGGURU STYLE) ---
+                    Text(namaProgram, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 15),
-                    SizedBox(
-                      height: 160,
-                      child: PageView.builder(
-                        controller: _promoController,
-                        itemCount: promoData.length,
-                        itemBuilder: (context, index) {
-                          var p = promoData[index];
-                          return InkWell(
-                            onTap: () {
-                              // MODIFIKASI: ARAHKAN KE HALAMAN PENDAFTARAN PROMO
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PendaftaranKelasPromoPage(
-                                    classId: p['class_id'],
-                                    className: p['class_model']['nama_program'],
-                                    token: widget.token,
-                                    userData: widget.userData,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 5),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                image: DecorationImage(
-                                  image: NetworkImage('http://10.0.2.2:8000/view-galeri/${p['image_banner'].split('/').last}'),
-                                  fit: BoxFit.cover
-                                ),
-                                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 3))]
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                    _buildMateriGrid(),
 
-                  const SizedBox(height: 35),
+                    const SizedBox(height: 35),
 
-                  // --- 3. SECTION GALERI KEGIATAN ---
-                  if (galeriData.isNotEmpty) ...[
-                    const Center(child: Text("Kegiatan Spekta Terbaru", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      height: 240,
-                      child: PageView.builder(
-                        controller: _pageController,
-                        itemCount: galeriData.length,
-                        onPageChanged: (index) => _currentPage = index,
-                        itemBuilder: (context, index) {
-                          var item = galeriData[index];
-                          String imageUrl = 'http://10.0.2.2:8000/view-galeri/${item['foto'].split('/').last}';
-                          return Column(
-                            children: [
-                              Text(item['judul'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF990000)), textAlign: TextAlign.center),
-                              const SizedBox(height: 12),
-                              Expanded(
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, 4))],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 40, color: Colors.grey)),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+                    // --- 3. PROMO (BAWAH) ---
+                    if (promoData.isNotEmpty) ...[
+                      const Text("Promo Spesial Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 15),
+                      _buildPromoSlider(),
+                    ],
+                    const SizedBox(height: 30),
                   ],
-                  const SizedBox(height: 20),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMenuIcon(IconData icon, String label, Color color) {
+  // --- SUB-WIDGET UI ---
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 30),
+      decoration: BoxDecoration(
+        color: spektaRed,
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("Hai, ${widget.userName}", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGallerySlider() {
+    return Container(
+      height: 180,
+      margin: const EdgeInsets.only(top: 20),
+      child: PageView.builder(
+        controller: _galeriController,
+        itemCount: galeriData.length,
+        itemBuilder: (context, index) {
+          var item = galeriData[index];
+          String imgUrl = 'http://10.0.2.2:8000/view-galeri/${item['foto'].split('/').last}';
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15), 
+              color: Colors.grey[200],
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)]
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.network(imgUrl, fit: BoxFit.cover, 
+                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.grey))),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMateriGrid() {
+    if (isLoadingMateri) return const Center(child: CircularProgressIndicator());
+
+    // Gabungkan Materi DB + Item Statis (Latihan/Tryout)
+    List displayItems = List.from(materiData);
+    displayItems.add({'title': 'Latihan Soal'});
+    displayItems.add({'title': 'Try-Out'});
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4, mainAxisSpacing: 20, crossAxisSpacing: 10, childAspectRatio: 0.75
+      ),
+      itemCount: displayItems.length,
+      itemBuilder: (context, index) {
+        var item = displayItems[index];
+        return _buildSubjectIcon(item['title']);
+      },
+    );
+  }
+
+  Widget _buildSubjectIcon(String title) {
+    IconData icon = Icons.book;
+    Color color = Colors.blue;
+
+    // Logika Ikon & Warna Bergaya Ruangguru
+    if (title.contains("Matematika")) { icon = Icons.calculate; color = Colors.blue; }
+    else if (title.contains("TIU") || title.contains("Psikotes")) { icon = Icons.psychology; color = Colors.orange; }
+    else if (title.contains("Fisika")) { icon = Icons.bolt; color = Colors.pink; }
+    else if (title.contains("Inggris")) { icon = Icons.language; color = Colors.indigo; }
+    else if (title.contains("Biologi")) { icon = Icons.biotech; color = Colors.green; }
+    else if (title.contains("Latihan")) { icon = Icons.edit_note; color = Colors.redAccent; }
+    else if (title.contains("Try-Out")) { icon = Icons.emoji_events; color = Colors.amber; }
+
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(18)),
-          child: Icon(icon, color: color, size: 30),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12), 
+            borderRadius: BorderRadius.circular(18)
+          ),
+          child: Icon(icon, color: color, size: 28),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
+        Text(
+          title.replaceAll("Materi ", ""), 
+          textAlign: TextAlign.center, 
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), 
+          maxLines: 2,
+        ),
       ],
+    );
+  }
+
+  Widget _buildPromoSlider() {
+    return SizedBox(
+      height: 140,
+      child: PageView.builder(
+        controller: _promoController,
+        itemCount: promoData.length,
+        itemBuilder: (context, index) {
+          var p = promoData[index];
+          String imgUrl = 'http://10.0.2.2:8000/view-galeri/${p['image_banner'].split('/').last}';
+          return InkWell(
+            onTap: () {
+               Navigator.push(context, MaterialPageRoute(builder: (c) => PendaftaranKelasPromoPage(
+                classId: p['class_id'],
+                className: p['class_model']['nama_program'],
+                token: widget.token,
+                userData: widget.userData,
+              )));
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                image: DecorationImage(image: NetworkImage(imgUrl), fit: BoxFit.cover),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
