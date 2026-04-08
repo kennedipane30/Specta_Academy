@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PromoController; // Import Controller Promo Admin
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
+use App\Http\Controllers\Pengajar\LatihanSoalController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 
@@ -85,6 +86,10 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/soal-tryout', [TryoutController::class, 'buatSoal'])->name('tryout.create');
     Route::post('/soal-tryout/import', [TryoutController::class, 'importSoal'])->name('tryout.import');
     Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('tryout.nilai');
+
+    Route::get('/latihan', [LatihanSoalController::class, 'index'])->name('latihan.index');
+Route::get('/latihan/pilih/{class_id}', [LatihanSoalController::class, 'pilihLatihan'])->name('latihan.pilih');
+Route::post('/latihan/upload/{class_id}', [LatihanSoalController::class, 'storeCSV'])->name('latihan.store');
 });
 
 // Jalur tampilan foto tanpa Symlink
@@ -95,3 +100,4 @@ Route::get('/view-galeri/{filename}', function ($filename) {
     $type = Storage::mimeType($path);
     return Response::make($file, 200)->header("Content-Type", $type);
 });
+

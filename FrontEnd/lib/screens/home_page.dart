@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+// IMPORT HALAMAN FITUR
+import 'fitur/tentang_spekta_page.dart';
+import 'fitur/info_program_page.dart';
+import 'fitur/hubungi_kami_page.dart';
+import 'fitur/semua_fitur_page.dart';
 import 'pendaftaran_kelas_promo_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,9 +31,7 @@ class _HomePageState extends State<HomePage> {
   
   List galeriData = [];
   List promoData = []; 
-  List materiData = []; 
-  bool isLoadingMateri = true;
-
+  
   late PageController _galeriController;
   late PageController _promoController; 
   int _currentGaleriPage = 0;
@@ -41,7 +45,6 @@ class _HomePageState extends State<HomePage> {
     
     fetchGaleri();
     fetchPromos(); 
-    fetchMateri(); 
   }
 
   @override
@@ -54,52 +57,15 @@ class _HomePageState extends State<HomePage> {
 
   // --- AMBIL DATA DARI API ---
 
-  Future<void> fetchMateri() async {
-    try {
-      // DEBUG: Sangat penting! Cek isi userData di console VS Code
-      debugPrint("DEBUG FULL USERDATA: ${widget.userData}");
-
-      // Berdasarkan api.php -> user.load('student'), id_kelas biasanya ada di sini:
-      var classId = widget.userData['student']?['class_id'] ?? 
-                    widget.userData['class_id'] ?? 
-                    widget.userData['id_kelas'];
-
-      debugPrint("ID KELAS TERDETEKSI: $classId");
-
-      if (classId == null) {
-        setState(() => isLoadingMateri = false);
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/materials?class_id=$classId'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          materiData = jsonDecode(response.body)['data'] ?? [];
-          isLoadingMateri = false;
-        });
-      } else {
-        setState(() => isLoadingMateri = false);
-      }
-    } catch (e) {
-      debugPrint("Error Fetch Materi: $e");
-      setState(() => isLoadingMateri = false);
-    }
-  }
-
   Future<void> fetchPromos() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/promos'));
       if (response.statusCode == 200) {
         setState(() => promoData = jsonDecode(response.body)['data'] ?? []);
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Error Promo: $e");
+    }
   }
 
   Future<void> fetchGaleri() async {
@@ -109,65 +75,62 @@ class _HomePageState extends State<HomePage> {
         setState(() => galeriData = jsonDecode(response.body)['data'] ?? []);
         if (galeriData.isNotEmpty) _startAutoSlide();
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Error Galeri: $e");
+    }
   }
 
   void _startAutoSlide() {
     _galeriTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_galeriController.hasClients && galeriData.isNotEmpty) {
         _currentGaleriPage = (_currentGaleriPage + 1) % galeriData.length;
-        _galeriController.animateToPage(_currentGaleriPage, 
-            duration: const Duration(milliseconds: 800), curve: Curves.easeInOut);
+        _galeriController.animateToPage(
+          _currentGaleriPage, 
+          duration: const Duration(milliseconds: 800), 
+          curve: Curves.easeInOut
+        );
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Ambil nama program (Misal: CALON ABDI NEGARA)
-    String namaProgram = widget.userData['student']?['class_model']?['nama_program'] ?? 
-                         widget.userData['nama_program'] ?? "Layanan Spekta";
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          fetchMateri();
-          fetchGaleri();
-          fetchPromos();
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // --- HEADER ---
+            _buildHeader(),
 
-              // --- 1. GALERI (PALING ATAS) ---
-              if (galeriData.isNotEmpty) _buildGallerySlider(),
+            // --- 1. GALERI (DI ATAS) ---
+            if (galeriData.isNotEmpty) _buildGallerySlider(),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 25.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- 2. MATERI (TENGAH - RUANGGURU STYLE) ---
-                    Text(namaProgram, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30), // JARAK DARI GALERI KE JUDUL IKON
+
+                  // --- 2. MENU GRID (TENGAH) ---
+                  const Text("Layanan Spekta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 15),
+                  _buildMainMenuGrid(),
+
+                  const SizedBox(height: 30), // JARAK DARI IKON KE JUDUL PROMO (DISAMAKAN)
+
+                  // --- 3. PROMO (BAWAH) ---
+                  if (promoData.isNotEmpty) ...[
+                    const Text("Promo Spesial Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 15),
-                    _buildMateriGrid(),
-
-                    const SizedBox(height: 35),
-
-                    // --- 3. PROMO (BAWAH) ---
-                    if (promoData.isNotEmpty) ...[
-                      const Text("Promo Spesial Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 15),
-                      _buildPromoSlider(),
-                    ],
-                    const SizedBox(height: 30),
+                    _buildPromoSlider(),
                   ],
-                ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -186,7 +149,13 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("Hai, ${widget.userName}", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Selamat Datang,", style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(widget.userName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            ],
+          ),
           const Icon(Icons.notifications_none, color: Colors.white, size: 28),
         ],
       ),
@@ -208,12 +177,12 @@ class _HomePageState extends State<HomePage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15), 
               color: Colors.grey[200],
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)]
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, 4))]
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.network(imgUrl, fit: BoxFit.cover, 
-                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.grey))),
+                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey))),
             ),
           );
         },
@@ -221,65 +190,59 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMateriGrid() {
-    if (isLoadingMateri) return const Center(child: CircularProgressIndicator());
-
-    // Gabungkan Materi DB + Item Statis (Latihan/Tryout)
-    List displayItems = List.from(materiData);
-    displayItems.add({'title': 'Latihan Soal'});
-    displayItems.add({'title': 'Try-Out'});
+  Widget _buildMainMenuGrid() {
+    final List<Map<String, dynamic>> homeMenus = [
+      {'title': 'Tentang Spekta', 'icon': Icons.info_outline, 'color': Colors.blue, 'page': const TentangSpektaPage()},
+      {'title': 'Abdi Negara', 'icon': Icons.security, 'color': Colors.red, 'page': const InfoProgramPage(title: 'Abdi Negara')},
+      {'title': 'PTN / UNHAN', 'icon': Icons.school, 'color': Colors.orange, 'page': const InfoProgramPage(title: 'PTN / UNHAN')},
+      {'title': 'SMA Favorit', 'icon': Icons.star_outline, 'color': Colors.purple, 'page': const InfoProgramPage(title: 'SMA Favorit')},
+      {'title': 'SMA/SMP Reguler', 'icon': Icons.book_outlined, 'color': Colors.green, 'page': const InfoProgramPage(title: 'SMP/SMA Reguler')},
+      {'title': 'Lihat Semua', 'icon': Icons.apps, 'color': Colors.grey, 'page': const SemuaFiturPage()},
+    ];
 
     return GridView.builder(
       shrinkWrap: true,
+      padding: EdgeInsets.zero, // Menghilangkan padding bawaan grid
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4, mainAxisSpacing: 20, crossAxisSpacing: 10, childAspectRatio: 0.75
+        crossAxisCount: 3, 
+        mainAxisSpacing: 10,     
+        crossAxisSpacing: 10, 
+        childAspectRatio: 1.0,  // Diatur 1.0 agar kotak simetris dan rapat
       ),
-      itemCount: displayItems.length,
+      itemCount: 6, 
       itemBuilder: (context, index) {
-        var item = displayItems[index];
-        return _buildSubjectIcon(item['title']);
-      },
-    );
-  }
-
-  Widget _buildSubjectIcon(String title) {
-    IconData icon = Icons.book;
-    Color color = Colors.blue;
-
-    // Logika Ikon & Warna Bergaya Ruangguru
-    if (title.contains("Matematika")) { icon = Icons.calculate; color = Colors.blue; }
-    else if (title.contains("TIU") || title.contains("Psikotes")) { icon = Icons.psychology; color = Colors.orange; }
-    else if (title.contains("Fisika")) { icon = Icons.bolt; color = Colors.pink; }
-    else if (title.contains("Inggris")) { icon = Icons.language; color = Colors.indigo; }
-    else if (title.contains("Biologi")) { icon = Icons.biotech; color = Colors.green; }
-    else if (title.contains("Latihan")) { icon = Icons.edit_note; color = Colors.redAccent; }
-    else if (title.contains("Try-Out")) { icon = Icons.emoji_events; color = Colors.amber; }
-
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12), 
-            borderRadius: BorderRadius.circular(18)
+        var item = homeMenus[index];
+        return InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => item['page'])),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: item['color'].withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(item['icon'], color: item['color'], size: 30),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item['title'], 
+                textAlign: TextAlign.center, 
+                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, height: 1.2),
+                maxLines: 2,
+              ),
+            ],
           ),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title.replaceAll("Materi ", ""), 
-          textAlign: TextAlign.center, 
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), 
-          maxLines: 2,
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildPromoSlider() {
     return SizedBox(
-      height: 140,
+      height: 150,
       child: PageView.builder(
         controller: _promoController,
         itemCount: promoData.length,

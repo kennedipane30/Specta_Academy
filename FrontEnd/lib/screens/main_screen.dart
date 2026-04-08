@@ -5,15 +5,15 @@ import 'kelas_page.dart';
 import 'akun_page.dart';
 
 class MainScreen extends StatefulWidget {
-  final String userName; 
-  final String token; 
+  final String userName;
+  final String token;
   final Map userProfileData;
 
   const MainScreen({
-    super.key, 
-    required this.userName, 
+    super.key,
+    required this.userName,
     required this.token,
-    required this.userProfileData
+    required this.userProfileData,
   });
 
   @override
@@ -24,143 +24,120 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final Color spektaRed = const Color(0xFF990000);
 
-  // Fungsi navigasi
+  // Daftar halaman disimpan agar tidak reload setiap kali pindah tab
+  late List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(
+        userName: widget.userName,
+        token: widget.token,
+        userData: widget.userProfileData,
+      ),
+      KelasPage(token: widget.token, userData: widget.userProfileData),
+      JadwalPage(token: widget.token),
+      AkunPage(token: widget.token, userData: widget.userProfileData),
+    ];
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  Widget _getBody() {
-    switch (_selectedIndex) {
-      case 0: 
-        // MODIFIKASI: Mengirim data lengkap ke HomePage agar Promo bisa jalan
-        return HomePage(
-          userName: widget.userName, 
-          token: widget.token, 
-          userData: widget.userProfileData
-        );
-      case 1: 
-        return KelasPage(token: widget.token, userData: widget.userProfileData);
-      case 2: 
-        return JadwalPage(token: widget.token);
-      case 3: 
-        return AkunPage(token: widget.token, userData: widget.userProfileData);
-      default: 
-        return HomePage(
-          userName: widget.userName, 
-          token: widget.token, 
-          userData: widget.userProfileData
-        );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Properti ini agar body memenuhi layar sampai bawah lekukan
-      extendBody: true, 
-      body: _getBody(),
+      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu tipis yang bersih
+      // IndexedStack menjaga state/posisi scroll di setiap halaman
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
 
-      // --- TOMBOL TOGA MERAH UTAMA (FLOATING) ---
-      floatingActionButton: Container(
-        height: 70,
-        width: 70,
+      // --- BOTTOM NAVIGATION BAR PROFESIONAL ---
+      bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: spektaRed,
-          shape: BoxShape.circle,
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
           boxShadow: [
             BoxShadow(
-              color: spektaRed.withOpacity(0.4),
-              spreadRadius: 4,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
           ],
-          border: Border.all(color: Colors.white, width: 4), // Border putih agar premium
         ),
-        child: FloatingActionButton(
-          onPressed: () {
-            // Aksi utama: misal masuk ke menu belajar cepat
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(backgroundColor: Color(0xFF990000), content: Text("🎓 Mulai Belajar di Spekta Academy!")),
-            );
-          },
-          backgroundColor: Colors.transparent, // Mengikuti container
-          elevation: 0,
-          highlightElevation: 0,
-          child: const Icon(
-            Icons.school_rounded, // Ikon Toga Wisuda
-            color: Colors.white,
-            size: 35,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      // --- BOTTOM APP BAR DENGAN LUBANG (NOTCH) ---
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(), // Membuat lekukan bulat
-        notchMargin: 10.0, // Jarak lubang dengan tombol Toga
-        color: Colors.white,
-        elevation: 15,
-        child: Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // SISI KIRI: Beranda & Kelas
-              Row(
-                children: [
-                  _buildNavItem(0, Icons.grid_view_rounded, "Beranda"),
-                  _buildNavItem(1, Icons.auto_stories_rounded, "Kelas"),
-                ],
-              ),
-              
-              const SizedBox(width: 40), // Jarak kosong untuk Toga di tengah
-
-              // SISI KANAN: Jadwal & Akun
-              Row(
-                children: [
-                  _buildNavItem(2, Icons.calendar_month_rounded, "Jadwal"),
-                  _buildNavItem(3, Icons.account_circle_rounded, "Akun"),
-                ],
-              ),
-            ],
+        child: SafeArea(
+          child: Container(
+            height: 75,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.grid_view_rounded, "Beranda"),
+                _buildNavItem(1, Icons.auto_stories_rounded, "Kelas"),
+                _buildNavItem(2, Icons.calendar_month_rounded, "Jadwal"),
+                _buildNavItem(3, Icons.person_rounded, "Akun"),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // Widget Pembantu untuk Navigasi Bar
+  // Widget Pembantu untuk Navigasi Bar dengan Indikator
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
-    return MaterialButton(
-      minWidth: 40,
-      splashColor: Colors.transparent, 
-      highlightColor: Colors.transparent,
-      onPressed: () => _onItemTapped(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 26,
-            color: isSelected ? spektaRed : Colors.grey.shade400,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? spektaRed : Colors.grey.shade400,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+    
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Ikon dengan animasi perubahan ukuran kecil
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                icon,
+                size: isSelected ? 28 : 24,
+                color: isSelected ? spektaRed : Colors.grey.shade400,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? spektaRed : Colors.grey.shade400,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Indikator garis kecil di bawah menu yang aktif
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: 3,
+              width: isSelected ? 20 : 0,
+              decoration: BoxDecoration(
+                color: spektaRed,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

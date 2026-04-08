@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spekta Academy - @yield('title')</title>
 
-    <!-- Google Fonts: Montserrat untuk kesan profesional -->
+    <!-- Google Fonts: Montserrat -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -14,12 +14,10 @@
         .bg-spekta { background: linear-gradient(180deg, #990000 0%, #700000 100%); }
         .text-spekta { color: #990000; }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #990000; border-radius: 10px; }
 
-        /* Menu Animation */
         .nav-link { transition: all 0.3s ease; position: relative; overflow: hidden; }
         .nav-link:hover { padding-left: 1.75rem; background: rgba(255, 255, 255, 0.1); }
         .nav-link.active { background: rgba(255, 255, 255, 0.15); border-right: 4px solid #fbbf24; }
@@ -33,7 +31,6 @@
 
         <!-- SIDEBAR -->
         <div class="w-72 bg-spekta text-white flex-shrink-0 shadow-2xl flex flex-col">
-            <!-- LOGO SECTION -->
             <div class="p-8 flex flex-col items-center border-b border-white/10">
                 <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-lg">
                     <span class="text-spekta font-black text-3xl">S</span>
@@ -42,7 +39,6 @@
                 <p class="text-[10px] font-medium tracking-[0.4em] opacity-60 uppercase mt-1">Academy</p>
             </div>
 
-            <!-- NAVIGATION -->
             <nav class="flex-1 mt-6 overflow-y-auto px-4 space-y-1 pb-10">
                 <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-4 mb-2">Main Menu</p>
 
@@ -103,6 +99,11 @@
                         <span class="mr-3 text-lg">📚</span> Upload Materi
                     </a>
 
+                    <!-- MODIFIKASI: MENU LATIHAN SOAL -->
+                    <a href="{{ route('pengajar.latihan.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">📖</span> Latihan Soal
+                    </a>
+
                     <div class="relative">
                         <button onclick="toggleTryoutDropdown()" class="nav-link w-full flex justify-between items-center py-3 px-4 rounded-xl focus:outline-none">
                             <span class="flex items-center"><span class="mr-3 text-lg">⏱️</span> Input Soal TO</span>
@@ -121,15 +122,12 @@
                 @endif
             </nav>
 
-            <!-- FOOTER SIDEBAR -->
             <div class="p-6 text-center text-[10px] opacity-40 font-bold uppercase tracking-widest border-t border-white/10">
                 Spekta Academy &copy; {{ date('Y') }}
             </div>
         </div>
 
-        <!-- MAIN CONTENT -->
         <div class="flex-1 flex flex-col bg-gray-50">
-            <!-- HEADER -->
             <header class="bg-white shadow-sm px-10 py-5 flex justify-between items-center border-b border-gray-100">
                 <h2 class="font-extrabold text-gray-800 uppercase tracking-widest text-sm">@yield('title')</h2>
 
@@ -139,7 +137,7 @@
                             <p class="text-sm font-black text-gray-800">{{ Auth::user()->name }}</p>
                             <span class="text-[9px] font-bold text-spekta bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-tighter">{{ Auth::user()->role->name }}</span>
                         </div>
-                        <div class="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-red-100 flex items-center justify-center font-bold text-gray-500">
+                        <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                     </div>
@@ -154,7 +152,6 @@
                 </div>
             </header>
 
-            <!-- CONTENT AREA -->
             <main class="p-10 overflow-y-auto pb-32">
                 <div class="max-w-7xl mx-auto">
                     @yield('content')
@@ -177,7 +174,6 @@
             document.getElementById('tryout-arrow').classList.toggle('rotate-180');
         }
 
-        // Script untuk Auto-Highlight menu aktif
         window.onload = function() {
             const currentUrl = window.location.href;
             const navLinks = document.querySelectorAll('.nav-link');
@@ -191,6 +187,9 @@
             if (currentUrl.includes('admin/siswa')) toggleSiswaDropdown();
             if (currentUrl.includes('pengajar/absensi')) togglePengajarDropdown();
             if (currentUrl.includes('pengajar/tryout')) toggleTryoutDropdown();
+            if (currentUrl.includes('pengajar/latihan')) {
+                // Opsional jika Anda membuat dropdown untuk latihan soal
+            }
         }
     </script>
 </body>
