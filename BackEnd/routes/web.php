@@ -8,11 +8,14 @@ use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\ManajemenSiswaController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
-use App\Http\Controllers\Admin\PromoController; // Import Controller Promo Admin
+use App\Http\Controllers\Admin\PromoController;
+use App\Http\Controllers\Admin\AlumniController;
+
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
 use App\Http\Controllers\Pengajar\LatihanSoalController;
+
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,11 +56,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/tambah-kelas/proses/{id}', [ManajemenSiswaController::class, 'prosesAktivasi'])->name('proses_aktivasi');
     });
 
+    // Manajemen Alumni
+    Route::get('/alumni', [AlumniController::class, 'index'])->name('alumni.index');
+    Route::post('/alumni', [AlumniController::class, 'store'])->name('alumni.store');
+    Route::delete('/alumni/{id}', [AlumniController::class, 'destroy'])->name('alumni.destroy');
+    Route::get('/alumni/edit/{id}', [AlumniController::class, 'edit'])->name('alumni.edit');
+    Route::put('/alumni/update/{id}', [AlumniController::class, 'update'])->name('alumni.update');
+
     // Keuangan & Verifikasi Pembayaran
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
 
-    // MODIFIKASI: Manajemen Promo (Hanya satu set rute yang aktif)
+    // Manajemen Promo
     Route::get('/promo', [PromoController::class, 'index'])->name('promo.index');
     Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
     Route::delete('/promo/{id}', [PromoController::class, 'destroy'])->name('promo.destroy');
@@ -75,24 +85,26 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
 
-    // Materi (Hanya baris upload yang diubah parameternya)
+    // Materi
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
-
-    // PERBAIKAN: Ganti {material_id} menjadi {class_id}
     Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
 
-    // Tryout
-    Route::get('/soal-tryout', [TryoutController::class, 'buatSoal'])->name('tryout.create');
-    Route::post('/soal-tryout/import', [TryoutController::class, 'importSoal'])->name('tryout.import');
-    Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('tryout.nilai');
+    // Tryout (MODIFIKASI: Menambahkan route Nilai agar tidak error)
+    Route::prefix('tryout')->name('tryout.')->group(function() {
+        Route::get('/', [TryoutController::class, 'index'])->name('index');
+        Route::get('/pilih/{class_id}', [TryoutController::class, 'buatSoal'])->name('pilih');
+        Route::post('/import', [TryoutController::class, 'importSoal'])->name('import'); // Sesuaikan method controller
+        Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai'); // ROUTE YANG TADI KURANG
+    });
 
+    // Latihan Soal
     Route::get('/latihan', [LatihanSoalController::class, 'index'])->name('latihan.index');
-Route::get('/latihan/pilih/{class_id}', [LatihanSoalController::class, 'pilihLatihan'])->name('latihan.pilih');
-Route::post('/latihan/upload/{class_id}', [LatihanSoalController::class, 'storeCSV'])->name('latihan.store');
+    Route::get('/latihan/pilih/{class_id}', [LatihanSoalController::class, 'pilihLatihan'])->name('latihan.pilih');
+    Route::post('/latihan/upload/{class_id}', [LatihanSoalController::class, 'storeCSV'])->name('latihan.store');
 });
 
-// Jalur tampilan foto tanpa Symlink
+// Jalur tampilan foto
 Route::get('/view-galeri/{filename}', function ($filename) {
     $path = 'public/galeri/' . $filename;
     if (!Storage::exists($path)) abort(404);
@@ -100,4 +112,3 @@ Route::get('/view-galeri/{filename}', function ($filename) {
     $type = Storage::mimeType($path);
     return Response::make($file, 200)->header("Content-Type", $type);
 });
-

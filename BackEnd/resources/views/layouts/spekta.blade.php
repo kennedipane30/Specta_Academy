@@ -74,15 +74,14 @@
                     <a href="{{ route('admin.galeri.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🖼️</span> Galeri & Info
                     </a>
+                    <a href="{{ route('admin.alumni.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">🎓</span> Manajemen Alumni
+                    </a>
 
                 @elseif(Auth::user()->role_id == 2) <!-- MENU PENGAJAR -->
                     <a href="{{ route('pengajar.dashboard') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
-                    <a href="{{ route('pengajar.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">📅</span> Jadwal Mengajar
-                    </a>
-
                     <div class="relative">
                         <button onclick="togglePengajarDropdown()" class="nav-link w-full flex justify-between items-center py-3 px-4 rounded-xl focus:outline-none">
                             <span class="flex items-center"><span class="mr-3 text-lg">📝</span> Absensi Siswa</span>
@@ -95,26 +94,23 @@
                         </div>
                     </div>
 
+                    <a href="{{ route('pengajar.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">📅</span> Jadwal Mengajar
+                    </a>
+
+
                     <a href="{{ route('pengajar.materi.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📚</span> Upload Materi
                     </a>
 
-                    <!-- MODIFIKASI: MENU LATIHAN SOAL -->
                     <a href="{{ route('pengajar.latihan.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📖</span> Latihan Soal
                     </a>
 
-                    <div class="relative">
-                        <button onclick="toggleTryoutDropdown()" class="nav-link w-full flex justify-between items-center py-3 px-4 rounded-xl focus:outline-none">
-                            <span class="flex items-center"><span class="mr-3 text-lg">⏱️</span> Input Soal TO</span>
-                            <svg id="tryout-arrow" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="tryout-menu" class="hidden mt-1 ml-4 border-l border-white/20 space-y-1">
-                            @foreach(\App\Models\ClassModel::all() as $c)
-                                <a href="{{ route('pengajar.tryout.create', ['class_id' => $c->class_modelsID]) }}" class="dropdown-item block py-2 pl-8 text-[11px] font-bold opacity-80">○ {{ $c->nama_program }}</a>
-                            @endforeach
-                        </div>
-                    </div>
+                    <!-- MODIFIKASI: TRYOUT TANPA DROPDOWN (SAMA SEPERTI LATIHAN) -->
+                    <a href="{{ route('pengajar.tryout.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">⏱️</span> Input Soal TO
+                    </a>
 
                     <a href="{{ route('pengajar.tryout.nilai') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📊</span> Lihat Nilai
@@ -169,10 +165,6 @@
             document.getElementById('pengajar-menu').classList.toggle('hidden');
             document.getElementById('pengajar-arrow').classList.toggle('rotate-180');
         }
-        function toggleTryoutDropdown() {
-            document.getElementById('tryout-menu').classList.toggle('hidden');
-            document.getElementById('tryout-arrow').classList.toggle('rotate-180');
-        }
 
         window.onload = function() {
             const currentUrl = window.location.href;
@@ -186,10 +178,6 @@
 
             if (currentUrl.includes('admin/siswa')) toggleSiswaDropdown();
             if (currentUrl.includes('pengajar/absensi')) togglePengajarDropdown();
-            if (currentUrl.includes('pengajar/tryout')) toggleTryoutDropdown();
-            if (currentUrl.includes('pengajar/latihan')) {
-                // Opsional jika Anda membuat dropdown untuk latihan soal
-            }
         }
     </script>
 </body>

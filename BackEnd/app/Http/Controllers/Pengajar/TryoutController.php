@@ -7,23 +7,32 @@ use App\Models\Tryout;
 use App\Models\Question;
 use App\Models\ClassModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // WAJIB ADA AGAR DB TIDAK MERAH
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class TryoutController extends Controller
 {
     /**
-     * Menampilkan form buat soal
+     * 1. Menampilkan daftar kelas (Pintu masuk utama alur kartu)
      */
-    public function buatSoal(Request $request)
+    public function index()
     {
-        $classId = $request->query('class_id');
-        $class = ClassModel::findOrFail($classId);
+        $classes = ClassModel::all();
+        return view('pengajar.tryout.index', compact('classes'));
+    }
+
+    /**
+     * 2. Menampilkan form buat soal (Setelah pilih kartu kelas)
+     */
+    public function buatSoal($class_id)
+    {
+        // Sekarang menerima parameter ID langsung dari URL
+        $class = ClassModel::findOrFail($class_id);
         return view('pengajar.tryout.create', compact('class'));
     }
 
     /**
-     * Memproses Import Soal dari CSV
+     * 3. Memproses Import Soal dari CSV
      */
     public function importSoal(Request $request)
     {
@@ -42,30 +51,26 @@ class TryoutController extends Controller
             ]);
 
             $file = fopen($request->file('file_csv')->getRealPath(), 'r');
-            fgetcsv($file, 2000, ";"); // Skip header baris 1
+            fgetcsv($file, 2000, ";"); // Skip header
 
-           $count = 0;
-        // Gunakan delimiter ";" sesuai format Excel Indonesia kamu
-        while (($row = fgetcsv($file, 2000, ";")) !== FALSE) {
+            $count = 0;
+            while (($row = fgetcsv($file, 2000, ";")) !== FALSE) {
+                if (!isset($row[1]) || empty(trim($row[1]))) {
+                    continue;
+                }
 
-            // LOGIKA PEMBERSIH:
-            // Jika kolom B (Pertanyaan) kosong, atau baris ini isinya cuma tanda ;;;; maka SKIP!
-            if (!isset($row[1]) || empty(trim($row[1])) || trim($row[1]) == '') {
-                continue;
+                Question::create([
+                    'tryout_id'      => $tryout->tryoutsID,
+                    'question'       => $row[1],
+                    'option_a'       => $row[2] ?? '-',
+                    'option_b'       => $row[3] ?? '-',
+                    'option_c'       => $row[4] ?? '-',
+                    'option_d'       => $row[5] ?? '-',
+                    'correct_answer' => trim(strtoupper($row[6] ?? 'A')),
+                    'explanation'    => $row[7] ?? null,
+                ]);
+                $count++;
             }
-
-            Question::create([
-                'tryout_id'      => $tryout->tryoutsID,
-                'question'       => $row[1],
-                'option_a'       => $row[2] ?? '-',
-                'option_b'       => $row[3] ?? '-',
-                'option_c'       => $row[4] ?? '-',
-                'option_d'       => $row[5] ?? '-',
-                'correct_answer' => trim(strtoupper($row[6] ?? 'A')),
-                'explanation'    => $row[7] ?? null,
-            ]);
-            $count++;
-        }
             fclose($file);
 
             DB::commit();
@@ -76,4 +81,12 @@ class TryoutController extends Controller
             return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
-};
+
+    /**
+     * MODIFIKASI: Menambahkan fungsi lihatNilai agar route 'pengajar.tryout.nilai' berfungsi
+     */
+    public function lihatNilai()
+    {
+        return view('pengajar.tryout.nilai');
+    }
+}

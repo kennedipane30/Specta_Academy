@@ -1,0 +1,37 @@
+@extends('layouts.spekta')
+@section('title', 'Pilih Kelas - Input Soal TO')
+
+@section('content')
+<div class="bg-white p-8 rounded-3xl shadow-md border-t-8 border-[#990000]">
+    <div class="mb-8">
+        <h3 class="text-2xl font-black uppercase text-gray-800 tracking-tight">Pilih Program Tryout</h3>
+        <p class="text-sm text-gray-500 font-medium">Silakan pilih kelas untuk mengunggah soal Tryout (CSV).</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @forelse($classes as $c)
+            <div class="group relative bg-gray-50 rounded-3xl border border-gray-100 overflow-hidden hover:shadow-2xl transition duration-500">
+                <div class="h-32 bg-[#990000] relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full"></div>
+                    <div class="p-6">
+                        <span class="bg-white/20 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Tryout System</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h4 class="text-lg font-black text-gray-800 uppercase leading-tight mb-4 h-12">
+                        {{ $c->nama_program }}
+                    </h4>
+
+                    <a href="{{ route('pengajar.tryout.pilih', $c->class_modelsID) }}"
+                       class="block w-full text-center bg-[#990000] text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-800 transition shadow-lg shadow-red-100">
+                        KELOLA SOAL TO &rarr;
+                    </a>
+                </div>
+            </div>
+        @empty
+            <div class="col-span-full text-center py-20 text-gray-400 italic">Data kelas belum tersedia.</div>
+        @endforelse
+    </div>
+</div>
+@endsection
