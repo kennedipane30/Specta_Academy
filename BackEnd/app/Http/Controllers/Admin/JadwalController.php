@@ -37,6 +37,17 @@ class JadwalController extends Controller {
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal diperbarui!');
     }
 
+    public function getMateri($class_id)
+    {
+        // Mengambil title materi yang ada di class_id tersebut secara unik (distinct)
+        $materi = \App\Models\Material::where('class_id', $class_id)
+                    ->select('title')
+                    ->distinct()
+                    ->get();
+
+        return response()->json($materi);
+    }
+
     public function destroy($id) {
         Schedule::findOrFail($id)->delete();
         return back()->with('success', 'Jadwal dihapus!');

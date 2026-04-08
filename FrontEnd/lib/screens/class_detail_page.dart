@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart'; // MENGGUNAKAN URL LAUNCHER (RINGAN)
+import 'package:url_launcher/url_launcher.dart'; 
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
 
@@ -30,6 +30,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   List materi = [];
   List tryouts = []; 
   bool isLoading = true;
+  bool isShowingMateri = false; 
   final Color spektaRed = const Color(0xFF990000);
 
   @override
@@ -38,7 +39,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
-  // 1. Ambil Konten (Sinkronisasi Database)
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -49,50 +49,211 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             status = data['enroll_status'] ?? "none";
             materi = data['materi'] ?? [];
             tryouts = data['tryouts'] ?? []; 
+            isLoading = false;
           });
         }
       }
     } catch (e) {
-      debugPrint("Error fetch detail: $e");
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  // 2. Fungsi Kirim Data & Upload Bukti ke Laravel
   void _processUpload(File image) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed)),
-    );
-
+    showDialog(context: context, barrierDismissible: false, builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed)));
     try {
       var streamedResp = await AuthService.joinClass(widget.classId, image.path, widget.token);
       var response = await http.Response.fromStream(streamedResp);
-
       if (!mounted) return;
       Navigator.pop(context);
-
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil! Menunggu Verifikasi Admin."))
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil!")));
         _fetchDetail(); 
-      } else {
-        final errorData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Gagal mendaftar"))
-        );
       }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
+    } catch (e) { Navigator.pop(context); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isRegistered = status == 'aktif';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(isShowingMateri ? "Materi Video" : widget.className, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: spektaRed,
+        foregroundColor: Colors.white,
+        leading: isShowingMateri ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => isShowingMateri = false)) : null,
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator(color: spektaRed))
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatusBanner(),
+                  if (isShowingMateri) ...[
+                    _buildMateriList(materi, isRegistered)
+                  ] else ...[
+                    if (tryouts.isNotEmpty) ...[
+                      const Padding(padding: EdgeInsets.only(left: 20, top: 20), child: Text("Simulasi Try-Out", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                      _buildTryoutList(tryouts, isRegistered),
+                    ],
+                    const SizedBox(height: 20),
+                    const Padding(padding: EdgeInsets.only(left: 20), child: Text("Pusat Pembelajaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                    _buildCategoryMenu(
+                      title: "Materi Video Pembelajaran",
+                      subtitle: "Kumpulan video penjelasan expert",
+                      icon: Icons.play_circle_fill,
+                      color: Colors.blue.shade700,
+                      onTap: () => setState(() => isShowingMateri = true),
+                    ),
+                    _buildCategoryMenu(
+                      title: "Latihan Soal Mandiri",
+                      subtitle: "Asah kemampuanmu di sini",
+                      icon: Icons.edit_note_rounded,
+                      color: Colors.orange.shade700,
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fitur Latihan Soal akan segera hadir!"))),
+                    ),
+                  ],
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
+      bottomNavigationBar: !isRegistered && status == 'none' ? _buildBottomAction() : null,
+    );
+  }
+
+  Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+            border: Border.all(color: Colors.grey.shade200)
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+                child: Icon(icon, color: color, size: 30),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTryoutList(List items, bool isRegistered) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: ListTile(
+            leading: Icon(isRegistered ? Icons.assignment : Icons.lock_outline, color: isRegistered ? Colors.orange : Colors.grey),
+            title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            onTap: isRegistered ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutDetailPage(tryoutData: items[index], token: widget.token))) : null,
+          ),
+        );
+      },
+    );
+  }
+
+  // --- PERBAIKAN: Widget List Materi (Menghilangkan Eror EdgeInsets) ---
+  Widget _buildMateriList(List items, bool isRegistered) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return Card(
+          // PERBAIKAN: Gunakan .only(bottom: 12)
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: ListTile(
+            leading: Icon(
+              isRegistered ? Icons.play_circle_fill : Icons.lock_outline, 
+              color: isRegistered ? Colors.green : Colors.grey
+            ),
+            title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            onTap: isRegistered ? () async {
+                var filePath = items[index]['file_path'];
+                if (filePath != null && filePath != "") {
+                   String fileName = filePath.split('/').last;
+                   final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
+                   if (await canLaunchUrl(url)) { await launchUrl(url, mode: LaunchMode.externalApplication); }
+                }
+            } : null,
+          ),
+        );
+      },
+    );
+  }
+
+  // --- PERBAIKAN: Widget Status Banner ---
+  Widget _buildStatusBanner() {
+    if (status == 'pending') {
+      return Container(
+        width: double.infinity, 
+        padding: const EdgeInsets.all(15), 
+        color: Colors.orange[50], 
+        child: const Text("⌛ Menunggu verifikasi admin", textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))
+      );
     }
+    return const SizedBox();
+  }
+
+  // --- PERBAIKAN: Widget Bottom Action (Menghilangkan Eror Const spektaRed) ---
+  Widget _buildBottomAction() {
+    return Container(
+      height: 110, 
+      padding: const EdgeInsets.all(20), 
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3))]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start, 
+            mainAxisAlignment: MainAxisAlignment.center, 
+            children: [
+              const Text("Harga Program", style: TextStyle(color: Colors.grey, fontSize: 12)), 
+              Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))
+            ]
+          ),
+          ElevatedButton(
+            onPressed: _showDaftarForm, 
+            style: ElevatedButton.styleFrom(
+              backgroundColor: spektaRed, 
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
+            ), 
+            child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+          )
+        ]
+      )
+    );
   }
 
   void _showDaftarForm() {
@@ -107,212 +268,39 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 25, right: 25, top: 25),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Konfirmasi Pendaftaran", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Divider(),
-                _buildField(nameController, "Nama Pendaftar", Icons.person, true),
-                _buildField(nisnController, "NISN Anda", Icons.numbers, true),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.red.shade200)),
-                  child: Column(
-                    children: [
-                      const Text("Silakan transfer ke Rekening Pusat:", style: TextStyle(fontSize: 12)),
-                      Text("BANK MANDIRI: 123-456-7890", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: spektaRed)),
-                      const Text("a/n Spekta Academy Indonesia", style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                InkWell(
-                  onTap: () async {
-                    final picker = ImagePicker();
-                    final picked = await picker.pickImage(source: ImageSource.gallery);
-                    if (picked != null) setModalState(() => _imageFile = File(picked.path));
-                  },
-                  child: Container(
-                    height: 150, width: double.infinity,
-                    decoration: BoxDecoration(color: Colors.grey[100]!, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
-                    child: _imageFile == null 
-                      ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate, size: 40, color: spektaRed), const Text("Klik Upload Bukti Transfer", style: TextStyle(fontSize: 12))])
-                      : ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.file(_imageFile!, fit: BoxFit.cover)),
-                  ),
-                ),
-                const SizedBox(height: 25),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                  onPressed: _imageFile == null ? null : () {
-                    Navigator.pop(context); 
-                    _processUpload(_imageFile!); 
-                  }, 
-                  child: const Text("KONFIRMASI PEMBAYARAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool isRegistered = status == 'aktif';
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(widget.className, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: spektaRed,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator(color: spektaRed))
-          : SingleChildScrollView( 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatusBanner(),
-                  
-                  // --- BAGIAN TRYOUT ---
-                  if (tryouts.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.only(left: 20, top: 20),
-                      child: Text("Simulasi Try-Out", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ),
-                    _buildListContent(tryouts, isRegistered, Icons.assignment, Colors.orange, true),
-                  ],
-
-                  // --- BAGIAN MATERI VIDEO ---
-                  const Padding(
-                    padding: EdgeInsets.only(left: 20, top: 20),
-                    child: Text("Materi Video Pembelajaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                  _buildListContent(materi, isRegistered, Icons.play_circle_fill, Colors.green, false),
-                  
-                  const SizedBox(height: 120), 
-                ],
-              ),
-            ),
-      bottomNavigationBar: !isRegistered && status == 'none'
-          ? _buildBottomAction()
-          : null,
-    );
-  }
-
-  // --- LOGIKA ONTAP DIPERBAIKI AGAR TIDAK EROR "FILE BELUM TERSEDIA" ---
-  Widget _buildListContent(List items, bool isRegistered, IconData activeIcon, Color activeColor, bool isTryout) {
-    if (items.isEmpty) return const Padding(padding: EdgeInsets.all(20), child: Text("Belum ada konten tersedia."));
-    
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      shrinkWrap: true, 
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: ListTile(
-            leading: Icon(
-              isRegistered ? activeIcon : Icons.lock_outline,
-              color: isRegistered ? activeColor : Colors.grey,
-            ),
-            title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(isRegistered ? "Klik untuk akses" : "Akses Terkunci"),
-            onTap: isRegistered ? () async {
-              if (isTryout) {
-                // Navigasi ke Tryout
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (context) => TryoutDetailPage(tryoutData: items[index], token: widget.token)
-                ));
-              } else {
-                // LOGIKA MATERI PDF
-                var filePath = items[index]['file_path'];
-                if (filePath != null && filePath != "") {
-                   String fileName = filePath.split('/').last;
-                   final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
-
-                   if (await canLaunchUrl(url)) {
-                     await launchUrl(url, mode: LaunchMode.externalApplication);
-                   }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(backgroundColor: Colors.orange, content: Text("Maaf, file materi ini belum di-upload."))
-                  );
-                }
-              }
-            } : () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Silakan daftar untuk melihat materi!"))
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStatusBanner() {
-    if (status == 'pending') {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(15),
-        color: Colors.orange[50],
-        child: const Text("⌛ Menunggu verifikasi admin", textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-      );
-    }
-    return const SizedBox();
-  }
-
-  Widget _buildBottomAction() {
-    return Container(
-      height: 110,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -3))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Harga Program", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Form Pendaftaran", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildField(nameController, "Nama", Icons.person, true),
+              _buildField(nisnController, "NISN", Icons.numbers, true),
+              const SizedBox(height: 20),
+              InkWell(
+                onTap: () async {
+                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (picked != null) setModalState(() => _imageFile = File(picked.path));
+                },
+                child: Container(
+                  height: 120, width: double.infinity,
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(15)),
+                  child: _imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(_imageFile!, fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _imageFile == null ? null : () { Navigator.pop(context); _processUpload(_imageFile!); },
+                style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 50)),
+                child: const Text("KONFIRMASI BAYAR", style: TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-            onPressed: _showDaftarForm, 
-            child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          )
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool isReadOnly) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 15),
-      child: TextField(
-        controller: ctrl,
-        readOnly: isReadOnly,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: spektaRed),
-          filled: true,
-          fillColor: isReadOnly ? Colors.grey[100] : Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(top: 15), child: TextField(controller: ctrl, readOnly: isReadOnly, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: spektaRed), filled: true, fillColor: isReadOnly ? Colors.grey[100] : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))));
   }
 }

@@ -41,6 +41,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Manajemen Jadwal & Akun Pengajar
     Route::resource('jadwal', JadwalController::class);
+    Route::get('/get-materi/{class_id}', [App\Http\Controllers\Admin\JadwalController::class, 'getMateri'])->name('jadwal.getMateri');
     Route::resource('manajemen-pengajar', ManajemenPengajarController::class);
 
     // Manajemen Siswa (Hierarkis)
