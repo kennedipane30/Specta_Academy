@@ -48,15 +48,14 @@ class KelasPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
-          // HEADER MODERN YANG LEBIH TIPIS
           SliverAppBar(
-            expandedHeight: 85.0, // <-- DIPERKECIL (Sebelumnya 120)
+            expandedHeight: 85.0,
             floating: false,
             pinned: true,
             elevation: 0,
             backgroundColor: spektaRed,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 14), // Sesuaikan jarak teks
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
               title: const Text(
                 "Pilih Program Kelas",
                 style: TextStyle(
@@ -76,8 +75,6 @@ class KelasPage extends StatelessWidget {
               ),
             ),
           ),
-
-          // LIST PROGRAM
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
             sliver: SliverList(
@@ -92,7 +89,48 @@ class KelasPage extends StatelessWidget {
     );
   }
 
-  // --- Widget Card tetap sama seperti sebelumnya agar konsisten ---
+  // --- FUNGSI NAVIGASI DENGAN PENGECEKAN PROFIL ---
+  void _checkProfileAndNavigate(BuildContext context, Map<String, dynamic> item) {
+    var student = userData['student'];
+    
+    // Cek kelengkapan data siswa
+    bool isComplete = student != null &&
+        student['parent_name'] != "-" &&
+        student['school'] != "-" &&
+        student['wa_ortu'] != "-";
+
+    if (isComplete) {
+      // JIKA LENGKAP -> PINDAH KE DETAIL
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClassDetailPage(
+            classId: item['id'],
+            className: item['name'],
+            token: token,
+            userData: userData,
+          ),
+        ),
+      );
+    } else {
+      // JIKA TIDAK LENGKAP -> TAMPILKAN PERINGATAN
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("Profil Belum Lengkap", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text("Mohon lengkapi data Nama Orang Tua, Sekolah, dan WA Ortu di menu Akun sebelum mendaftar kelas."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OKE", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)),
+            )
+          ],
+        ),
+      );
+    }
+  }
+
   Widget _buildProgramCard(BuildContext context, Map<String, dynamic> item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
@@ -116,7 +154,7 @@ class KelasPage extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 child: Image.asset(
                   item['image'],
-                  height: 180, // Perkecil sedikit tinggi gambar agar tidak terlalu panjang
+                  height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
@@ -144,20 +182,29 @@ class KelasPage extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(item['name'], style: TextStyle(color: spektaDark, fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 15),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [spektaYellow, const Color(0xFFD49E00)]),
+                
+                // --- PERBAIKAN: Tombol dibungkus InkWell ---
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _checkProfileAndNavigate(context, item), // Panggil Fungsi Navigasi
                     borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text("Info Selengkapnya", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                    ],
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [spektaYellow, const Color(0xFFD49E00)]),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text("Info Selengkapnya", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],

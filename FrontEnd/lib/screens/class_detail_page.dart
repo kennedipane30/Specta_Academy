@@ -58,6 +58,16 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
+  // Pesan peringatan jika fitur masih terkunci
+  void _showLockedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.orange,
+        content: Text("⚠️ Fitur Terkunci! Silakan daftar kelas ini terlebih dahulu."),
+      ),
+    );
+  }
+
   void _processUpload(File image) async {
     showDialog(context: context, barrierDismissible: false, builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed)));
     try {
@@ -66,7 +76,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       if (!mounted) return;
       Navigator.pop(context);
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil!")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil! Menunggu Verifikasi Admin.")));
         _fetchDetail(); 
       }
     } catch (e) { Navigator.pop(context); }
@@ -100,19 +110,25 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                     ],
                     const SizedBox(height: 20),
                     const Padding(padding: EdgeInsets.only(left: 20), child: Text("Pusat Pembelajaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                    
+                    // MENU MATERI VIDEO (DENGAN LOGIKA LOCK)
                     _buildCategoryMenu(
                       title: "Materi Video Pembelajaran",
                       subtitle: "Kumpulan video penjelasan expert",
-                      icon: Icons.play_circle_fill,
-                      color: Colors.blue.shade700,
-                      onTap: () => setState(() => isShowingMateri = true),
+                      icon: isRegistered ? Icons.play_circle_fill : Icons.lock_outline,
+                      color: isRegistered ? Colors.blue.shade700 : Colors.grey,
+                      onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
                     ),
+
+                    // MENU LATIHAN SOAL (DENGAN LOGIKA LOCK)
                     _buildCategoryMenu(
                       title: "Latihan Soal Mandiri",
                       subtitle: "Asah kemampuanmu di sini",
-                      icon: Icons.edit_note_rounded,
-                      color: Colors.orange.shade700,
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fitur Latihan Soal akan segera hadir!"))),
+                      icon: isRegistered ? Icons.edit_note_rounded : Icons.lock_outline,
+                      color: isRegistered ? Colors.orange.shade700 : Colors.grey,
+                      onTap: isRegistered 
+                        ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fitur Latihan Soal akan segera hadir!")))
+                        : _showLockedMessage,
                     ),
                   ],
                   const SizedBox(height: 120),
@@ -124,6 +140,9 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
+    // Definisi isRegistered agar tidak error "Undefined name"
+    bool isRegistered = status == 'aktif';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: InkWell(
@@ -149,7 +168,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isRegistered ? Colors.black87 : Colors.grey)),
                     Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
@@ -172,16 +191,25 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
-            leading: Icon(isRegistered ? Icons.assignment : Icons.lock_outline, color: isRegistered ? Colors.orange : Colors.grey),
-            title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            onTap: isRegistered ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutDetailPage(tryoutData: items[index], token: widget.token))) : null,
+            leading: Icon(
+              isRegistered ? Icons.assignment : Icons.lock_outline, 
+              color: isRegistered ? Colors.orange : Colors.grey
+            ),
+            title: Text(items[index]['title'], 
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isRegistered ? Colors.black87 : Colors.grey,
+              )
+            ),
+            onTap: isRegistered 
+              ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutDetailPage(tryoutData: items[index], token: widget.token))) 
+              : _showLockedMessage,
           ),
         );
       },
     );
   }
 
-  // --- PERBAIKAN: Widget List Materi (Menghilangkan Eror EdgeInsets) ---
   Widget _buildMateriList(List items, bool isRegistered) {
     return ListView.builder(
       padding: const EdgeInsets.all(15),
@@ -190,7 +218,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         return Card(
-          // PERBAIKAN: Gunakan .only(bottom: 12)
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
@@ -198,7 +225,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               isRegistered ? Icons.play_circle_fill : Icons.lock_outline, 
               color: isRegistered ? Colors.green : Colors.grey
             ),
-            title: Text(items[index]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(items[index]['title'], 
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                color: isRegistered ? Colors.black87 : Colors.grey,
+              )
+            ),
             onTap: isRegistered ? () async {
                 var filePath = items[index]['file_path'];
                 if (filePath != null && filePath != "") {
@@ -206,14 +238,13 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                    final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
                    if (await canLaunchUrl(url)) { await launchUrl(url, mode: LaunchMode.externalApplication); }
                 }
-            } : null,
+            } : _showLockedMessage,
           ),
         );
       },
     );
   }
 
-  // --- PERBAIKAN: Widget Status Banner ---
   Widget _buildStatusBanner() {
     if (status == 'pending') {
       return Container(
@@ -226,7 +257,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     return const SizedBox();
   }
 
-  // --- PERBAIKAN: Widget Bottom Action (Menghilangkan Eror Const spektaRed) ---
   Widget _buildBottomAction() {
     return Container(
       height: 110, 

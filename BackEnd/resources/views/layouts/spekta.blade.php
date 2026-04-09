@@ -46,11 +46,8 @@
                     <a href="{{ route('admin.dashboard') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
-                    <a href="{{ route('admin.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">📅</span> Jadwal Kelas
-                    </a>
 
-                    <div class="relative">
+                     <div class="relative">
                         <button onclick="toggleSiswaDropdown()" class="nav-link w-full flex justify-between items-center py-3 px-4 rounded-xl focus:outline-none">
                             <span class="flex items-center"><span class="mr-3 text-lg">👥</span> Siswa</span>
                             <svg id="siswa-arrow" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -64,6 +61,11 @@
                             </a>
                         </div>
                     </div>
+                    <a href="{{ route('admin.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">📅</span> Jadwal Kelas
+                    </a>
+
+
 
                     <a href="{{ route('admin.promo.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🎁</span> Kode Promo
