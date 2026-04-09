@@ -11,6 +11,7 @@ class TutorService {
 
   static Future<http.Response> submitTutor(Map<String, dynamic> data, String token) async {
     return await http.post(Uri.parse('$baseUrl/dedicated-tutor/store'), 
-      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}, body: data);
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}, 
+      body: data);
   }
 }

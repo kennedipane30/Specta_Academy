@@ -3,30 +3,60 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB; // Tambahkan ini
+use Illuminate\Support\Facades\Hash; // Tambahkan ini
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // 1. BUAT TABEL ROLES DULU
+        // 1. BUAT TABEL ROLES
         Schema::create('roles', function (Blueprint $table) {
-            $table->id('rolesID'); // Sesuai ERD
+            $table->id('rolesID');
             $table->string('name');
             $table->timestamps();
         });
 
+        // ISI DATA ROLES
+        DB::table('roles')->insert([
+            ['rolesID' => 1, 'name' => 'admin', 'created_at' => now(), 'updated_at' => now()],
+            ['rolesID' => 2, 'name' => 'pengajar', 'created_at' => now(), 'updated_at' => now()],
+            ['rolesID' => 3, 'name' => 'siswa', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
         // 2. BUAT TABEL USERS
-// database/migrations/xxxx_create_users_table.php
-    Schema::create('users', function (Blueprint $table) {
-        $table->id('usersID');
-        $table->string('name')->unique(); // Nama unik untuk login
-        $table->string('email')->unique();
-        $table->string('phone');
-        $table->string('password');
-        $table->boolean('is_verified')->default(false); // Status Verifikasi
-        $table->foreignId('role_id')->constrained('roles', 'rolesID');
-        $table->timestamps();
-    });
+        Schema::create('users', function (Blueprint $table) {
+            $table->id('usersID');
+            $table->string('name')->unique();
+            $table->string('email')->unique();
+            $table->string('phone');
+            $table->string('password');
+            $table->boolean('is_verified')->default(false);
+            $table->foreignId('role_id')->constrained('roles', 'rolesID');
+            $table->timestamps();
+        });
+
+        // ISI DATA USER DEFAULT
+        DB::table('users')->insert([
+            [
+                'name' => 'Admin Spekta',
+                'email' => 'admin@gmail.com',
+                'phone' => '08123456789',
+                'password' => Hash::make('password123'),
+                'is_verified' => true,
+                'role_id' => 1,
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Pak Guru Spekta',
+                'email' => 'guru@gmail.com',
+                'phone' => '08123456788',
+                'password' => Hash::make('password123'),
+                'is_verified' => true,
+                'role_id' => 2,
+                'created_at' => now(), 'updated_at' => now()
+            ]
+        ]);
 
         // 3. TABEL PASSWORD RESET
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -35,7 +65,7 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
         });
 
-        // 4. TABEL SESSIONS (PENTING AGAR TIDAK ERROR 500 LAGI)
+        // 4. TABEL SESSIONS
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();

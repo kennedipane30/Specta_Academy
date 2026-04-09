@@ -23,7 +23,7 @@ class AuthController extends Controller {
         DB::beginTransaction();
         try {
             $user = User::create(['name' => trim($request->name), 'email' => $request->email, 'phone' => $request->nomor_wa, 'password' => bcrypt($request->password), 'role_id' => 3, 'is_verified' => false]);
-            Student::create(['user_id' => $user->usersID, 'school' => '-', 'grade' => '12 IPA', 'dob' => null, 'wa_ortu' => '-', 'parent_name' => '-']);
+            Student::create(['user_id' => $user->usersID, 'school' => '-', 'dob' => null, 'wa_ortu' => '-', 'parent_name' => '-']);
             $otp = rand(100000, 999999);
             OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
             DB::commit();

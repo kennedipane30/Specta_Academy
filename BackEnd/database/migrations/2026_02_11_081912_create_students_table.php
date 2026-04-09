@@ -15,7 +15,6 @@ public function up(): void {
         $table->string('wa_ortu')->nullable();
         $table->string('nisn')->nullable();       // NISN
         $table->date('dob')->nullable();          // Tanggal Lahir
-        $table->string('grade')->default('12 IPA');
         $table->timestamps();
     });
 }

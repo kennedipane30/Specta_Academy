@@ -65,7 +65,10 @@
                         <span class="mr-3 text-lg">📅</span> Jadwal Kelas
                     </a>
 
-
+                    <!-- TAMBAHAN: MENU DEDICATED TUTOR ADMIN -->
+                    <a href="{{ route('admin.tutor.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">🤝</span> Konfirmasi Tutor
+                    </a>
 
                     <a href="{{ route('admin.promo.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🎁</span> Kode Promo
@@ -104,6 +107,10 @@
                         <span class="mr-3 text-lg">📅</span> Jadwal Mengajar
                     </a>
 
+                    <!-- TAMBAHAN: MENU DEDICATED TUTOR PENGAJAR -->
+                    <a href="{{ route('pengajar.tutor.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">🗓️</span> Jadwal Tutor
+                    </a>
 
                     <a href="{{ route('pengajar.materi.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📚</span> Upload Materi
