@@ -2,7 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\GaleriController;
-use App\Http\Controllers\Admin\PromoController; // Import PromoController
+use App\Http\Controllers\Admin\PromoController;
+use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\Material;
@@ -26,6 +27,13 @@ Route::get('/promos', [PromoController::class, 'apiIndex']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
+//Pengumuman 
+Route::get('/announcements', function() {
+    return response()->json([
+        'status' => 'success',
+        'data' => Announcement::latest()->get()
+    ]);
+});
 
 // --- 2. PROTECTED ROUTES (Wajib bawa Token / auth:sanctum) ---
 Route::middleware('auth:sanctum')->group(function () {
@@ -36,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+
 
 
     // --- 3. KHUSUS ROLE SISWA ---

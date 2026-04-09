@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
 use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\AlumniController;
+use App\Http\Controllers\Admin\AnnouncementController;
 
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
@@ -55,6 +56,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/tambah-kelas/aktivasi/{id}', [ManajemenSiswaController::class, 'formAktivasi'])->name('form_aktivasi');
         Route::post('/tambah-kelas/proses/{id}', [ManajemenSiswaController::class, 'prosesAktivasi'])->name('proses_aktivasi');
     });
+
+
+    //pengumuman
+    Route::resource('announcement', AnnouncementController::class);
 
     // Manajemen Alumni
     Route::get('/alumni', [AlumniController::class, 'index'])->name('alumni.index');

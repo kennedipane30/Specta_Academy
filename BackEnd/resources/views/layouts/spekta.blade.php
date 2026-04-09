@@ -73,6 +73,10 @@
                     <a href="{{ route('admin.manajemen-pengajar.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">👨‍🏫</span> Pengajar
                     </a>
+
+                    <a href="{{ route('admin.announcement.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">📢</span> Pengumuman
+                    </a>
                     <a href="{{ route('admin.galeri.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🖼️</span> Galeri & Info
                     </a>
