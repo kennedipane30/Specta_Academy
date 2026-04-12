@@ -3,13 +3,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// --- IMPORT SERVICE & HALAMAN ---
-import '../services/auth_service.dart'; // Pastikan path ini benar
+// --- IMPORT SERVICE ---
+import '../services/auth_service.dart'; 
+
+// --- IMPORT HALAMAN (SESUAI STRUKTUR FOLDER VS CODE ANDA) ---
+// Folder 'fitur' berada di dalam folder yang sama dengan home_page.dart
 import 'fitur/about_academy_page.dart';
 import 'fitur/support_center_page.dart';
 import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
+
+// Halaman di level folder yang sama
 import 'pendaftaran_kelas_promo_page.dart';
 import 'class_detail_page.dart'; 
 
@@ -32,13 +37,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Color spektaRed = const Color(0xFF990000);
   
-  // Data State
   Map? currentData; 
   List galeriData = [];
   List promoData = []; 
   List announcementData = []; 
   bool isEnrolled = false; 
-  bool isLoadingProfile = true;
   
   late PageController _galeriController;
 
@@ -47,28 +50,23 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _galeriController = PageController();
     
-    // 1. Ambil data awal dari login
+    // Inisialisasi data
     currentData = widget.userData;
-    _checkStatusSilently();
+    _updateEnrollmentStatus();
 
-    // 2. Ambil data terbaru dari server (Refresh Profile)
+    // Refresh data
     refreshUserData();
-    
     fetchAnnouncements();
     fetchGaleri();
     fetchPromos(); 
   }
 
-  // --- LOGIKA PENGECEKAN STATUS PENDAFTARAN ---
-  void _checkStatusSilently() {
+  void _updateEnrollmentStatus() {
     if (currentData != null && currentData!['student'] != null) {
       var student = currentData!['student'];
-      // Jika class_id ada, berarti user sudah terdaftar
-      if (student['class_id'] != null) {
-        setState(() => isEnrolled = true);
-      } else {
-        setState(() => isEnrolled = false);
-      }
+      setState(() {
+        isEnrolled = student['class_id'] != null;
+      });
     }
   }
 
@@ -77,8 +75,7 @@ class _HomePageState extends State<HomePage> {
     if (newData != null) {
       setState(() {
         currentData = newData;
-        _checkStatusSilently();
-        isLoadingProfile = false;
+        _updateEnrollmentStatus();
       });
     }
   }
@@ -89,23 +86,29 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // --- API DATA FETCHING ---
+  // --- API FETCHING ---
   Future<void> fetchAnnouncements() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/announcements'));
-      if (response.statusCode == 200) setState(() => announcementData = jsonDecode(response.body)['data'] ?? []);
+      if (response.statusCode == 200) {
+        setState(() => announcementData = jsonDecode(response.body)['data'] ?? []);
+      }
     } catch (e) { debugPrint("Error: $e"); }
   }
 
   Future<void> fetchPromos() async {
     final response = await AuthService.getActivePromos();
-    if (response.statusCode == 200) setState(() => promoData = jsonDecode(response.body)['data'] ?? []);
+    if (response.statusCode == 200) {
+      setState(() => promoData = jsonDecode(response.body)['data'] ?? []);
+    }
   }
 
   Future<void> fetchGaleri() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/galeri'));
-      if (response.statusCode == 200) setState(() => galeriData = jsonDecode(response.body)['data'] ?? []);
+      if (response.statusCode == 200) {
+        setState(() => galeriData = jsonDecode(response.body)['data'] ?? []);
+      }
     } catch (e) { debugPrint("Error: $e"); }
   }
 
@@ -167,7 +170,7 @@ class _HomePageState extends State<HomePage> {
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, mainAxisSpacing: 25, crossAxisSpacing: 15, childAspectRatio: 0.85,
       ),
-      itemCount: 6,
+      itemCount: homeMenus.length,
       itemBuilder: (context, index) {
         var item = homeMenus[index];
         return InkWell(
@@ -175,7 +178,6 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             switch (item['title']) {
               case 'Materi Belajar':
-                // Pengecekan pendaftaran berdasarkan data TERBARU dari server
                 if (isEnrolled && currentData?['student'] != null) {
                   Navigator.push(
                     context,
@@ -189,19 +191,34 @@ class _HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: spektaRed, 
-                      content: const Text("⚠️ Anda belum terdaftar kelas. Silakan daftar dahulu!")
-                    ),
-                  );
+                  _showWarning("⚠️ Anda belum terdaftar kelas. Silakan daftar dahulu!");
                 }
                 break;
-              case 'Bank Soal': Navigator.push(context, MaterialPageRoute(builder: (c) => const QuestionSharingPage())); break;
-              case 'Tentang Spekta': Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); break;
-              case 'Dedicated Tutor': Navigator.push(context, MaterialPageRoute(builder: (c) => const DedicatedTutorPage())); break;
-              case 'Konsultasi': Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); break;
-              case 'Pusat Bantuan': Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); break;
+              
+              case 'Dedicated Tutor':
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (c) => DedicatedTutorPage(
+                      token: widget.token,
+                      userData: currentData ?? widget.userData,
+                    )
+                  )
+                );
+                break;
+
+              case 'Bank Soal': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const QuestionSharingPage())); 
+                break;
+              case 'Tentang Spekta': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); 
+                break;
+              case 'Konsultasi': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); 
+                break;
+              case 'Pusat Bantuan': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); 
+                break;
             }
           },
           child: Column(
@@ -220,7 +237,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- SUB WIDGETS ---
+  void _showWarning(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(backgroundColor: spektaRed, content: Text(message)),
+    );
+  }
+
+  // --- UI HELPER WIDGETS ---
   Widget _buildHeader() {
     return Container(
       width: double.infinity,

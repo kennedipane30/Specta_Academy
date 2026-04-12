@@ -10,9 +10,10 @@ class JadwalTutorController extends Controller
 {
     public function index()
     {
-        // Hanya ambil yang teacher_id nya adalah user yang sedang login & statusnya confirmed
+        // Menggunakan nested eager loading: student.user
+        // Agar bisa ambil nama siswa dari tabel users lewat tabel students
         $jadwal = DedicatedTutor::with(['student.user', 'material'])
-                    ->where('teacher_id', Auth::id())
+                    ->where('teacher_id', Auth::user()->userID) // Gunakan userID sesuai PK Anda
                     ->where('status', 'confirmed')
                     ->orderBy('date', 'asc')
                     ->get();

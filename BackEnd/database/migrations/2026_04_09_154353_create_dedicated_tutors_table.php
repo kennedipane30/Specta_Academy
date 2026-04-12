@@ -9,23 +9,30 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-Schema::create('dedicated_tutors', function (Blueprint $table) {
-    $table->id('dedicated_tutorsID');
-    $table->unsignedBigInteger('student_id'); // Relasi ke studentsID
-    $table->unsignedBigInteger('teacher_id'); // Relasi ke usersID (role pengajar)
-    $table->unsignedBigInteger('material_id'); // Relasi ke materialsID
-    $table->date('date');
-    $table->time('time');
-    $table->enum('status', ['pending', 'confirmed', 'rejected'])->default('pending');
-    $table->timestamps();
+public function up(): void
+{
+    Schema::create('dedicated_tutors', function (Blueprint $table) {
+        $table->id();
 
-    $table->foreign('student_id')->references('studentsID')->on('students')->onDelete('cascade');
-    $table->foreign('teacher_id')->references('usersID')->on('users')->onDelete('cascade');
-    $table->foreign('material_id')->references('materialsID')->on('materials')->onDelete('cascade');
-});
-    }
+        // Pastikan 'student_id' merujuk ke 'studentsID'
+        $table->foreignId('student_id')->constrained('students', 'studentsID');
+
+        // Pastikan 'material_id' merujuk ke 'materialsID'
+        $table->foreignId('material_id')->constrained('materials', 'materialsID');
+
+        // --- PERBAIKAN DI SINI ---
+        // Ganti 'userID' menjadi 'usersID' (tambah huruf s)
+        $table->foreignId('teacher_id')
+              ->nullable()
+              ->constrained('users', 'usersID')
+              ->onDelete('set null');
+
+        $table->date('date');
+        $table->time('time');
+        $table->enum('status', ['pending', 'confirmed', 'rejected'])->default('pending');
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.

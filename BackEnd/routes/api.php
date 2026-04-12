@@ -3,7 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\PromoController;
-use App\Http\Controllers\DedicatedTutorController; // Import Controller Baru
+// PERBAIKAN: Import diarahkan ke namespace folder Api/pengajar agar tidak error
+use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -64,8 +65,14 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['data' => $data]);
         });
 
-        // --- TAMBAHAN FITUR DEDICATED TUTOR (MOBILE) ---
-        Route::get('/dedicated-tutor/data', [DedicatedTutorController::class, 'getFormData']);
-        Route::post('/dedicated-tutor/store', [DedicatedTutorController::class, 'store']);
+        // --- TAMBAHAN FITUR DEDICATED TUTOR (MODIFIKASI SINKRON) ---
+        // 1. Mengambil materi sesuai kelas siswa untuk dropdown
+        Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
+
+        // 2. Mengambil riwayat pengajuan (History)
+        Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
+
+        // 3. Menyimpan pengajuan baru
+        Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
     });
 });
