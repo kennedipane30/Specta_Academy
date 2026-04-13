@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
 import 'module_week_list_page.dart'; 
+import 'practice_week_list_page.dart'; // IMPORT BARU
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -30,6 +31,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   String status = "none";
   List materi = [];
   List tryouts = []; 
+  List latihanSoals = []; // VARIABEL BARU
   bool isLoading = true;
   bool isShowingMateri = false; 
   final Color spektaRed = const Color(0xFF990000);
@@ -50,6 +52,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             status = data['enroll_status'] ?? "none";
             materi = data['materi'] ?? [];
             tryouts = data['tryouts'] ?? []; 
+            latihanSoals = data['latihan_soal'] ?? []; // AMBIL DATA LATIHAN DARI API
             isLoading = false;
           });
         }
@@ -119,13 +122,20 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                       onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
                     ),
 
+                    // MODIFIKASI DI SINI
                     _buildCategoryMenu(
                       title: "Latihan Soal Mandiri",
                       subtitle: "Asah kemampuanmu di sini",
                       icon: isRegistered ? Icons.edit_note_rounded : Icons.lock_outline,
                       color: isRegistered ? Colors.orange.shade700 : Colors.grey,
                       onTap: isRegistered 
-                        ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fitur Latihan Soal akan segera hadir!")))
+                        ? () {
+                            Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeWeekListPage(
+                              subjectName: "TIU", // Anda bisa menyesuaikan logika pemilihan subjek di sini
+                              allExercises: latihanSoals,
+                              token: widget.token,
+                            )));
+                          }
                         : _showLockedMessage,
                     ),
                   ],
@@ -304,4 +314,4 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool isReadOnly) {
     return Padding(padding: const EdgeInsets.only(top: 15), child: TextField(controller: ctrl, readOnly: isReadOnly, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: spektaRed), filled: true, fillColor: isReadOnly ? Colors.grey[100] : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))));
   }
-} // AKHIR DARI _ClassDetailPageState
+}
