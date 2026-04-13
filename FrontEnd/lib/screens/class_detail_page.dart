@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart'; 
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
+import 'module_week_list_page.dart'; 
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -58,7 +59,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  // Pesan peringatan jika fitur masih terkunci
   void _showLockedMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -111,7 +111,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                     const SizedBox(height: 20),
                     const Padding(padding: EdgeInsets.only(left: 20), child: Text("Pusat Pembelajaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                     
-                    // MENU MATERI VIDEO (DENGAN LOGIKA LOCK)
                     _buildCategoryMenu(
                       title: "Materi Video Pembelajaran",
                       subtitle: "Kumpulan video penjelasan expert",
@@ -120,7 +119,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                       onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
                     ),
 
-                    // MENU LATIHAN SOAL (DENGAN LOGIKA LOCK)
                     _buildCategoryMenu(
                       title: "Latihan Soal Mandiri",
                       subtitle: "Asah kemampuanmu di sini",
@@ -140,9 +138,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
-    // Definisi isRegistered agar tidak error "Undefined name"
     bool isRegistered = status == 'aktif';
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: InkWell(
@@ -191,16 +187,8 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
-            leading: Icon(
-              isRegistered ? Icons.assignment : Icons.lock_outline, 
-              color: isRegistered ? Colors.orange : Colors.grey
-            ),
-            title: Text(items[index]['title'], 
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isRegistered ? Colors.black87 : Colors.grey,
-              )
-            ),
+            leading: Icon(isRegistered ? Icons.assignment : Icons.lock_outline, color: isRegistered ? Colors.orange : Colors.grey),
+            title: Text(items[index]['title'], style: TextStyle(fontWeight: FontWeight.bold, color: isRegistered ? Colors.black87 : Colors.grey)),
             onTap: isRegistered 
               ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutDetailPage(tryoutData: items[index], token: widget.token))) 
               : _showLockedMessage,
@@ -211,34 +199,25 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildMateriList(List items, bool isRegistered) {
+    final List uniqueSubjects = items.map((m) => m['title']).toSet().toList();
     return ListView.builder(
       padding: const EdgeInsets.all(15),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
+      itemCount: uniqueSubjects.length,
       itemBuilder: (context, index) {
+        String subjectName = uniqueSubjects[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
-            leading: Icon(
-              isRegistered ? Icons.play_circle_fill : Icons.lock_outline, 
-              color: isRegistered ? Colors.green : Colors.grey
-            ),
-            title: Text(items[index]['title'], 
-              style: TextStyle(
-                fontWeight: FontWeight.bold, 
-                color: isRegistered ? Colors.black87 : Colors.grey,
-              )
-            ),
-            onTap: isRegistered ? () async {
-                var filePath = items[index]['file_path'];
-                if (filePath != null && filePath != "") {
-                   String fileName = filePath.split('/').last;
-                   final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
-                   if (await canLaunchUrl(url)) { await launchUrl(url, mode: LaunchMode.externalApplication); }
-                }
-            } : _showLockedMessage,
+            leading: const Icon(Icons.folder_special_rounded, color: Colors.green),
+            title: Text(subjectName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            subtitle: const Text("Lihat modul per minggu", style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            onTap: isRegistered 
+              ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => ModuleWeekListPage(subjectName: subjectName, allMaterials: materi, token: widget.token)))
+              : _showLockedMessage,
           ),
         );
       },
@@ -259,26 +238,18 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
 
   Widget _buildBottomAction() {
     return Container(
-      height: 110, 
-      padding: const EdgeInsets.all(20), 
+      height: 110, padding: const EdgeInsets.all(20), 
       decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3))]),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            mainAxisAlignment: MainAxisAlignment.center, 
-            children: [
-              const Text("Harga Program", style: TextStyle(color: Colors.grey, fontSize: 12)), 
-              Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))
-            ]
-          ),
+          Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text("Harga Program", style: TextStyle(color: Colors.grey, fontSize: 12)), 
+            Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))
+          ]),
           ElevatedButton(
             onPressed: _showDaftarForm, 
-            style: ElevatedButton.styleFrom(
-              backgroundColor: spektaRed, 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
-            ), 
+            style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), 
             child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
           )
         ]
@@ -333,4 +304,4 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool isReadOnly) {
     return Padding(padding: const EdgeInsets.only(top: 15), child: TextField(controller: ctrl, readOnly: isReadOnly, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: spektaRed), filled: true, fillColor: isReadOnly ? Colors.grey[100] : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))));
   }
-}
+} // AKHIR DARI _ClassDetailPageState
