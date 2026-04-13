@@ -2,34 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Attendance extends Model
 {
-    // 1. MODIFIKASI: Beritahu Laravel nama PK sesuai ERD kamu
-    protected $primaryKey = 'attendancesID';
+    use HasFactory;
 
-    // 2. MODIFIKASI: Izinkan kolom-kolom ini diisi secara massal (PENTING!)
-    protected $fillable = [
-        'schedule_id',
-        'user_id',
-        'status',
-        'date'
-    ];
+    // Pastikan fillable sesuai dengan kolom di database Anda
+    protected $fillable = ['schedule_id', 'user_id', 'status', 'date'];
 
     /**
-     * Relasi ke Jadwal
+     * Relasi ke Model User (Siswa)
      */
-    public function schedule()
+    public function user()
     {
-        return $this->belongsTo(Schedule::class, 'schedule_id', 'schedulesID');
-    }
-
-    /**
-     * Relasi ke Siswa (User)
-     */
-    public function student()
-    {
+        // Sesuaikan 'user_id' (foreign key di tabel attendances)
+        // dan 'usersID' (primary key di tabel users sesuai kode Anda sebelumnya)
         return $this->belongsTo(User::class, 'user_id', 'usersID');
     }
 }

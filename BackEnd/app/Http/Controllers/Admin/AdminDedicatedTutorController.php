@@ -4,34 +4,35 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DedicatedTutor;
-use App\Models\User; // Tambahkan ini
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class AdminDedicatedTutorController extends Controller {
 
     public function index() {
-        // Ambil data pengajuan dan data User yang rolenya pengajar untuk dropdown di Blade
+        // student.user artinya: panggil relasi 'student' di DedicatedTutor,
+        // lalu panggil relasi 'user' di dalam model Student.
         $tutors = DedicatedTutor::with(['student.user', 'teacher', 'material'])->latest()->get();
 
-        // Asumsi pengajar dibedakan berdasarkan role_id atau logic tertentu
-        $availableTeachers = User::where('role', 'pengajar')->get();
+        // Ambil pengajar (Role ID 2)
+        $availableTeachers = User::where('role_id', 2)->get();
 
         return view('admin.dedicated_tutor.index', compact('tutors', 'availableTeachers'));
     }
 
-    // Fungsi untuk Admin menugaskan Guru & Approve status
     public function updateAssignment(Request $request, $id) {
         $request->validate([
-            'teacher_id' => 'required',
-            'status' => 'required'
+            'status' => 'required|in:confirmed,rejected',
+            'teacher_id' => 'required_if:status,confirmed'
         ]);
 
         $tutor = DedicatedTutor::findOrFail($id);
+
         $tutor->update([
-            'teacher_id' => $request->teacher_id,
-            'status' => $request->status, // Biasanya diubah ke 'confirmed'
+            'status' => $request->status,
+            'teacher_id' => ($request->status == 'confirmed') ? $request->teacher_id : null,
         ]);
 
-        return back()->with('success', 'Guru berhasil ditugaskan dan status diperbarui');
+        return redirect()->route('admin.tutor.index')->with('success', 'Pengajuan berhasil diperbarui!');
     }
 }

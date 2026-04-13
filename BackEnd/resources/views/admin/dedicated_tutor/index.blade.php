@@ -1,48 +1,93 @@
 @extends('layouts.spekta')
 
 @section('content')
-<div class="container">
-    <h3>Konfirmasi Pengajuan Dedicated Tutor</h3>
-    <table class="table table-bordered mt-4">
-        <thead>
-            <tr>
-                <th>Nama Siswa (NISN)</th>
-                <th>Materi</th>
-                <th>Pengajar</th>
-                <th>Jadwal (Tgl/Jam)</th>
-                <th>Status</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($tutors as $t)
-            <tr>
-                <td>{{ $t->student->user->name }} ({{ $t->student->nisn }})</td>
-                <td>{{ $t->material->nama_materi }}</td>
-                <td>{{ $t->teacher->name }}</td>
-                <td>{{ $t->date }} / {{ $t->time }}</td>
-                <td>
-                    <span class="badge {{ $t->status == 'pending' ? 'bg-warning' : ($t->status == 'confirmed' ? 'bg-success' : 'bg-danger') }}">
-                        {{ strtoupper($t->status) }}
-                    </span>
-                </td>
-                <td>
-                    @if($t->status == 'pending')
-                    <form action="{{ route('admin.tutor.update', $t->dedicated_tutorsID) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <input type="hidden" name="status" value="confirmed">
-                        <button class="btn btn-sm btn-success">Konfirmasi</button>
-                    </form>
-                    <form action="{{ route('admin.tutor.update', $t->dedicated_tutorsID) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <input type="hidden" name="status" value="rejected">
-                        <button class="btn btn-sm btn-danger">Tolak</button>
-                    </form>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="fw-bold" style="color: #990000;">
+                <i class="fas fa-tasks me-2"></i>Manajemen Pengajuan Tutor
+            </h4>
+        </div>
+    </div>
+
+    @if(session('success'))
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
+    <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Siswa</th>
+                        <th>Materi</th>
+                        <th>Jadwal</th>
+                        <th>Penugasan Guru</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end pe-4">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($tutors as $t)
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ $t->student->user->name ?? 'N/A' }}</div>
+                            <small class="text-muted">NISN: {{ $t->student->nisn }}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ $t->material->title }}</span></td>
+                        <td>
+                            <div class="small"><i class="far fa-calendar me-1"></i> {{ $t->date }}</div>
+                            <div class="small text-muted"><i class="far fa-clock me-1"></i> {{ substr($t->time, 0, 5) }}</div>
+                        </td>
+                        <td>
+                            @if($t->status == 'pending')
+                                <form action="{{ route('admin.tutor.update', $t->id) }}" method="POST" id="form-{{ $t->id }}">
+                                    @csrf
+                                    <select name="teacher_id" class="form-select form-select-sm" required>
+                                        <option value="" disabled selected>Pilih Guru...</option>
+                                        @foreach($availableTeachers as $guru)
+                                            <option value="{{ $guru->usersID }}">{{ $guru->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <input type="hidden" name="status" value="confirmed">
+                                </form>
+                            @else
+                                <span class="fw-bold text-primary">{{ $t->teacher->name ?? '-' }}</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($t->status == 'pending')
+                                <span class="badge bg-warning text-dark px-3">PENDING</span>
+                            @elseif($t->status == 'confirmed')
+                                <span class="badge bg-success px-3">DITERIMA</span>
+                            @else
+                                <span class="badge bg-danger px-3">DITOLAK</span>
+                            @endif
+                        </td>
+                        <td class="text-end pe-4">
+                            @if($t->status == 'pending')
+                                <div class="btn-group">
+                                    <button type="submit" form="form-{{ $t->id }}" class="btn btn-sm btn-success">Terima</button>
+                                    <form action="{{ route('admin.tutor.update', $t->id) }}" method="POST" class="ms-1">
+                                        @csrf
+                                        <input type="hidden" name="status" value="rejected">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tolak?')">Tolak</button>
+                                    </form>
+                                </div>
+                            @else
+                                <span class="text-muted small">Sudah Diproses</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="6" class="text-center py-4">Tidak ada data pengajuan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 @stop

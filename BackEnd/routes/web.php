@@ -59,9 +59,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/tambah-kelas/proses/{id}', [ManajemenSiswaController::class, 'prosesAktivasi'])->name('proses_aktivasi');
     });
 
-    // FITUR DEDICATED TUTOR (ADMIN)
-    Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])->name('tutor.index');
-    Route::post('/dedicated-tutor/update/{id}', [AdminDedicatedTutorController::class, 'updateStatus'])->name('tutor.update');
+
+    // --- FIX DEDICATED TUTOR ADMIN ---
+    // Cukup gunakan 'tutor.index', karena otomatis diawali 'admin.' dari group name
+    Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])
+        ->name('tutor.index');
+
+    Route::post('/dedicated-tutor/update/{id}', [AdminDedicatedTutorController::class, 'updateAssignment'])
+        ->name('tutor.update');
+
 
     // Pengumuman
     Route::resource('announcement', AnnouncementController::class);
@@ -84,7 +90,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 
-// --- 2. GROUP PENGAJAR (Role: Pengajar) ---
 Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar.')->group(function () {
 
     Route::get('/dashboard', [PengajarDashboardController::class, 'index'])->name('dashboard');
@@ -94,6 +99,11 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi', [PengajarDashboardController::class, 'absensi'])->name('absensi.index');
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
+
+    // PERBAIKAN DI SINI:
+    // URL disingkat karena sudah ada prefix 'pengajar'
+    // Nama cukup 'absensi.detail' karena sudah ada group name 'pengajar.'
+    Route::get('/absensi/detail/{schedule_id}', [PengajarDashboardController::class, 'detailAbsensi'])->name('absensi.detail');
 
     // Materi
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
