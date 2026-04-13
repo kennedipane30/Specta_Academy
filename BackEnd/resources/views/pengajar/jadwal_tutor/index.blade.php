@@ -1,73 +1,102 @@
 @extends('layouts.spekta')
-@section('title', 'Daftar Absensi Kelas')
 
 @section('content')
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="fw-bold" style="color: #990000;">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Jadwal Mengajar (Dedicated Tutor)
+            </h4>
+            <p class="text-muted">Daftar permintaan tutor dari siswa yang telah dikonfirmasi oleh Admin.</p>
+        </div>
+    </div>
 
-    {{-- Notifikasi Info jika redirect dari show --}}
-    @if(session('info'))
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-8 rounded shadow-sm flex items-center justify-between">
-            <span class="font-medium">{{ session('info') }}</span>
-            <button onclick="this.parentElement.remove()" class="font-bold text-xl">&times;</button>
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm mb-4">
+            {{ session('success') }}
         </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        @foreach($classes as $c)
-            @php
-                $canAbsen = in_array($c->class_modelsID, $jadwalHariIni);
-            @endphp
-
-            <div class="bg-white p-6 rounded-3xl shadow-sm border-l-8 transition duration-300 {{ $canAbsen ? 'border-green-500 shadow-md' : 'border-gray-200' }}">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-bold {{ $canAbsen ? 'text-gray-800' : 'text-gray-400' }}">
-                            {{ $c->nama_program }}
-                        </h3>
-                        <p class="text-gray-500 text-xs mt-1 uppercase tracking-widest font-semibold">
-                            Program Spekta Academy
-                        </p>
-                    </div>
-
-                    @if($canAbsen)
-                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            Jadwal Aktif
-                        </span>
-                    @else
-                        <span class="bg-gray-100 text-gray-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            No Attendance
-                        </span>
-                    @endif
-                </div>
-
-                <div class="my-6">
-                    @if($canAbsen)
-                        <p class="text-gray-600 text-sm">
-                            Jadwal mengajar tersedia. Silakan klik tombol di bawah untuk mengisi absensi.
-                        </p>
-                    @else
-                        <div class="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-200 text-center">
-                            <p class="text-gray-400 text-sm italic font-medium">
-                                Tidak ada absensi untuk kelas ini
-                            </p>
-                        </div>
-                    @endif
-                </div>
-
-                <div class="flex items-center justify-between mt-4">
-                    @if($canAbsen)
-                        <a href="{{ route('pengajar.absensi.show', $c->class_modelsID) }}"
-                           class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-green-700 transform transition duration-200 flex items-center">
-                           BUKA ABSENSI
-                        </a>
-                    @else
-                        <div class="flex items-center text-gray-300 font-bold text-xs uppercase tracking-tighter">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            Absensi Terkunci
-                        </div>
-                    @endif
-                </div>
+    <!-- Tabel Jadwal -->
+    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="ps-4 py-3 text-uppercase small fw-bold text-muted">Data Siswa</th>
+                            <th class="py-3 text-uppercase small fw-bold text-muted">Materi</th>
+                            <th class="py-3 text-uppercase small fw-bold text-muted">Jadwal Belajar</th>
+                            <th class="text-center py-3 text-uppercase small fw-bold text-muted">Status</th>
+                            <th class="pe-4 py-3 text-uppercase small fw-bold text-muted text-end">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{-- GANTI $classes MENJADI $jadwal SESUAI CONTROLLER --}}
+                        @forelse($jadwal as $j)
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        {{ strtoupper(substr($j->student->user->name ?? 'S', 0, 1)) }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ $j->student->user->name ?? 'N/A' }}</div>
+                                        <small class="text-muted">NISN: {{ $j->student->nisn }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-primary border border-primary-subtle px-3 py-2">
+                                    <i class="fas fa-book me-1"></i> {{ $j->material->title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="small fw-bold"><i class="far fa-calendar-alt text-danger me-1"></i> {{ \Carbon\Carbon::parse($j->date)->format('d M Y') }}</div>
+                                <div class="text-muted small"><i class="far fa-clock me-1"></i> {{ substr($j->time, 0, 5) }} WIB</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-success-subtle text-success border border-success px-3">
+                                    TERKONFIRMASI
+                                </span>
+                            </td>
+                            <td class="pe-4 text-end">
+                                {{-- Tombol untuk menghubungi siswa via WhatsApp jika nomor hp tersedia --}}
+                                @if($j->student->user->phone)
+                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $j->student->user->phone) }}"
+                                       target="_blank" class="btn btn-sm btn-outline-success shadow-sm">
+                                        <i class="fab fa-whatsapp me-1"></i> Hubungi Siswa
+                                    </a>
+                                @else
+                                    <span class="text-muted small italic">No. HP Kosong</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="opacity-50">
+                                    <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                                    <p class="mb-0">Belum ada jadwal tutor yang ditugaskan untuk Anda.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        @endforeach
+        </div>
     </div>
+</div>
 
-@endsection
+<style>
+    .avatar-circle {
+        width: 38px; height: 38px; background-color: #990000; color: white;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 13px;
+    }
+    .bg-success-subtle { background-color: #e6fffa !important; }
+    .table thead th { font-size: 11px; letter-spacing: 0.8px; border-bottom: 0; }
+</style>
+@stop

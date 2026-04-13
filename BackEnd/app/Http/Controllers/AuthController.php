@@ -50,92 +50,30 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'token' => $user->createToken('token')->plainTextToken, 'user' => $user->load('student')]);
     }
 
-    /**
- * FUNGSI LUPA PASSWORD - STEP 1 (Kirim OTP)
- */
-public function forgotPassword(Request $request): JsonResponse {
-    $request->validate([
-        'phone' => 'required'
-    ]);
-
-    // 1. Cari user berdasarkan nomor telepon (Sesuai ERD: kolom phone)
-    $user = User::where('phone', $request->phone)->first();
-
-    if (!$user) {
-        return response()->json(['status' => 'error', 'message' => 'Nomor WhatsApp tidak terdaftar!'], 404);
+    public function forgotPassword(Request $request): JsonResponse {
+        $request->validate(['phone' => 'required']);
+        $user = User::where('phone', $request->phone)->first();
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'Nomor WhatsApp tidak terdaftar!'], 404);
+        $otp = rand(100000, 999999);
+        OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
+        return response()->json(['status' => 'success', 'message' => 'Kode OTP Reset Password berhasil dikirim', 'otp' => $otp]);
     }
 
-    // 2. Generate OTP 6 Digit
-    $otp = rand(100000, 999999);
-
-    // 3. Simpan/Update ke tabel otp_codes
-    OtpCode::updateOrCreate(
-        ['user_id' => $user->usersID],
-        [
-            'otp' => $otp,
-            'valid_until' => Carbon::now()->addMinutes(10)
-        ]
-    );
-
-    // 4. SIMULASI KIRIM WA (Sesuai kesepakatan: Matikan Fonnte sementara)
-    /*
-    Http::withHeaders(['Authorization' => env('FONNTE_TOKEN')])->post('https://api.fonnte.com/send', [
-        'target' => $request->phone,
-        'message' => "KODE RESET PASSWORD SPEKTA ANDA: $otp. Jangan berikan kode ini kepada siapapun.",
-    ]);
-    */
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Kode OTP Reset Password berhasil dikirim',
-        'otp' => $otp // Tampilkan untuk simulasi testing
-    ]);
-}
-
-/**
- * FUNGSI LUPA PASSWORD - STEP 2 (Update Password Baru)
- */
-public function resetPassword(Request $request): JsonResponse {
-    $v = Validator::make($request->all(), [
-        'phone' => 'required',
-        'otp' => 'required|numeric',
-        'password' => [
-            'required', 'confirmed', 'min:8',
-            'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&]/'
-        ],
-    ], [
-        'password.regex' => 'Password baru wajib ada Kapital, Huruf Biasa, Angka, dan Simbol!'
-    ]);
-
-    if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-
-    // 1. Cari User
-    $user = User::where('phone', $request->phone)->first();
-    if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
-
-    // 2. Validasi OTP
-    $otpRecord = OtpCode::where('user_id', $user->usersID)
-                        ->where('otp', $request->otp)
-                        ->where('valid_until', '>', now())
-                        ->first();
-
-    if (!$otpRecord) {
-        return response()->json(['status' => 'error', 'message' => 'Kode OTP Salah atau Kadaluarsa'], 401);
+    public function resetPassword(Request $request): JsonResponse {
+        $v = Validator::make($request->all(), [
+            'phone' => 'required',
+            'otp' => 'required|numeric',
+            'password' => ['required', 'confirmed', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&]/'],
+        ]);
+        if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
+        $user = User::where('phone', $request->phone)->first();
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
+        $otpRecord = OtpCode::where('user_id', $user->usersID)->where('otp', $request->otp)->where('valid_until', '>', now())->first();
+        if (!$otpRecord) return response()->json(['status' => 'error', 'message' => 'Kode OTP Salah atau Kadaluarsa'], 401);
+        $user->update(['password' => bcrypt($request->password)]);
+        $otpRecord->delete();
+        return response()->json(['status' => 'success', 'message' => 'Password berhasil diperbarui!']);
     }
-
-    // 3. UPDATE PASSWORD (Bcrypt Enkripsi - Syarat Keamanan)
-    $user->update([
-        'password' => bcrypt($request->password)
-    ]);
-
-    // 4. Hapus OTP setelah sukses
-    $otpRecord->delete();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Password berhasil diperbarui! Silakan login kembali.'
-    ], 200);
-}
 
     // 4. LENGKAPI PROFIL
     public function updateProfile(Request $request): JsonResponse {
@@ -149,60 +87,66 @@ public function resetPassword(Request $request): JsonResponse {
 
     // 5. DAFTAR KELAS
     public function joinClass(Request $request): JsonResponse {
+        // MODIFIKASI: Tambah validasi class_id agar pasti masuk ke DB
+        $v = Validator::make($request->all(), [
+            'class_id' => 'required',
+            'payment_proof' => 'required|image|max:2048'
+        ]);
+        if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $path = $request->file('payment_proof')->store('proofs', 'public');
-        Enrollment::create(['user_id' => $user->usersID, 'class_id' => $request->class_id, 'payment_proof' => $path, 'status' => 'pending']);
+
+        Enrollment::create([
+            'user_id' => $user->usersID,
+            'class_id' => $request->class_id,
+            'payment_proof' => $path,
+            'status' => 'pending'
+        ]);
         return response()->json(['status' => 'success', 'message' => 'Pendaftaran terkirim!']);
     }
 
-    // Tambahkan fungsi ini di AuthController.php (JANGAN UBAH YANG LAIN)
+    public function joinClassPromo(Request $request): JsonResponse {
+        $v = Validator::make($request->all(), [
+            'class_id' => 'required',
+            'promo_code' => 'required',
+            'payment_proof' => 'required|image|max:2048',
+        ]);
+        if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
 
-public function joinClassPromo(Request $request): JsonResponse {
-    $request->validate([
-        'class_id' => 'required',
-        'promo_code' => 'required', // Tambahan untuk jalur promo
-        'payment_proof' => 'required|image|max:2048',
-    ]);
+        $user = Auth::user();
+        $path = $request->file('payment_proof')->store('proofs', 'public');
 
-    $user = Auth::user();
+        Enrollment::create([
+            'user_id' => $user->usersID,
+            'class_id' => $request->class_id,
+            'payment_proof' => $path,
+            'status' => 'pending',
+        ]);
 
-    // Cari ID Promo berdasarkan kode yang diketik siswa
-    $promo = \App\Models\Promotion::where('code', $request->promo_code)->first();
-
-    // Simpan file bukti transfer
-    $path = $request->file('payment_proof')->store('proofs', 'public');
-
-    // SIMPAN KE TABEL ENROLLMENTS (Sama seperti jalur manual agar muncul di daftar Admin)
-    Enrollment::create([
-        'user_id' => $user->usersID,
-        'class_id' => $request->class_id,
-        'payment_proof' => $path,
-        'status' => 'pending', // WAJIB 'pending' agar muncul di Dashboard Admin
-        // Kamu bisa simpan info promo di kolom catatan atau buat kolom promo_id di enrollments
-    ]);
-
-    return response()->json(['status' => 'success', 'message' => 'Pendaftaran Promo Berhasil Dikirim!']);
-}
+        return response()->json(['status' => 'success', 'message' => 'Pendaftaran Promo Berhasil Dikirim!']);
+    }
 
     // 6. AMBIL KONTEN MATERI & TRYOUT
-public function getClassContent(Request $request): JsonResponse {
-    try {
-        $classId = $request->class_id;
-        $materi = Material::where('class_id', $classId)->get();
-        $tryouts = Tryout::where('class_id', $classId)->get();
-        $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
+    public function getClassContent(Request $request): JsonResponse {
+        try {
+            $classId = $request->class_id;
+            $materi = Material::where('class_id', $classId)->get();
+            $tryouts = Tryout::where('class_id', $classId)->get();
+            $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
 
-        return response()->json([
-            'status' => 'success',
-            'enroll_status' => $enroll ? $enroll->status : 'none',
-            'materi' => $materi, // Pastikan kolom file_path ikut terkirim
-            'tryouts' => $tryouts
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => 'success',
+                'enroll_status' => $enroll ? $enroll->status : 'none',
+                'materi' => $materi,
+                'tryouts' => $tryouts
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
-}
+
     // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
@@ -218,7 +162,7 @@ public function getClassContent(Request $request): JsonResponse {
         return response()->json(['status' => 'success', 'data' => $questions], 200);
     }
 
-    // 9. SUBMIT TRYOUT & HITUNG NILAI (LOGIKA TETAP DI DALAM CLASS)
+    // 9. SUBMIT TRYOUT
     public function submitTryout(Request $request): JsonResponse {
         try {
             $userAnswers = $request->input('answers');
@@ -247,32 +191,14 @@ public function getClassContent(Request $request): JsonResponse {
     }
 
     public function checkPromo(Request $request): JsonResponse {
-    $v = Validator::make($request->all(), [
-        'code' => 'required|string',
-        'class_id' => 'required',
-        'price' => 'required|numeric'
-    ]);
+        $promo = \App\Models\Promotion::where('code', strtoupper($request->code))
+                    ->where('class_id', $request->class_id)
+                    ->whereDate('start_date', '<=', now())
+                    ->whereDate('end_date', '>=', now())
+                    ->first();
 
-    // Cari promo yang kodenya cocok, aktif, dan sesuai dengan kelas yang didaftar
-    $promo = \App\Models\Promotion::where('code', strtoupper($request->code))
-                ->where('class_id', $request->class_id)
-                ->whereDate('start_date', '<=', now())
-                ->whereDate('end_date', '>=', now())
-                ->first();
-
-    if (!$promo) {
-        return response()->json(['status' => 'error', 'message' => 'Kode promo tidak valid untuk kelas ini!'], 404);
+        if (!$promo) return response()->json(['status' => 'error', 'message' => 'Kode promo tidak valid!'], 404);
+        $potongan = $request->price * ($promo->discount_percent / 100);
+        return response()->json(['status' => 'success', 'discount_percent' => $promo->discount_percent, 'new_price' => $request->price - $potongan]);
     }
-
-    // Hitung potongan (Matkul: Software Quality)
-    $potongan = $request->price * ($promo->discount_percent / 100);
-    $hargaAkhir = $request->price - $potongan;
-
-    return response()->json([
-        'status' => 'success',
-        'discount_percent' => $promo->discount_percent,
-        'new_price' => $hargaAkhir
-    ]);
 }
-
-} // <--- KURUNG TUTUP CLASS HARUS DI SINI

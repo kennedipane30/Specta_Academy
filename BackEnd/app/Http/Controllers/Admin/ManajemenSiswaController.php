@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Models\Student; // Ditambahkan agar bisa update tabel students
 use Illuminate\Http\Request;
 
 class ManajemenSiswaController extends Controller
@@ -47,35 +48,41 @@ class ManajemenSiswaController extends Controller
     /**
      * 4. PROSES AKTIVASI KE KELAS
      */
-public function prosesAktivasi(Request $request, $id)
-{
-    // 1. Validasi agar input harus angka
-    $request->validate([
-        'durasi' => 'required|numeric'
-    ]);
+    public function prosesAktivasi(Request $request, $id)
+    {
+        // 1. Validasi agar input harus angka
+        $request->validate([
+            'durasi' => 'required|numeric'
+        ]);
 
-    $enroll = Enrollment::findOrFail($id);
+        $enroll = Enrollment::findOrFail($id);
 
-    // 2. PROSES UPDATE (Tambahkan (int) di sini)
-    $enroll->update([
-        'status' => 'aktif',
-        'expires_at' => now()->addDays((int) $request->durasi) // <--- PERBAIKAN DI SINI
-    ]);
+        // 2. PROSES UPDATE STATUS ENROLLMENT
+        $enroll->update([
+            'status' => 'aktif',
+            'expires_at' => now()->addDays((int) $request->durasi)
+        ]);
 
-    return redirect()->route('admin.siswa.pendaftaran')->with('success', 'Siswa berhasil diaktifkan!');
-}
+        // --- MODIFIKASI: Sinkronisasi Class ID ke Tabel Students ---
+        Student::where('user_id', $enroll->user_id)->update([
+            'class_id' => $enroll->class_id
+        ]);
+        // ----------------------------------------------------------
 
-public function storeJadwal(Request $request) {
-    $request->validate([
-        'class_id' => 'required',
-        'teacher_id' => 'required',
-        'title' => 'required',
-        'date' => 'required|date',
-        'start_time' => 'required',
-        'end_time' => 'required',
-    ]);
+        return redirect()->route('admin.siswa.pendaftaran')->with('success', 'Siswa berhasil diaktifkan dan Class ID diperbarui!');
+    }
 
-    \App\Models\Schedule::create($request->all());
-    return back()->with('success', 'Jadwal berhasil diterbitkan!');
-}
+    public function storeJadwal(Request $request) {
+        $request->validate([
+            'class_id' => 'required',
+            'teacher_id' => 'required',
+            'title' => 'required',
+            'date' => 'required|date',
+            'start_time' => 'required',
+            'end_time' => 'required',
+        ]);
+
+        \App\Models\Schedule::create($request->all());
+        return back()->with('success', 'Jadwal berhasil diterbitkan!');
+    }
 }
