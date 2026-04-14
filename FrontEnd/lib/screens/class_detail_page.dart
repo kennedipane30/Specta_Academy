@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
 import 'module_week_list_page.dart'; 
-import 'practice_week_list_page.dart'; // IMPORT BARU
+import 'practice_week_list_page.dart'; 
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -31,9 +31,10 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   String status = "none";
   List materi = [];
   List tryouts = []; 
-  List latihanSoals = []; // VARIABEL BARU
+  List latihanSoals = []; 
   bool isLoading = true;
   bool isShowingMateri = false; 
+  bool isShowingLatihan = false; 
   final Color spektaRed = const Color(0xFF990000);
 
   @override
@@ -52,7 +53,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             status = data['enroll_status'] ?? "none";
             materi = data['materi'] ?? [];
             tryouts = data['tryouts'] ?? []; 
-            latihanSoals = data['latihan_soal'] ?? []; // AMBIL DATA LATIHAN DARI API
+            latihanSoals = data['latihan_soals'] ?? []; 
             isLoading = false;
           });
         }
@@ -92,10 +93,21 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text(isShowingMateri ? "Materi Video" : widget.className, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          isShowingMateri ? "Materi Video" : (isShowingLatihan ? "Materi Latihan" : widget.className), 
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+        ),
         backgroundColor: spektaRed,
         foregroundColor: Colors.white,
-        leading: isShowingMateri ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => isShowingMateri = false)) : null,
+        leading: (isShowingMateri || isShowingLatihan) 
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back), 
+              onPressed: () => setState(() {
+                isShowingMateri = false;
+                isShowingLatihan = false;
+              })
+            ) 
+          : null,
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: spektaRed))
@@ -106,6 +118,8 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   _buildStatusBanner(),
                   if (isShowingMateri) ...[
                     _buildMateriList(materi, isRegistered)
+                  ] else if (isShowingLatihan) ...[
+                    _buildLatihanSubjectList(materi, isRegistered) // MENGGUNAKAN LIST MATERI SEBAGAI DASAR FOLDER
                   ] else ...[
                     if (tryouts.isNotEmpty) ...[
                       const Padding(padding: EdgeInsets.only(left: 20, top: 20), child: Text("Simulasi Try-Out", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
@@ -122,21 +136,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                       onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
                     ),
 
-                    // MODIFIKASI DI SINI
                     _buildCategoryMenu(
                       title: "Latihan Soal Mandiri",
                       subtitle: "Asah kemampuanmu di sini",
                       icon: isRegistered ? Icons.edit_note_rounded : Icons.lock_outline,
                       color: isRegistered ? Colors.orange.shade700 : Colors.grey,
-                      onTap: isRegistered 
-                        ? () {
-                            Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeWeekListPage(
-                              subjectName: "TIU", // Anda bisa menyesuaikan logika pemilihan subjek di sini
-                              allExercises: latihanSoals,
-                              token: widget.token,
-                            )));
-                          }
-                        : _showLockedMessage,
+                      onTap: isRegistered ? () => setState(() => isShowingLatihan = true) : _showLockedMessage,
                     ),
                   ],
                   const SizedBox(height: 120),
@@ -148,7 +153,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
-    bool isRegistered = status == 'aktif';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: InkWell(
@@ -174,7 +178,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isRegistered ? Colors.black87 : Colors.grey)),
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
@@ -234,6 +238,54 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
+  Widget _buildLatihanSubjectList(List items, bool isRegistered) {
+    // KITA AMBIL DARI LIST MATERI AGAR FOLDER MUNCUL SESUAI DB TABEL MATERIALS ANDA
+    final List uniqueSubjects = items.map((m) => m['title']).toSet().toList();
+    
+    if (uniqueSubjects.isEmpty) {
+      return const Center(child: Padding(padding: EdgeInsets.all(50), child: Text("Belum ada mata pelajaran tersedia")));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: uniqueSubjects.length,
+      itemBuilder: (context, index) {
+        String fullName = uniqueSubjects[index].toString();
+        // Bersihkan nama: "Materi TIU" menjadi "TIU"
+        String subjectName = fullName.replaceAll("Materi ", "");
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDF7F2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.folder_special_rounded, color: Color(0xFF4CAF50), size: 28),
+            ),
+            title: Text("Latihan $subjectName", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+            subtitle: const Text("Lihat latihan per minggu", style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeWeekListPage(
+                subjectName: fullName, // Kirim nama lengkap agar filter di page selanjutnya akurat
+                allExercises: latihanSoals,
+                token: widget.token,
+              )));
+            },
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildStatusBanner() {
     if (status == 'pending') {
       return Container(
@@ -268,10 +320,9 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   void _showDaftarForm() {
-    File? _imageFile;
+    File? imageFile;
     final nameController = TextEditingController(text: widget.userData['name']);
     final nisnController = TextEditingController(text: widget.userData['student']?['nisn'] ?? "-");
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -289,19 +340,19 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               InkWell(
                 onTap: () async {
                   final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-                  if (picked != null) setModalState(() => _imageFile = File(picked.path));
+                  if (picked != null) setModalState(() => imageFile = File(picked.path));
                 },
                 child: Container(
                   height: 120, width: double.infinity,
                   decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(15)),
-                  child: _imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(_imageFile!, fit: BoxFit.cover),
+                  child: imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(imageFile!, fit: BoxFit.cover),
                 ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _imageFile == null ? null : () { Navigator.pop(context); _processUpload(_imageFile!); },
+                onPressed: imageFile == null ? null : () { Navigator.pop(context); _processUpload(imageFile!); },
                 style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 50)),
-                child: const Text("KONFIRMASI BAYAR", style: TextStyle(color: Colors.white)),
+                child: const Text("KONFIRMASI BAYAR", style: TextStyle(color: Colors.white))
               ),
               const SizedBox(height: 20),
             ],

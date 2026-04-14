@@ -129,23 +129,32 @@ class AuthController extends Controller {
     }
 
     // 6. AMBIL KONTEN MATERI & TRYOUT
-    public function getClassContent(Request $request): JsonResponse {
-        try {
-            $classId = $request->class_id;
-            $materi = Material::where('class_id', $classId)->get();
-            $tryouts = Tryout::where('class_id', $classId)->get();
-            $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
+    // --- MODIFIKASI PADA AuthController.php ---
 
-            return response()->json([
-                'status' => 'success',
-                'enroll_status' => $enroll ? $enroll->status : 'none',
-                'materi' => $materi,
-                'tryouts' => $tryouts
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
+    public function getClassContent(Request $request): JsonResponse {
+    try {
+        $classId = $request->class_id;
+        $materi = Material::where('class_id', $classId)->get();
+        $tryouts = Tryout::where('class_id', $classId)->get();
+
+        // --- TAMBAHKAN BARIS INI ---
+        // Mengambil data dari tabel latihan_soals berdasarkan class_id
+        $latihan = \App\Models\LatihanSoal::where('class_id', $classId)->get();
+        // ---------------------------
+
+        $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
+
+        return response()->json([
+            'status' => 'success',
+            'enroll_status' => $enroll ? $enroll->status : 'none',
+            'materi' => $materi,
+            'tryouts' => $tryouts,
+            'latihan_soals' => $latihan // <-- KIRIM DATA INI KE MOBILE
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
+}
 
     // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {

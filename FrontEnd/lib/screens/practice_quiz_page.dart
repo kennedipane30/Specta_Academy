@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
 class PracticeQuizPage extends StatefulWidget {
-  final String subject;
-  final int week;
   final List questions;
-
-  const PracticeQuizPage({super.key, required this.subject, required this.week, required this.questions});
+  const PracticeQuizPage({super.key, required this.questions});
 
   @override
   State<PracticeQuizPage> createState() => _PracticeQuizPageState();
@@ -16,7 +13,7 @@ class _PracticeQuizPageState extends State<PracticeQuizPage> {
   String? selectedAnswer;
   bool isChecked = false;
 
-  void _nextQuestion() {
+  void _next() {
     if (currentIndex < widget.questions.length - 1) {
       setState(() {
         currentIndex++;
@@ -24,55 +21,102 @@ class _PracticeQuizPageState extends State<PracticeQuizPage> {
         isChecked = false;
       });
     } else {
-      Navigator.pop(context); // Selesai, kembali ke daftar minggu
+      Navigator.pop(context); // Kembali ke list minggu jika soal habis
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Ambil data soal berdasarkan index saat ini
     var q = widget.questions[currentIndex];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Soal ${currentIndex + 1} / ${widget.questions.length}"),
+        title: Text(
+          "Soal ${currentIndex + 1} / ${widget.questions.length}",
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF990000),
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(25),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(q['pertanyaan'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            // Pertanyaan
+            Text(
+              q['pertanyaan'] ?? "Soal tidak ditemukan",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
             const SizedBox(height: 30),
-            _buildOption("A", q['opsi_a'], q['jawaban_benar']),
-            _buildOption("B", q['opsi_b'], q['jawaban_benar']),
-            _buildOption("C", q['opsi_c'], q['jawaban_benar']),
-            _buildOption("D", q['opsi_d'], q['jawaban_benar']),
+
+            // Pilihan Jawaban
+            _option("A", q['opsi_a'] ?? "", q['jawaban_benar'] ?? ""),
+            _option("B", q['opsi_b'] ?? "", q['jawaban_benar'] ?? ""),
+            _option("C", q['opsi_c'] ?? "", q['jawaban_benar'] ?? ""),
+            _option("D", q['opsi_d'] ?? "", q['jawaban_benar'] ?? ""),
+
             const Spacer(),
-            if (isChecked) 
+
+            // Bagian Pembahasan (Muncul setelah Cek Jawaban)
+            if (isChecked)
               Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(15)),
-                child: Text("Pembahasan: ${q['pembahasan'] ?? 'Tidak ada pembahasan'}", style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "PEMBAHASAN:",
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      q['pembahasan'] ?? "Tidak ada pembahasan untuk soal ini.",
+                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black54),
+                    ),
+                  ],
+                ),
               ),
+
             const SizedBox(height: 20),
+
+            // Tombol Navigasi
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                onPressed: isChecked ? _nextQuestion : () => setState(() => isChecked = true),
-                child: Text(isChecked ? "SOAL BERIKUTNYA" : "CEK JAWABAN", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: isChecked
+                    ? _next
+                    : (selectedAnswer != null ? () => setState(() => isChecked = true) : null),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF990000),
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isChecked ? "LANJUT KE SOAL BERIKUTNYA" : "CEK JAWABAN",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOption(String code, String text, String correct) {
+  // Widget Helper untuk Pilihan Jawaban
+  Widget _option(String code, String text, String correct) {
     bool isCorrect = code == correct;
     bool isSelected = selectedAnswer == code;
 
@@ -90,17 +134,27 @@ class _PracticeQuizPageState extends State<PracticeQuizPage> {
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
+          color: isSelected ? borderCol.withOpacity(0.05) : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: borderCol, width: 2),
-          color: isSelected ? borderCol.withOpacity(0.05) : Colors.white,
         ),
         child: Row(
           children: [
-            Text("$code.", style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(text)),
-            if (isChecked && isCorrect) const Icon(Icons.check_circle, color: Colors.green),
-            if (isChecked && isSelected && !isCorrect) const Icon(Icons.cancel, color: Colors.red),
+            Text(
+              "$code.",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ),
+            if (isChecked && isCorrect)
+              const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            if (isChecked && isSelected && !isCorrect)
+              const Icon(Icons.cancel, color: Colors.red, size: 20),
           ],
         ),
       ),

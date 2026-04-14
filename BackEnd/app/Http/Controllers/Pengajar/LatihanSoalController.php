@@ -23,31 +23,39 @@ class LatihanSoalController extends Controller {
     }
 
     public function storeCSV(Request $request, $class_id) {
-        $request->validate([
-            'subject'  => 'required',
-            'minggu'   => 'required|integer|min:1|max:20',
-            'file_csv' => 'required|mimes:csv,txt'
-        ]);
+    $request->validate([
+        'subject'  => 'required',
+        'minggu'   => 'required|integer|min:1|max:20',
+        'file_csv' => 'required'
+    ]);
 
-        $file = $request->file('file_csv');
-        $handle = fopen($file->getRealPath(), "r");
-        fgetcsv($handle); // Lewati header CSV
+    $file = $request->file('file_csv');
+    $handle = fopen($file->getRealPath(), "r");
 
-        while (($row = fgetcsv($handle, 2000, ",")) !== FALSE) {
-            LatihanSoal::create([
-                'class_id'      => $class_id,
-                'subject'       => $request->subject, // Dari form
-                'minggu'        => $request->minggu,  // Dari form
-                'pertanyaan'    => $row[0],
-                'opsi_a'        => $row[1],
-                'opsi_b'        => $row[2],
-                'opsi_c'        => $row[3],
-                'opsi_d'        => $row[4],
-                'jawaban_benar' => strtoupper($row[5]),
-                'pembahasan'    => $row[6] ?? null,
-            ]);
+    // Ambil header baris pertama
+    fgetcsv($handle, 2000, ";");
+
+    while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
+        // Pengecekan: Jika kolom pertanyaan (row 0) kosong, lewati baris ini
+        if (!isset($row[0]) || empty(trim($row[0]))) {
+            continue;
         }
-        fclose($handle);
-        return back()->with('success', 'Latihan Soal Minggu ke-' . $request->minggu . ' berhasil ditambah!');
+
+        \App\Models\LatihanSoal::create([
+            'class_id'      => $class_id,
+            'subject'       => $request->subject,
+            'minggu'        => $request->minggu,
+            'pertanyaan'    => $row[0],
+            'opsi_a'        => $row[1] ?? '-',
+            'opsi_b'        => $row[2] ?? '-',
+            'opsi_c'        => $row[3] ?? '-',
+            'opsi_d'        => $row[4] ?? '-',
+            'jawaban_benar' => strtoupper(trim($row[5] ?? 'A')),
+            'pembahasan'    => $row[6] ?? null,
+        ]);
     }
+
+    fclose($handle);
+    return back()->with('success', 'Latihan Soal berhasil di-import!');
+}
 }
