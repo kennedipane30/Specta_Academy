@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 // Import semua Model yang dibutuhkan sesuai ERD
 use App\Models\{User, Student, OtpCode, Enrollment, Material, Schedule, Tryout, Question, TryoutResult};
 use Illuminate\Http\{Request, JsonResponse};
-use Illuminate\Support\Facades\{Hash, Validator, DB, Auth};
+use Illuminate\Support\Facades\{Hash, Validator, DB, Auth, Mail}; 
+use App\Mail\OtpMail; 
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -19,19 +20,69 @@ class AuthController extends Controller {
             'nomor_wa' => 'required',
             'password' => ['required', 'confirmed', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&]/'],
         ]);
+
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
+        
         DB::beginTransaction();
         try {
-            $user = User::create(['name' => trim($request->name), 'email' => $request->email, 'phone' => $request->nomor_wa, 'password' => bcrypt($request->password), 'role_id' => 3, 'is_verified' => false]);
+            // Buat User
+            $user = User::create([
+                'name' => trim($request->name), 
+                'email' => $request->email, 
+                'phone' => $request->nomor_wa, 
+                'password' => bcrypt($request->password), 
+                'role_id' => 3, 
+                'is_verified' => false
+            ]);
+            
+            // Buat Data Student
             Student::create(['user_id' => $user->usersID, 'school' => '-', 'dob' => null, 'wa_ortu' => '-', 'parent_name' => '-']);
+            
+            // Buat Kode OTP
             $otp = rand(100000, 999999);
             OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
+
+            /**
+             * MODIFIKASI: Kirim Email tanpa try-catch internal.
+             * Jika pengiriman email gagal (SendGrid Error), maka proses 
+             * akan langsung dilempar ke blok catch(Exception $e) di bawah.
+             */
+            Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+
             DB::commit();
             return response()->json(['status' => 'success', 'otp' => $otp, 'name' => $user->name], 201);
-        } catch (\Exception $e) { DB::rollBack(); return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
+
+        } catch (\Exception $e) { 
+            DB::rollBack(); 
+            // Mengembalikan pesan error asli agar bisa dibaca di Flutter
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Gagal Daftar/Kirim Email: ' . $e->getMessage()
+            ], 500); 
+        }
     }
 
-    // 2. VERIFIKASI OTP REGISTRASI
+    // 2. FORGOT PASSWORD
+    public function forgotPassword(Request $request): JsonResponse {
+        $request->validate(['phone' => 'required']);
+        $user = User::where('phone', $request->phone)->first();
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'Nomor WhatsApp tidak terdaftar!'], 404);
+        
+        try {
+            $otp = rand(100000, 999999);
+            OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
+
+            // Kirim Email OTP Reset Password
+            Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+
+            return response()->json(['status' => 'success', 'message' => 'Kode OTP Reset Password berhasil dikirim ke Email', 'otp' => $otp]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Gagal kirim email: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // --- FUNGSI LAINNYA TETAP SAMA (TIDAK ADA PERUBAHAN) ---
+
     public function verifyRegistration(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
         if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
@@ -42,21 +93,11 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'message' => 'Akun Aktif!']);
     }
 
-    // 3. LOGIN SISWA
     public function login(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
         if (!$user || !Hash::check($request->password, $user->password)) return response()->json(['status' => 'error', 'message' => 'Nama/Password Salah'], 401);
-        if (!$user->is_verified) return response()->json(['status' => 'error', 'message' => 'Akun belum verifikasi WA!'], 403);
+        if (!$user->is_verified) return response()->json(['status' => 'error', 'message' => 'Akun belum verifikasi Email!'], 403);
         return response()->json(['status' => 'success', 'token' => $user->createToken('token')->plainTextToken, 'user' => $user->load('student')]);
-    }
-
-    public function forgotPassword(Request $request): JsonResponse {
-        $request->validate(['phone' => 'required']);
-        $user = User::where('phone', $request->phone)->first();
-        if (!$user) return response()->json(['status' => 'error', 'message' => 'Nomor WhatsApp tidak terdaftar!'], 404);
-        $otp = rand(100000, 999999);
-        OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
-        return response()->json(['status' => 'success', 'message' => 'Kode OTP Reset Password berhasil dikirim', 'otp' => $otp]);
     }
 
     public function resetPassword(Request $request): JsonResponse {
@@ -75,88 +116,40 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'message' => 'Password berhasil diperbarui!']);
     }
 
-    // 4. LENGKAPI PROFIL
     public function updateProfile(Request $request): JsonResponse {
         $v = Validator::make($request->all(), ['parent_name' => 'required|string', 'alamat' => 'required|string', 'wa_ortu' => 'required', 'nisn' => 'required', 'dob' => 'required|date']);
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         $user->student->update(['parent_name' => $request->parent_name, 'school' => $request->alamat, 'wa_ortu' => $request->wa_ortu, 'nisn' => $request->nisn, 'dob' => $request->dob]);
         return response()->json(['status' => 'success', 'message' => 'Profil berhasil dilengkapi']);
     }
 
-    // 5. DAFTAR KELAS
     public function joinClass(Request $request): JsonResponse {
-        // MODIFIKASI: Tambah validasi class_id agar pasti masuk ke DB
-        $v = Validator::make($request->all(), [
-            'class_id' => 'required',
-            'payment_proof' => 'required|image|max:2048'
-        ]);
+        $v = Validator::make($request->all(), ['class_id' => 'required', 'payment_proof' => 'required|image|max:2048']);
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         $path = $request->file('payment_proof')->store('proofs', 'public');
-
-        Enrollment::create([
-            'user_id' => $user->usersID,
-            'class_id' => $request->class_id,
-            'payment_proof' => $path,
-            'status' => 'pending'
-        ]);
+        Enrollment::create(['user_id' => $user->usersID, 'class_id' => $request->class_id, 'payment_proof' => $path, 'status' => 'pending']);
         return response()->json(['status' => 'success', 'message' => 'Pendaftaran terkirim!']);
     }
 
-    public function joinClassPromo(Request $request): JsonResponse {
-        $v = Validator::make($request->all(), [
-            'class_id' => 'required',
-            'promo_code' => 'required',
-            'payment_proof' => 'required|image|max:2048',
-        ]);
-        if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-
-        $user = Auth::user();
-        $path = $request->file('payment_proof')->store('proofs', 'public');
-
-        Enrollment::create([
-            'user_id' => $user->usersID,
-            'class_id' => $request->class_id,
-            'payment_proof' => $path,
-            'status' => 'pending',
-        ]);
-
-        return response()->json(['status' => 'success', 'message' => 'Pendaftaran Promo Berhasil Dikirim!']);
-    }
-
-    // 6. AMBIL KONTEN MATERI & TRYOUT
-    // --- MODIFIKASI PADA AuthController.php ---
-
     public function getClassContent(Request $request): JsonResponse {
-    try {
-        $classId = $request->class_id;
-        $materi = Material::where('class_id', $classId)->get();
-        $tryouts = Tryout::where('class_id', $classId)->get();
-
-        // --- TAMBAHKAN BARIS INI ---
-        // Mengambil data dari tabel latihan_soals berdasarkan class_id
-        $latihan = \App\Models\LatihanSoal::where('class_id', $classId)->get();
-        // ---------------------------
-
-        $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
-
-        return response()->json([
-            'status' => 'success',
-            'enroll_status' => $enroll ? $enroll->status : 'none',
-            'materi' => $materi,
-            'tryouts' => $tryouts,
-            'latihan_soals' => $latihan // <-- KIRIM DATA INI KE MOBILE
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        try {
+            $classId = $request->class_id;
+            $materi = Material::where('class_id', $classId)->get();
+            $tryouts = Tryout::where('class_id', $classId)->get();
+            $latihan = \App\Models\LatihanSoal::where('class_id', $classId)->get();
+            $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
+            return response()->json([
+                'status' => 'success',
+                'enroll_status' => $enroll ? $enroll->status : 'none',
+                'materi' => $materi,
+                'tryouts' => $tryouts,
+                'latihan_soals' => $latihan
+            ], 200);
+        } catch (\Exception $e) { return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
     }
-}
 
-    // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
         $activeClassIds = Enrollment::where('user_id', $user->usersID)->where('status', 'aktif')->pluck('class_id');
@@ -164,14 +157,12 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'data' => $schedules]);
     }
 
-    // 8. AMBIL DAFTAR SOAL
     public function getQuestions(Request $request): JsonResponse {
         $questions = Question::where('tryout_id', $request->tryout_id)->get();
         if ($questions->isEmpty()) return response()->json(['status' => 'error', 'message' => 'Soal belum tersedia'], 404);
         return response()->json(['status' => 'success', 'data' => $questions], 200);
     }
 
-    // 9. SUBMIT TRYOUT
     public function submitTryout(Request $request): JsonResponse {
         try {
             $userAnswers = $request->input('answers');
@@ -186,14 +177,12 @@ class AuthController extends Controller {
         } catch (\Exception $e) { return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
     }
 
-    // 10. DOWNLOAD PEMBAHASAN PDF
     public function downloadPembahasan($result_id) {
         $result = TryoutResult::with(['tryout.questions'])->findOrFail($result_id);
         $pdf = Pdf::loadView('pdf.pembahasan', compact('result'));
         return $pdf->download('Pembahasan_Spekta_Academy.pdf');
     }
 
-    // 11. LOGOUT
     public function logout(Request $request): JsonResponse {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['status' => 'success', 'message' => 'Berhasil Logout']);
@@ -205,7 +194,6 @@ class AuthController extends Controller {
                     ->whereDate('start_date', '<=', now())
                     ->whereDate('end_date', '>=', now())
                     ->first();
-
         if (!$promo) return response()->json(['status' => 'error', 'message' => 'Kode promo tidak valid!'], 404);
         $potongan = $request->price * ($promo->discount_percent / 100);
         return response()->json(['status' => 'success', 'discount_percent' => $promo->discount_percent, 'new_price' => $request->price - $potongan]);

@@ -1,111 +1,103 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'login_page.dart'; // Import halaman login
 import 'dart:convert';
+import 'login_page.dart'; 
 
 class OtpPage extends StatefulWidget {
   final String name;
-  final String otpSimulasi;
+  final String email;
 
-  const OtpPage({super.key, required this.name, required this.otpSimulasi});
+  const OtpPage({
+    super.key, 
+    required this.name, 
+    required this.email,
+  });
 
   @override
   State<OtpPage> createState() => _OtpPageState();
 }
 
 class _OtpPageState extends State<OtpPage> {
-  final TextEditingController otpCtrl = TextEditingController();
-  final Color spektaRed = const Color(0xFF990000);
-  String currentText = "";
+  final TextEditingController _otpCtrl = TextEditingController();
+  bool _isLoading = false;
 
-  void handleVerify() async {
-    if (otpCtrl.text.length < 6) return;
-
-    // Tampilkan Loading
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF990000))));
-
-    // Panggil API Verifikasi Registrasi
-    var resp = await AuthService.verifyRegistration(widget.name, otpCtrl.text);
-
-    if (!mounted) return;
-    Navigator.pop(context); // Tutup Loading
-
-    if (resp.statusCode == 200) {
-      // 1. Tampilkan Notifikasi Sukses
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.green, 
-          content: Text("Akun Berhasil Diaktifkan! Silakan Login menggunakan Nama & Password.")
-        )
-      );
-
-      // 2. ARAHKAN LANGSUNG KE HALAMAN LOGIN
-      // Kita hapus semua tumpukan halaman (stack) agar siswa tidak bisa kembali ke OTP
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.red, content: Text("Kode OTP Salah!"))
-      );
+  void _verifyOtp() async {
+    if (_otpCtrl.text.isEmpty) {
+      _showSnackBar("Masukkan kode OTP", Colors.orange);
+      return;
     }
+
+    setState(() => _isLoading = true);
+
+    try {
+      var response = await AuthService.verifyOtp({
+        'name': widget.name,
+        'otp': _otpCtrl.text.trim(),
+      });
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        _showSnackBar("Verifikasi Berhasil! Silakan Login.", Colors.green);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()), 
+          (route) => false,
+        );
+      } else {
+        _showSnackBar(responseData['message'] ?? "Kode OTP Salah", Colors.red);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      _showSnackBar("Kesalahan Koneksi!", Colors.black);
+    }
+  }
+
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color, behavior: SnackBarBehavior.floating));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Aktivasi Akun"),
-        backgroundColor: spektaRed,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(30),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text("Verifikasi OTP"), backgroundColor: Colors.white, foregroundColor: const Color(0xFF990000), elevation: 0),
+      body: Padding(
+        padding: const EdgeInsets.all(30.0),
         child: Column(
           children: [
+            const Icon(Icons.mark_email_read_outlined, size: 80, color: Color(0xFF990000)),
             const SizedBox(height: 20),
-            const Icon(Icons.verified_user_outlined, size: 80, color: Color(0xFF990000)),
-            const SizedBox(height: 30),
-            Text(
-              "Halo ${widget.name}, masukkan kode OTP yang dikirim ke WhatsApp Anda:",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[700], fontSize: 16),
-            ),
+            Text("Halo ${widget.name}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            Text(
-              "SIMULASI: ${widget.otpSimulasi}",
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 50),
-            
-            // Input OTP Kotak-kotak Merah
+            Text("Masukkan 6 digit kode yang dikirim ke Gmail:", textAlign: TextAlign.center),
+            Text(widget.email, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+            const SizedBox(height: 40),
             TextField(
-              controller: otpCtrl,
-              textAlign: TextAlign.center,
+              controller: _otpCtrl,
               keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
               maxLength: 6,
-              style: const TextStyle(fontSize: 32, letterSpacing: 20, fontWeight: FontWeight.bold, color: Color(0xFF990000)),
-              decoration: const InputDecoration(
-                hintText: "000000",
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 10),
+              decoration: InputDecoration(
                 counterText: "",
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF990000), width: 2)),
+                hintText: "000000",
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
               ),
             ),
-            
-            const SizedBox(height: 60),
-            
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: spektaRed,
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              onPressed: handleVerify,
-              child: const Text("VERIFIKASI & AKTIFKAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+            const SizedBox(height: 30),
+            _isLoading 
+              ? const CircularProgressIndicator(color: Color(0xFF990000))
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  onPressed: _verifyOtp,
+                  child: const Text("VERIFIKASI SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
           ],
         ),
       ),
