@@ -7,9 +7,10 @@ use Illuminate\Http\Request;
 
 class JadwalController extends Controller {
     public function index() {
-        $jadwal = Schedule::with(['classModel', 'teacher'])->latest()->get();
+        // Relasi diganti dari classModel menjadi class
+        $jadwal = Schedule::with(['class', 'teacher'])->latest()->get();
         $classes = ClassModel::all();
-        $teachers = User::where('role_id', 2)->get(); // Hanya ambil Pengajar
+        $teachers = User::where('role_id', 2)->get();
         return view('admin.jadwal.index', compact('jadwal', 'classes', 'teachers'));
     }
 
@@ -39,7 +40,6 @@ class JadwalController extends Controller {
 
     public function getMateri($class_id)
     {
-        // Mengambil title materi yang ada di class_id tersebut secara unik (distinct)
         $materi = \App\Models\Material::where('class_id', $class_id)
                     ->select('title')
                     ->distinct()
@@ -49,6 +49,7 @@ class JadwalController extends Controller {
     }
 
     public function destroy($id) {
+        // PK schedule_id ditangani otomatis oleh model
         Schedule::findOrFail($id)->delete();
         return back()->with('success', 'Jadwal dihapus!');
     }

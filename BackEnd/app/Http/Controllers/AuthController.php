@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-// Import semua Model yang dibutuhkan sesuai ERD
-use App\Models\{User, Student, OtpCode, Enrollment, Material, Schedule, Tryout, Question, TryoutResult};
+use App\Models\{User, Student, OtpCode, Enrollment, Material, Schedule, Tryout, Question, TryoutResult, PracticeQuestion};
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\{Hash, Validator, DB, Auth};
 use Carbon\Carbon;
@@ -23,7 +22,8 @@ class AuthController extends Controller {
         DB::beginTransaction();
         try {
             $user = User::create(['name' => trim($request->name), 'email' => $request->email, 'phone' => $request->nomor_wa, 'password' => bcrypt($request->password), 'role_id' => 3, 'is_verified' => false]);
-            Student::create(['user_id' => $user->usersID, 'school' => '-', 'dob' => null, 'wa_ortu' => '-', 'parent_name' => '-']);
+            // MODIFIKASI: school -> address, dob -> date_of_birth, wa_ortu -> parent_phone
+            Student::create(['user_id' => $user->usersID, 'address' => '-', 'date_of_birth' => null, 'parent_phone' => '-', 'parent_name' => '-']);
             $otp = rand(100000, 999999);
             OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
             DB::commit();
@@ -31,7 +31,7 @@ class AuthController extends Controller {
         } catch (\Exception $e) { DB::rollBack(); return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
     }
 
-    // 2. VERIFIKASI OTP REGISTRASI
+    // 2. VERIFIKASI OTP
     public function verifyRegistration(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
         if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
@@ -42,7 +42,7 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'message' => 'Akun Aktif!']);
     }
 
-    // 3. LOGIN SISWA
+    // 3. LOGIN
     public function login(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
         if (!$user || !Hash::check($request->password, $user->password)) return response()->json(['status' => 'error', 'message' => 'Nama/Password Salah'], 401);
@@ -81,86 +81,57 @@ class AuthController extends Controller {
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $user->student->update(['parent_name' => $request->parent_name, 'school' => $request->alamat, 'wa_ortu' => $request->wa_ortu, 'nisn' => $request->nisn, 'dob' => $request->dob]);
+        // MODIFIKASI: school -> address, wa_ortu -> parent_phone, nisn -> national_id_number, dob -> date_of_birth
+        $user->student->update([
+            'parent_name' => $request->parent_name,
+            'address' => $request->alamat,
+            'parent_phone' => $request->wa_ortu,
+            'national_id_number' => $request->nisn,
+            'date_of_birth' => $request->dob
+        ]);
         return response()->json(['status' => 'success', 'message' => 'Profil berhasil dilengkapi']);
     }
 
     // 5. DAFTAR KELAS
     public function joinClass(Request $request): JsonResponse {
-        // MODIFIKASI: Tambah validasi class_id agar pasti masuk ke DB
-        $v = Validator::make($request->all(), [
-            'class_id' => 'required',
-            'payment_proof' => 'required|image|max:2048'
-        ]);
+        $v = Validator::make($request->all(), ['class_id' => 'required', 'payment_proof' => 'required|image|max:2048']);
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         $path = $request->file('payment_proof')->store('proofs', 'public');
-
-        Enrollment::create([
-            'user_id' => $user->usersID,
-            'class_id' => $request->class_id,
-            'payment_proof' => $path,
-            'status' => 'pending'
-        ]);
+        Enrollment::create(['user_id' => $user->usersID, 'class_id' => $request->class_id, 'payment_proof' => $path, 'status' => 'pending']);
         return response()->json(['status' => 'success', 'message' => 'Pendaftaran terkirim!']);
     }
 
-    public function joinClassPromo(Request $request): JsonResponse {
-        $v = Validator::make($request->all(), [
-            'class_id' => 'required',
-            'promo_code' => 'required',
-            'payment_proof' => 'required|image|max:2048',
-        ]);
-        if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-
-        $user = Auth::user();
-        $path = $request->file('payment_proof')->store('proofs', 'public');
-
-        Enrollment::create([
-            'user_id' => $user->usersID,
-            'class_id' => $request->class_id,
-            'payment_proof' => $path,
-            'status' => 'pending',
-        ]);
-
-        return response()->json(['status' => 'success', 'message' => 'Pendaftaran Promo Berhasil Dikirim!']);
-    }
-
-    // 6. AMBIL KONTEN MATERI & TRYOUT
-    // --- MODIFIKASI PADA AuthController.php ---
-
+    // 6. AMBIL KONTEN (MATERI, TRYOUT, LATIHAN)
     public function getClassContent(Request $request): JsonResponse {
-    try {
-        $classId = $request->class_id;
-        $materi = Material::where('class_id', $classId)->get();
-        $tryouts = Tryout::where('class_id', $classId)->get();
+        try {
+            $classId = $request->class_id;
+            $materi = Material::where('class_id', $classId)->get();
+            $tryouts = Tryout::where('class_id', $classId)->get();
+            // MODIFIKASI: Menggunakan Model PracticeQuestion
+            $latihan = PracticeQuestion::where('class_id', $classId)->get();
 
-        // --- TAMBAHKAN BARIS INI ---
-        // Mengambil data dari tabel latihan_soals berdasarkan class_id
-        $latihan = \App\Models\LatihanSoal::where('class_id', $classId)->get();
-        // ---------------------------
+            $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
 
-        $enroll = Enrollment::where('user_id', Auth::id())->where('class_id', $classId)->first();
-
-        return response()->json([
-            'status' => 'success',
-            'enroll_status' => $enroll ? $enroll->status : 'none',
-            'materi' => $materi,
-            'tryouts' => $tryouts,
-            'latihan_soals' => $latihan // <-- KIRIM DATA INI KE MOBILE
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => 'success',
+                'enroll_status' => $enroll ? $enroll->status : 'none',
+                'materi' => $materi,
+                'tryouts' => $tryouts,
+                'practice_questions' => $latihan
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
-}
 
     // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
-        $activeClassIds = Enrollment::where('user_id', $user->usersID)->where('status', 'aktif')->pluck('class_id');
-        $schedules = Schedule::whereIn('class_id', $activeClassIds)->with(['teacher', 'classModel'])->get();
+        // MODIFIKASI: status 'aktif' -> 'active'
+        $activeClassIds = Enrollment::where('user_id', $user->usersID)->where('status', 'active')->pluck('class_id');
+        // MODIFIKASI: relasi classModel -> class
+        $schedules = Schedule::whereIn('class_id', $activeClassIds)->with(['teacher', 'class'])->get();
         return response()->json(['status' => 'success', 'data' => $schedules]);
     }
 
@@ -178,11 +149,14 @@ class AuthController extends Controller {
             $correctCount = 0;
             $questions = Question::where('tryout_id', $request->tryout_id)->get();
             foreach ($questions as $q) {
-                if (isset($userAnswers[$q->questionsID]) && $userAnswers[$q->questionsID] == $q->correct_answer) { $correctCount++; }
+                // MODIFIKASI: questionsID -> question_id
+                if (isset($userAnswers[$q->question_id]) && $userAnswers[$q->question_id] == $q->correct_answer) { $correctCount++; }
             }
             $score = count($questions) > 0 ? ($correctCount / count($questions)) * 100 : 0;
+            // MODIFIKASI: TryoutResult creation
             $result = TryoutResult::create(['user_id' => Auth::id(), 'tryout_id' => $request->tryout_id, 'score' => (int)$score, 'total_correct' => $correctCount]);
-            return response()->json(['status' => 'success', 'score' => $score, 'resultID' => $result->resultsID, 'correct' => $correctCount], 200);
+            // MODIFIKASI: resultsID -> tryout_result_id
+            return response()->json(['status' => 'success', 'score' => $score, 'result_id' => $result->tryout_result_id, 'correct' => $correctCount], 200);
         } catch (\Exception $e) { return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); }
     }
 
@@ -202,6 +176,7 @@ class AuthController extends Controller {
     public function checkPromo(Request $request): JsonResponse {
         $promo = \App\Models\Promotion::where('code', strtoupper($request->code))
                     ->where('class_id', $request->class_id)
+                    ->where('is_active', true) // MODIFIKASI: is_active
                     ->whereDate('start_date', '<=', now())
                     ->whereDate('end_date', '>=', now())
                     ->first();

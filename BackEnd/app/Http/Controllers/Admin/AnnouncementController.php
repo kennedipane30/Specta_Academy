@@ -30,6 +30,7 @@ class AnnouncementController extends Controller {
     }
 
     public function edit($id) {
+        // PK sudah disesuaikan di model Announcement: announcement_id
         $announcement = Announcement::findOrFail($id);
         return view('admin.announcement.edit', compact('announcement'));
     }

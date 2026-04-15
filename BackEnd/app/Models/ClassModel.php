@@ -6,11 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClassModel extends Model
 {
-    // MODIFIKASI: Beritahu Laravel nama PK sesuai ERD
-    protected $primaryKey = 'class_modelsID';
+    // Nama tabel diubah menjadi 'classes'
+    protected $table = 'classes';
 
+    // Nama Primary Key diubah menjadi 'class_id'
+    protected $primaryKey = 'class_id';
+
+    // Atribut diubah ke Bahasa Inggris
     protected $fillable = [
-        'nama_program',
-        'gambar'
+        'program_name',
+        'image',
+        'price'
     ];
 }

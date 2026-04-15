@@ -10,11 +10,7 @@ use Illuminate\Http\Request;
 class AdminDedicatedTutorController extends Controller {
 
     public function index() {
-        // student.user artinya: panggil relasi 'student' di DedicatedTutor,
-        // lalu panggil relasi 'user' di dalam model Student.
         $tutors = DedicatedTutor::with(['student.user', 'teacher', 'material'])->latest()->get();
-
-        // Ambil pengajar (Role ID 2)
         $availableTeachers = User::where('role_id', 2)->get();
 
         return view('admin.dedicated_tutor.index', compact('tutors', 'availableTeachers'));

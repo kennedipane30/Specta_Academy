@@ -1,12 +1,23 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Material extends Model {
-    protected $table = 'materials'; // Pastikan nama tabel benar
-    protected $primaryKey = 'materialsID';
+class Material extends Model
+{
+    // Nama tabel di database
+    protected $table = 'materials';
 
-    // Tambahkan 'minggu' dan 'file_path' di sini
-    protected $fillable = ['class_id', 'title', 'nama_materi', 'file_path', 'minggu'];
+    // Primary key diubah ke bahasa Inggris (sebelumnya: materialsID)
+    protected $primaryKey = 'material_id';
+
+    // Atribut fillable diubah ke bahasa Inggris
+    protected $fillable = [
+        'class_id',
+        'title',
+        'material_name', // Sebelumnya: nama_materi
+        'file_path',
+        'week'           // Sebelumnya: minggu
+    ];
 }

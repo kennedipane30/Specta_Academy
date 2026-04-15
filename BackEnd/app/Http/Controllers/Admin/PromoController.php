@@ -12,7 +12,8 @@ use Illuminate\Http\JsonResponse;
 class PromoController extends Controller
 {
     public function index() {
-        $promos = Promotion::with('classModel')->latest()->get();
+        // classModel -> class
+        $promos = Promotion::with('class')->latest()->get();
         $classes = ClassModel::all();
         return view('admin.promo.index', compact('promos', 'classes'));
     }
@@ -43,32 +44,22 @@ class PromoController extends Controller
 
     public function destroy($id) {
         $promo = Promotion::findOrFail($id);
-        if ($promo->image_banner) {
-            Storage::disk('public')->delete($promo->image_banner);
-        }
+        if ($promo->image_banner) { Storage::disk('public')->delete($promo->image_banner); }
         $promo->delete();
         return back()->with('success', 'Promo telah dihapus.');
     }
 
-    /**
-     * API UNTUK MOBILE - BEBAS ERROR
-     */
     public function apiIndex(): JsonResponse
     {
-        // Ambil semua promo yang aktif tanpa filter tanggal (agar pasti muncul saat demo)
         $promos = Promotion::where('is_active', true)
-                    ->with('classModel')
+                    ->with('class')
                     ->latest()
                     ->get()
                     ->map(function($item) {
-                        // Menghasilkan URL lengkap khusus emulator
                         $item->foto_url = "http://10.0.2.2:8000/view-galeri/" . basename($item->image_banner);
                         return $item;
                     });
 
-        return response()->json([
-            'status' => 'success',
-            'data'   => $promos
-        ]);
+        return response()->json(['status' => 'success', 'data' => $promos]);
     }
 }

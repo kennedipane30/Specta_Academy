@@ -6,15 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('promotions', function (Blueprint $table) {
-            $table->id('promotionsID');
-            // TAMBAHKAN RELASI KE KELAS (Target Promo)
-            $table->foreignId('class_id')->constrained('class_models', 'class_modelsID')->onDelete('cascade');
+            $table->id('promotion_id');
+            // Merujuk ke tabel classes dan class_id
+            $table->foreignId('class_id')->constrained('classes', 'class_id')->onDelete('cascade');
 
             $table->string('image_banner');
             $table->string('code')->unique();
@@ -26,9 +23,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('promotions');

@@ -11,9 +11,8 @@ class JadwalTutorController extends Controller
     public function index()
     {
         // Mengambil jadwal tutor khusus untuk guru yang login
-        // 'student.user' digunakan agar guru bisa melihat NAMA SISWA
         $jadwal = DedicatedTutor::with(['student.user', 'material'])
-                    ->where('teacher_id', Auth::user()->usersID) // DISESUAIKAN: usersID
+                    ->where('teacher_id', Auth::user()->usersID) // Tetap usersID sesuai permintaan
                     ->where('status', 'confirmed')
                     ->orderBy('date', 'asc')
                     ->get();

@@ -21,7 +21,7 @@ class PengajarDashboardController extends Controller
     public function absensi(): View
     {
         $classes = ClassModel::all();
-        $teacherId = Auth::id();
+        $teacherId = Auth::user()->usersID;
         $today = date('Y-m-d');
 
         $jadwalHariIni = Schedule::where('teacher_id', $teacherId)
@@ -35,7 +35,7 @@ class PengajarDashboardController extends Controller
     public function showAbsensi($class_id): View | \Illuminate\Http\RedirectResponse
     {
         $isAssigned = Schedule::where('class_id', $class_id)
-                            ->where('teacher_id', Auth::id())
+                            ->where('teacher_id', Auth::user()->usersID)
                             ->where('date', date('Y-m-d'))
                             ->first();
 
@@ -43,13 +43,13 @@ class PengajarDashboardController extends Controller
             return redirect()->route('pengajar.absensi.index')->with('info', 'Tidak ada absensi.');
         }
 
-        // Cek apakah sudah ada data absen untuk hari ini
-        $hasAttendance = Attendance::where('schedule_id', $isAssigned->schedulesID)
+        // Cek menggunakan schedule_id (bukan schedulesID)
+        $hasAttendance = Attendance::where('schedule_id', $isAssigned->schedule_id)
                                    ->where('date', date('Y-m-d'))
                                    ->exists();
 
         $siswas = Enrollment::where('class_id', $class_id)
-                    ->where('status', 'aktif')
+                    ->where('status', 'active') // aktif -> active
                     ->where('expires_at', '>', now())
                     ->with(['user.student'])
                     ->get();
@@ -66,7 +66,7 @@ class PengajarDashboardController extends Controller
                     'user_id'     => $usersID,
                     'date'        => date('Y-m-d')
                 ],
-                ['status' => $status]
+                ['status' => $status] // Status otomatis masuk present/permission/absent sesuai form
             );
         }
 
@@ -89,8 +89,8 @@ class PengajarDashboardController extends Controller
 
     public function jadwalSaya(): View
     {
-        $jadwal = Schedule::where('teacher_id', Auth::id())
-                    ->with('classModel')
+        $jadwal = Schedule::where('teacher_id', Auth::user()->usersID)
+                    ->with('class') // Relasi classModel -> class
                     ->orderBy('date', 'asc')
                     ->get();
 

@@ -6,37 +6,30 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-public function up(): void
-{
-    Schema::create('dedicated_tutors', function (Blueprint $table) {
-        $table->id();
+    public function up(): void
+    {
+        Schema::create('dedicated_tutors', function (Blueprint $table) {
+            $table->id('dedicated_tutor_id');
 
-        // Pastikan 'student_id' merujuk ke 'studentsID'
-        $table->foreignId('student_id')->constrained('students', 'studentsID');
+            // Merujuk ke student_id pada tabel students
+            $table->foreignId('student_id')->constrained('students', 'student_id');
 
-        // Pastikan 'material_id' merujuk ke 'materialsID'
-        $table->foreignId('material_id')->constrained('materials', 'materialsID');
+            // Merujuk ke material_id pada tabel materials
+            $table->foreignId('material_id')->constrained('materials', 'material_id');
 
-        // --- PERBAIKAN DI SINI ---
-        // Ganti 'userID' menjadi 'usersID' (tambah huruf s)
-        $table->foreignId('teacher_id')
-              ->nullable()
-              ->constrained('users', 'usersID')
-              ->onDelete('set null');
+            // Merujuk ke usersID pada tabel users
+            $table->foreignId('teacher_id')
+                  ->nullable()
+                  ->constrained('users', 'usersID')
+                  ->onDelete('set null');
 
-        $table->date('date');
-        $table->time('time');
-        $table->enum('status', ['pending', 'confirmed', 'rejected'])->default('pending');
-        $table->timestamps();
-    });
-}
+            $table->date('date');
+            $table->time('time');
+            $table->enum('status', ['pending', 'confirmed', 'rejected'])->default('pending');
+            $table->timestamps();
+        });
+    }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('dedicated_tutors');

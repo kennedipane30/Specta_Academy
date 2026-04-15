@@ -4,28 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Student extends Model {
+class Student extends Model
+{
     protected $table = 'students';
-    protected $primaryKey = 'studentsID';
+
+    // Primary Key
+    protected $primaryKey = 'student_id';
 
     protected $fillable = [
         'user_id',
         'class_id',
         'parent_name',
-        'school',
-        'wa_ortu',
-        'nisn',
-        'dob'
+        'address',             // Sebelumnya: school / alamat
+        'parent_phone',        // Sebelumnya: wa_ortu
+        'national_id_number', // Sebelumnya: nisn
+        'date_of_birth'       // Sebelumnya: dob
     ];
 
-    // RELASI UTAMA: Agar bisa panggil $student->user->name
+    /**
+     * RELATIONSHIPS
+     */
+
+    // Relasi ke User
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'usersID');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function class_model()
+    // Relasi ke Class
+    public function class()
     {
-        return $this->belongsTo(ClassModel::class, 'class_id', 'class_modelsID');
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 }

@@ -6,24 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('tryout_results', function (Blueprint $table) {
-            $table->id('resultsID');
-            $table->foreignId('user_id')->constrained('users', 'usersID');
-            $table->foreignId('tryout_id')->constrained('tryouts', 'tryoutsID');
+            $table->id('tryout_result_id');
+            $table->foreignId('user_id')->constrained('users', 'usersID'); // Referensi usersID sesuai file asli Anda
+            $table->foreignId('tryout_id')->constrained('tryouts', 'tryout_id');
             $table->integer('score');
             $table->integer('total_correct');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('tryout_results');

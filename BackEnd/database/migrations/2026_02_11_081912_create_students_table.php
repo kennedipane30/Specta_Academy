@@ -12,25 +12,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
-            // Menggunakan Primary Key kustom
-            $table->id('studentsID');
+            // Primary Key tabel students
+            $table->id('student_id');
 
-            // Foreign Key ke tabel users (Pastikan usersID adalah nama kolom PK di tabel users)
+            /**
+             * MODIFIKASI:
+             * Nama kolom di tabel ini tetap 'user_id' (Bahasa Inggris)
+             * TAPI referensinya diarahkan ke 'usersID' (sesuai file asli users Anda)
+             */
             $table->foreignId('user_id')
                   ->constrained('users', 'usersID')
                   ->onDelete('cascade');
 
-            // Foreign Key ke tabel class_models (Wajib ada kolom class_id agar materi bisa muncul)
+            // Foreign Key ke tabel classes (Merujuk ke 'class_id' yang sudah kita buat)
             $table->foreignId('class_id')
                   ->nullable()
-                  ->constrained('class_models', 'class_modelsID')
+                  ->constrained('classes', 'class_id')
                   ->onDelete('set null');
 
             $table->string('parent_name')->nullable();
-            $table->string('school')->nullable();
-            $table->string('wa_ortu')->nullable();
-            $table->string('nisn')->nullable();
-            $table->date('dob')->nullable();
+            $table->text('address')->nullable();             // school diganti address
+            $table->string('parent_phone')->nullable();       // wa_ortu diganti parent_phone
+            $table->string('national_id_number')->nullable(); // nisn diganti national_id_number
+            $table->date('date_of_birth')->nullable();       // dob diganti date_of_birth
             $table->timestamps();
         });
     }
@@ -40,7 +44,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Untuk PostgreSQL, tambahkan perintah drop manual jika perlu
         Schema::dropIfExists('students');
     }
 };

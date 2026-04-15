@@ -12,18 +12,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tryouts', function (Blueprint $table) {
-            $table->id('tryoutsID'); // PK Sesuai ERD
-            // Pastikan merujuk ke class_modelsID pada tabel class_models
-            $table->foreignId('class_id')->constrained('class_models', 'class_modelsID')->onDelete('cascade');
+            // MODIFIKASI: Primary Key bahasa Inggris
+            $table->id('tryout_id');
+
+            /**
+             * MODIFIKASI:
+             * Merujuk ke tabel 'classes' dan kolom 'class_id'
+             * (Ini memperbaiki error "relation class_models does not exist")
+             */
+            $table->foreignId('class_id')
+                  ->constrained('classes', 'class_id')
+                  ->onDelete('cascade');
+
             $table->string('title');
-            $table->integer('duration');
+            $table->integer('duration'); // Durasi dalam menit
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('tryouts');
     }
 };
-
