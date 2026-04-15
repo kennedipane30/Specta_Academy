@@ -3,21 +3,20 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebAuthController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\ManajemenSiswaController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
 use App\Http\Controllers\Admin\AdminDedicatedTutorController;
 use App\Http\Controllers\Admin\PromoController;
-use App\Http\Controllers\Admin\AlumniController;
 use App\Http\Controllers\Admin\AnnouncementController;
 
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\JadwalTutorController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
-use App\Http\Controllers\Pengajar\LatihanSoalController;
+// MODIFIKASI: LatihanSoalController -> PracticeQuestionController
+use App\Http\Controllers\Pengajar\PracticeQuestionController;
 
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
@@ -39,14 +38,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Manajemen Galeri
-    Route::get('/galeri', [GaleriController::class, 'index'])->name('galeri.index');
-    Route::post('/galeri', [GaleriController::class, 'store'])->name('galeri.store');
-    Route::get('/galeri/edit/{id}', [GaleriController::class, 'edit'])->name('galeri.edit');
-    Route::put('/galeri/update/{id}', [GaleriController::class, 'update'])->name('galeri.update');
-    Route::delete('/galeri/hapus/{id}', [GaleriController::class, 'destroy'])->name('galeri.destroy');
-
-    // Manajemen Jadwal & Akun Pengajar
+    // Jadwal & Pengajar
     Route::resource('jadwal', JadwalController::class);
     Route::get('/get-materi/{class_id}', [JadwalController::class, 'getMateri'])->name('jadwal.getMateri');
     Route::resource('manajemen-pengajar', ManajemenPengajarController::class);
@@ -59,37 +51,28 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/tambah-kelas/proses/{id}', [ManajemenSiswaController::class, 'prosesAktivasi'])->name('proses_aktivasi');
     });
 
-
-    // --- FIX DEDICATED TUTOR ADMIN ---
-    // Cukup gunakan 'tutor.index', karena otomatis diawali 'admin.' dari group name
-    Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])
-        ->name('tutor.index');
-
-    Route::post('/dedicated-tutor/update/{id}', [AdminDedicatedTutorController::class, 'updateAssignment'])
-        ->name('tutor.update');
-
+    // Dedicated Tutor
+    Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])->name('tutor.index');
+    Route::post('/dedicated-tutor/update/{id}', [AdminDedicatedTutorController::class, 'updateAssignment'])->name('tutor.update');
 
     // Pengumuman
     Route::resource('announcement', AnnouncementController::class);
 
-    // Manajemen Alumni
-    Route::get('/alumni', [AlumniController::class, 'index'])->name('alumni.index');
-    Route::post('/alumni', [AlumniController::class, 'store'])->name('alumni.store');
-    Route::delete('/alumni/{id}', [AlumniController::class, 'destroy'])->name('alumni.destroy');
-    Route::get('/alumni/edit/{id}', [AlumniController::class, 'edit'])->name('alumni.edit');
-    Route::put('/alumni/update/{id}', [AlumniController::class, 'update'])->name('alumni.update');
+    // Alumni
+    // Route::resource('alumni', AlumniController::class);
 
     // Keuangan
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
 
-    // Manajemen Promo
+    // Promo
     Route::get('/promo', [PromoController::class, 'index'])->name('promo.index');
     Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
     Route::delete('/promo/{id}', [PromoController::class, 'destroy'])->name('promo.destroy');
 });
 
 
+// --- 2. GROUP PENGAJAR (Role: Pengajar) ---
 Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar.')->group(function () {
 
     Route::get('/dashboard', [PengajarDashboardController::class, 'index'])->name('dashboard');
@@ -99,10 +82,6 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi', [PengajarDashboardController::class, 'absensi'])->name('absensi.index');
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
-
-    // PERBAIKAN DI SINI:
-    // URL disingkat karena sudah ada prefix 'pengajar'
-    // Nama cukup 'absensi.detail' karena sudah ada group name 'pengajar.'
     Route::get('/absensi/detail/{schedule_id}', [PengajarDashboardController::class, 'detailAbsensi'])->name('absensi.detail');
 
     // Materi
@@ -118,16 +97,20 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
         Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai');
     });
 
-    // Latihan Soal
-    Route::get('/latihan', [LatihanSoalController::class, 'index'])->name('latihan.index');
-    Route::get('/latihan/pilih/{class_id}', [LatihanSoalController::class, 'pilihLatihan'])->name('latihan.pilih');
-    Route::post('/latihan/upload/{class_id}', [LatihanSoalController::class, 'storeCSV'])->name('latihan.store');
+    // MODIFIKASI: Latihan Soal (Gunakan PracticeQuestionController)
+    Route::prefix('latihan')->name('latihan.')->group(function() {
+        Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
+        // pilihLatihan -> selectPractice (Sesuai modifikasi controller sebelumnya)
+        Route::get('/pilih/{class_id}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
+        // storeCSV tetap sama
+        Route::post('/upload/{class_id}', [PracticeQuestionController::class, 'storeCSV'])->name('store');
+    });
 
-    // FITUR DEDICATED TUTOR (PENGAJAR)
+    // Dedicated Tutor (Pengajar)
     Route::get('/jadwal-tutor', [JadwalTutorController::class, 'index'])->name('tutor.index');
 });
 
-// Jalur tampilan foto
+// View Galeri / Foto
 Route::get('/view-galeri/{filename}', function ($filename) {
     $path = 'public/galeri/' . $filename;
     if (!Storage::exists($path)) abort(404);

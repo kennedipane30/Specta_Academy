@@ -23,8 +23,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final Color spektaRed = const Color(0xFF990000);
-
-  // Daftar halaman disimpan agar tidak reload setiap kali pindah tab
   late List<Widget> _pages;
 
   @override
@@ -51,14 +49,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu tipis yang bersih
-      // IndexedStack menjaga state/posisi scroll di setiap halaman
+      backgroundColor: const Color(0xFFF8F9FA),
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
-
-      // --- BOTTOM NAVIGATION BAR PROFESIONAL ---
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -81,10 +76,10 @@ class _MainScreenState extends State<MainScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.grid_view_rounded, "Beranda"),
-                _buildNavItem(1, Icons.auto_stories_rounded, "Kelas"),
-                _buildNavItem(2, Icons.calendar_month_rounded, "Jadwal"),
-                _buildNavItem(3, Icons.person_rounded, "Akun"),
+                _buildNavItem(0, Icons.grid_view_rounded, "Home"),
+                _buildNavItem(1, Icons.auto_stories_rounded, "Classes"),
+                _buildNavItem(2, Icons.calendar_month_rounded, "Schedule"),
+                _buildNavItem(3, Icons.person_rounded, "Profile"),
               ],
             ),
           ),
@@ -93,10 +88,8 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // Widget Pembantu untuk Navigasi Bar dengan Indikator
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
-    
     return Expanded(
       child: InkWell(
         onTap: () => _onItemTapped(index),
@@ -105,7 +98,6 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ikon dengan animasi perubahan ukuran kecil
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(4),
@@ -122,11 +114,9 @@ class _MainScreenState extends State<MainScreen> {
                 color: isSelected ? spektaRed : Colors.grey.shade400,
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                letterSpacing: 0.2,
               ),
             ),
             const SizedBox(height: 6),
-            // Indikator garis kecil di bawah menu yang aktif
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               height: 3,

@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class ModuleWeekListPage extends StatelessWidget {
   final String subjectName;
-  final List allMaterials; // Data materi dari server
+  final List allMaterials; 
   final String token;
 
   const ModuleWeekListPage({
@@ -17,7 +17,6 @@ class ModuleWeekListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color spektaRed = Color(0xFF990000);
 
-    // Filter materi hanya untuk subjek ini (misal: hanya TIU)
     List filteredMateri = allMaterials.where((m) => m['title'] == subjectName).toList();
 
     return Scaffold(
@@ -29,13 +28,13 @@ class ModuleWeekListPage extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: 20, // 20 Minggu
+        itemCount: 20, 
         itemBuilder: (context, index) {
           int weekNumber = index + 1;
           
-          // Cari apakah ada modul untuk minggu ini di data server
+          // MODIFIKASI: Menggunakan key 'week' sesuai database baru
           var moduleData = filteredMateri.firstWhere(
-            (m) => m['minggu'].toString() == weekNumber.toString(),
+            (m) => m['week'].toString() == weekNumber.toString(),
             orElse: () => null,
           );
 
@@ -63,7 +62,7 @@ class ModuleWeekListPage extends StatelessWidget {
                 ),
               ),
               title: Text(
-                "Minggu Ke-$weekNumber",
+                "Week $weekNumber",
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
@@ -71,7 +70,8 @@ class ModuleWeekListPage extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                isAvailable ? (moduleData['nama_materi'] ?? "Klik untuk download PDF") : "Materi belum diunggah pengajar",
+                // MODIFIKASI: Menggunakan key 'material_name'
+                isAvailable ? (moduleData['material_name'] ?? "Tap to download PDF") : "Material not yet uploaded",
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
               trailing: isAvailable
@@ -92,7 +92,6 @@ class ModuleWeekListPage extends StatelessWidget {
     );
   }
 
-  // Fungsi Download/Buka File
   Future<void> _downloadFile(String? filePath) async {
     if (filePath == null || filePath == "") return;
     String fileName = filePath.split('/').last;

@@ -47,12 +47,12 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
         _isUnlocked = true; 
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.green, content: Text("🎉 Kode Promo Berhasil Diaktifkan!"))
+        const SnackBar(backgroundColor: Colors.green, content: Text("🎉 Promo Code Activated!"))
       );
     } else {
       final errorData = jsonDecode(resp.body);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Kode Promo Salah!"))
+        SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Invalid Promo Code!"))
       );
     }
   }
@@ -75,7 +75,7 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran PROMO Berhasil!"))) ;
+        const SnackBar(backgroundColor: Colors.green, content: Text("PROMO Enrollment Successful!")));
       Navigator.pop(context);
     }
   }
@@ -84,7 +84,7 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Pendaftaran Jalur PROMO", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
+        title: const Text("PROMO Enrollment Path", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
         backgroundColor: promoOrange, 
         foregroundColor: Colors.white,
         elevation: 0,
@@ -94,7 +94,7 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Program yang Anda Pilih:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            const Text("Your Selected Program:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -111,7 +111,6 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
                   Expanded(
                     child: Text(
                       widget.className.toUpperCase(),
-                      // PERBAIKAN 1: Ganti FontWeight.black menjadi FontWeight.w900
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
                     ),
                   ),
@@ -120,13 +119,13 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
             ),
             
             const SizedBox(height: 30),
-            const Text("Masukkan Kode Promo Rahasia:", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Enter Secret Promo Code:", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             TextField(
               controller: _promoCtrl,
               readOnly: _isUnlocked,
               decoration: InputDecoration(
-                hintText: "Contoh: SPEKTAVIP77",
+                hintText: "Example: SPEKTAVIP77",
                 prefixIcon: Icon(Icons.vpn_key_outlined, color: promoOrange),
                 suffixIcon: IconButton(
                   icon: Icon(_isUnlocked ? Icons.verified : Icons.send_rounded, color: _isUnlocked ? Colors.green : promoOrange),
@@ -148,21 +147,20 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
               ),
               child: Column(
                 children: [
-                  const Text("TOTAL TAGIHAN PEMBAYARAN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const Text("TOTAL PAYMENT BILL", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 5),
-                  // PERBAIKAN 2: Hapus kata 'const' karena $_price adalah variabel
                   Text(
                     "Rp $_price", 
                     style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: _isUnlocked ? Colors.green : Colors.black87)
                   ),
-                  if (_isUnlocked) const Text("Diskon Berhasil Dipasang! ✅", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                  if (_isUnlocked) const Text("Discount Applied! ✅", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
 
             if (_isUnlocked) ...[
               const SizedBox(height: 40),
-              const Text("Unggah Bukti Transfer Anda:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("Upload Your Payment Proof:", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
               InkWell(
                 onTap: () async {
@@ -177,7 +175,7 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
                     borderRadius: BorderRadius.circular(20)
                   ),
                   child: _imageFile == null 
-                    ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo_outlined, size: 50, color: promoOrange), const Text("Klik untuk pilih foto struk", style: TextStyle(fontSize: 12, color: Colors.grey))])
+                    ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo_outlined, size: 50, color: promoOrange), const Text("Click to select receipt photo", style: TextStyle(fontSize: 12, color: Colors.grey))])
                     : ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_imageFile!, fit: BoxFit.cover)),
                 ),
               ),
@@ -189,7 +187,7 @@ class _PendaftaranKelasPromoPageState extends State<PendaftaranKelasPromoPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
                 onPressed: _imageFile == null ? null : _submitFinal,
-                child: const Text("KONFIRMASI PENDAFTARAN PROMO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text("CONFIRM PROMO ENROLLMENT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 50),
             ]

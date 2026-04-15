@@ -3,7 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart'; 
 import '../services/auth_service.dart';
 import 'tryout_detail_page.dart'; 
 import 'module_week_list_page.dart'; 
@@ -31,7 +30,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   String status = "none";
   List materi = [];
   List tryouts = []; 
-  List latihanSoals = []; 
+  List practiceQuestions = []; 
   bool isLoading = true;
   bool isShowingMateri = false; 
   bool isShowingLatihan = false; 
@@ -43,6 +42,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
+  // 1. Fungsi Ambil Data dari API Laravel
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -53,7 +53,8 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             status = data['enroll_status'] ?? "none";
             materi = data['materi'] ?? [];
             tryouts = data['tryouts'] ?? []; 
-            latihanSoals = data['latihan_soals'] ?? []; 
+            // MODIFIKASI: Menggunakan key 'practice_questions' (Bahasa Inggris)
+            practiceQuestions = data['practice_questions'] ?? []; 
             isLoading = false;
           });
         }
@@ -63,38 +64,52 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  void _showLockedMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.orange,
-        content: Text("⚠️ Fitur Terkunci! Silakan daftar kelas ini terlebih dahulu."),
-      ),
-    );
-  }
-
+  // 2. Fungsi Proses Konfirmasi Pembayaran
   void _processUpload(File image) async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed)));
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF990000)))
+    );
+
     try {
       var streamedResp = await AuthService.joinClass(widget.classId, image.path, widget.token);
       var response = await http.Response.fromStream(streamedResp);
+
       if (!mounted) return;
-      Navigator.pop(context);
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Pendaftaran Berhasil! Menunggu Verifikasi Admin.")));
-        _fetchDetail(); 
+      Navigator.pop(context); // Tutup Loading
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.green, 
+            content: Text("✅ Payment Processing! Please wait for admin verification.")
+          )
+        );
+        _fetchDetail(); // Refresh halaman agar status berubah jadi 'pending'
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.red, content: Text("Failed to send enrollment data."))
+        );
       }
-    } catch (e) { Navigator.pop(context); }
+    } catch (e) { 
+      Navigator.pop(context); 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Connection Error!"))
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isRegistered = status == 'aktif';
+    // MODIFIKASI: Menggunakan 'active' (Bahasa Inggris) sesuai perbaikan Database
+    bool isRegistered = status == 'active';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text(
-          isShowingMateri ? "Materi Video" : (isShowingLatihan ? "Materi Latihan" : widget.className), 
+          isShowingMateri ? "Video Materials" : (isShowingLatihan ? "Practice Materials" : widget.className), 
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
         ),
         backgroundColor: spektaRed,
@@ -119,26 +134,26 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   if (isShowingMateri) ...[
                     _buildMateriList(materi, isRegistered)
                   ] else if (isShowingLatihan) ...[
-                    _buildLatihanSubjectList(materi, isRegistered) // MENGGUNAKAN LIST MATERI SEBAGAI DASAR FOLDER
+                    _buildLatihanSubjectList(materi, isRegistered)
                   ] else ...[
                     if (tryouts.isNotEmpty) ...[
-                      const Padding(padding: EdgeInsets.only(left: 20, top: 20), child: Text("Simulasi Try-Out", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                      const Padding(padding: EdgeInsets.only(left: 20, top: 20), child: Text("Try-Out Simulation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                       _buildTryoutList(tryouts, isRegistered),
                     ],
                     const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(left: 20), child: Text("Pusat Pembelajaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                    const Padding(padding: EdgeInsets.only(left: 20), child: Text("Learning Center", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                     
                     _buildCategoryMenu(
-                      title: "Materi Video Pembelajaran",
-                      subtitle: "Kumpulan video penjelasan expert",
+                      title: "Learning Video Materials",
+                      subtitle: "Collection of expert explanation videos",
                       icon: isRegistered ? Icons.play_circle_fill : Icons.lock_outline,
                       color: isRegistered ? Colors.blue.shade700 : Colors.grey,
                       onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
                     ),
 
                     _buildCategoryMenu(
-                      title: "Latihan Soal Mandiri",
-                      subtitle: "Asah kemampuanmu di sini",
+                      title: "Self-Practice Questions",
+                      subtitle: "Sharpen your skills here",
                       icon: isRegistered ? Icons.edit_note_rounded : Icons.lock_outline,
                       color: isRegistered ? Colors.orange.shade700 : Colors.grey,
                       onTap: isRegistered ? () => setState(() => isShowingLatihan = true) : _showLockedMessage,
@@ -148,8 +163,79 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 ],
               ),
             ),
-      bottomNavigationBar: !isRegistered && status == 'none' ? _buildBottomAction() : null,
+      // Tombol daftar hanya muncul jika status 'none'
+      bottomNavigationBar: status == 'none' ? _buildBottomAction() : null,
     );
+  }
+
+  // 3. Form Pendaftaran (Form Pembayaran)
+  void _showDaftarForm() {
+    File? imageFile;
+    final nameController = TextEditingController(text: widget.userData['name']);
+    
+    // PERBAIKAN: Menggunakan key 'national_id_number' agar 909 muncul (bukan strip)
+    var student = widget.userData['student'];
+    final String nisnValue = student != null ? (student['national_id_number']?.toString() ?? "-") : "-";
+    final nisnController = TextEditingController(text: nisnValue);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 25, right: 25, top: 25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Enrollment Form", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildField(nameController, "Name", Icons.person, true),
+              _buildField(nisnController, "NISN", Icons.numbers, true),
+              const SizedBox(height: 20),
+              InkWell(
+                onTap: () async {
+                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (picked != null) setModalState(() => imageFile = File(picked.path));
+                },
+                child: Container(
+                  height: 120, width: double.infinity,
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(15)),
+                  child: imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(imageFile!, fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: imageFile == null ? null : () { Navigator.pop(context); _processUpload(imageFile!); },
+                style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 50)),
+                child: const Text("CONFIRM PAYMENT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- WIDGET HELPER ---
+
+  Widget _buildStatusBanner() {
+    if (status == 'pending') {
+      return Container(
+        width: double.infinity, 
+        padding: const EdgeInsets.all(15), 
+        color: Colors.orange[50], 
+        child: const Text("⌛ Payment verification in progress by admin", textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))
+      );
+    }
+    return const SizedBox();
+  }
+
+  void _showLockedMessage() {
+    String msg = status == 'pending' 
+        ? "⌛ Your enrollment is being verified." 
+        : "⚠️ Please enroll in this class first.";
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.orange, content: Text(msg)));
   }
 
   Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
@@ -161,8 +247,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white, borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
             border: Border.all(color: Colors.grey.shade200)
           ),
@@ -227,7 +312,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
           child: ListTile(
             leading: const Icon(Icons.folder_special_rounded, color: Colors.green),
             title: Text(subjectName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-            subtitle: const Text("Lihat modul per minggu", style: TextStyle(fontSize: 11)),
+            subtitle: const Text("View weekly modules", style: TextStyle(fontSize: 11)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 14),
             onTap: isRegistered 
               ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => ModuleWeekListPage(subjectName: subjectName, allMaterials: materi, token: widget.token)))
@@ -239,12 +324,8 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildLatihanSubjectList(List items, bool isRegistered) {
-    // KITA AMBIL DARI LIST MATERI AGAR FOLDER MUNCUL SESUAI DB TABEL MATERIALS ANDA
     final List uniqueSubjects = items.map((m) => m['title']).toSet().toList();
-    
-    if (uniqueSubjects.isEmpty) {
-      return const Center(child: Padding(padding: EdgeInsets.all(50), child: Text("Belum ada mata pelajaran tersedia")));
-    }
+    if (uniqueSubjects.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(50), child: Text("No subjects available")));
 
     return ListView.builder(
       padding: const EdgeInsets.all(15),
@@ -253,30 +334,21 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       itemCount: uniqueSubjects.length,
       itemBuilder: (context, index) {
         String fullName = uniqueSubjects[index].toString();
-        // Bersihkan nama: "Materi TIU" menjadi "TIU"
-        String subjectName = fullName.replaceAll("Materi ", "");
+        String subjectName = fullName.replaceAll("Materi ", "").replaceAll("Material ", "");
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFDF7F2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
-          ),
+          decoration: BoxDecoration(color: const Color(0xFFFDF7F2), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.folder_special_rounded, color: Color(0xFF4CAF50), size: 28),
-            ),
-            title: Text("Latihan $subjectName", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-            subtitle: const Text("Lihat latihan per minggu", style: TextStyle(fontSize: 11)),
+            leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.folder_special_rounded, color: Color(0xFF4CAF50), size: 28)),
+            title: Text("$subjectName Practice", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+            subtitle: const Text("View weekly practice questions", style: TextStyle(fontSize: 11)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 14),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeWeekListPage(
-                subjectName: fullName, // Kirim nama lengkap agar filter di page selanjutnya akurat
-                allExercises: latihanSoals,
+                subjectName: fullName,
+                allExercises: practiceQuestions,
                 token: widget.token,
               )));
             },
@@ -284,18 +356,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         );
       },
     );
-  }
-
-  Widget _buildStatusBanner() {
-    if (status == 'pending') {
-      return Container(
-        width: double.infinity, 
-        padding: const EdgeInsets.all(15), 
-        color: Colors.orange[50], 
-        child: const Text("⌛ Menunggu verifikasi admin", textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))
-      );
-    }
-    return const SizedBox();
   }
 
   Widget _buildBottomAction() {
@@ -306,59 +366,16 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
           Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("Harga Program", style: TextStyle(color: Colors.grey, fontSize: 12)), 
+            const Text("Program Price", style: TextStyle(color: Colors.grey, fontSize: 12)), 
             Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))
           ]),
           ElevatedButton(
             onPressed: _showDaftarForm, 
             style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), 
-            child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+            child: const Text("ENROLL NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
           )
         ]
       )
-    );
-  }
-
-  void _showDaftarForm() {
-    File? imageFile;
-    final nameController = TextEditingController(text: widget.userData['name']);
-    final nisnController = TextEditingController(text: widget.userData['student']?['nisn'] ?? "-");
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 25, right: 25, top: 25),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Form Pendaftaran", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              _buildField(nameController, "Nama", Icons.person, true),
-              _buildField(nisnController, "NISN", Icons.numbers, true),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: () async {
-                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-                  if (picked != null) setModalState(() => imageFile = File(picked.path));
-                },
-                child: Container(
-                  height: 120, width: double.infinity,
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(15)),
-                  child: imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(imageFile!, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: imageFile == null ? null : () { Navigator.pop(context); _processUpload(imageFile!); },
-                style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 50)),
-                child: const Text("KONFIRMASI BAYAR", style: TextStyle(color: Colors.white))
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

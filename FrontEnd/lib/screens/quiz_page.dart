@@ -22,7 +22,7 @@ class _QuizPageState extends State<QuizPage> {
   Future<void> _downloadPDF(String resultId) async {
     final Uri url = Uri.parse("${AuthService.baseUrl}/tryout/download/$resultId?token=${widget.token}");
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal mengunduh")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Download failed")));
     }
   }
 
@@ -33,7 +33,8 @@ class _QuizPageState extends State<QuizPage> {
       if (!mounted) return; Navigator.pop(context);
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        _showResultDialog(data['score'].toString(), data['resultID'].toString(), data['correct'].toString());
+        // MODIFIKASI: resultID -> result_id
+        _showResultDialog(data['score'].toString(), data['result_id'].toString(), data['correct'].toString());
       }
     } catch (e) { Navigator.pop(context); }
   }
@@ -41,17 +42,16 @@ class _QuizPageState extends State<QuizPage> {
   void _showResultDialog(String score, String resultId, String correct) {
     showDialog(context: context, barrierDismissible: false, builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      title: const Text("Hasil Try Out 🎓", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+      title: const Text("Try Out Result 🎓", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text("Skor Akhir Anda:"),
+        const Text("Your Final Score:"),
         Text(score, style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold, color: spektaRed)),
-        Text("Benar: $correct / ${widget.questions.length}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+        Text("Correct: $correct / ${widget.questions.length}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
       ]),
       actions: [
         ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)),
-          onPressed: () => _downloadPDF(resultId), 
-          icon: const Icon(Icons.picture_as_pdf, color: Colors.white), label: const Text("DOWNLOAD PEMBAHASAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        TextButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("KEMBALI KE MENU")),
+          onPressed: () => _downloadPDF(resultId), icon: const Icon(Icons.picture_as_pdf, color: Colors.white), label: const Text("DOWNLOAD EXPLANATION", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+        TextButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("BACK TO MENU")),
       ],
     ));
   }
@@ -60,24 +60,26 @@ class _QuizPageState extends State<QuizPage> {
     var q = widget.questions[_currentIndex];
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: Text("Soal ${_currentIndex + 1} / ${widget.questions.length}"), backgroundColor: spektaRed, foregroundColor: Colors.white),
+      appBar: AppBar(title: Text("Question ${_currentIndex + 1} / ${widget.questions.length}"), backgroundColor: spektaRed, foregroundColor: Colors.white),
       body: Column(children: [
         LinearProgressIndicator(value: (_currentIndex + 1) / widget.questions.length, backgroundColor: Colors.red[50], color: spektaRed),
         Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(children: [
           Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(15)),
+            // MODIFIKASI: question
             child: Text(q['question'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
           const SizedBox(height: 30),
-          _buildOption("A", q['option_a'], q['questionsID']),
-          _buildOption("B", q['option_b'], q['questionsID']),
-          _buildOption("C", q['option_c'], q['questionsID']),
-          _buildOption("D", q['option_d'], q['questionsID']),
+          // MODIFIKASI: question_id, option_x
+          _buildOption("A", q['option_a'], q['question_id']),
+          _buildOption("B", q['option_b'], q['question_id']),
+          _buildOption("C", q['option_c'], q['question_id']),
+          _buildOption("D", q['option_d'], q['question_id']),
         ]))),
         Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            if (_currentIndex > 0) OutlinedButton(onPressed: _prevSoal, child: const Text("KEMBALI")),
+            if (_currentIndex > 0) OutlinedButton(onPressed: _prevSoal, child: const Text("BACK")),
             ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: _currentIndex == widget.questions.length - 1 ? Colors.green : spektaRed),
               onPressed: () { if (_currentIndex == widget.questions.length - 1) _submitQuiz(); else _nextSoal(); },
-              child: Text(_currentIndex == widget.questions.length - 1 ? "FINISH" : "SELANJUTNYA", style: const TextStyle(color: Colors.white))),
+              child: Text(_currentIndex == widget.questions.length - 1 ? "FINISH" : "NEXT", style: const TextStyle(color: Colors.white))),
           ]))
       ]),
     );

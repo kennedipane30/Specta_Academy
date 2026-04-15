@@ -16,9 +16,9 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
   bool _isObscure = true;
 
   String? _validatePassword(String? v) {
-    if (v == null || v.length < 8) return 'Minimal 8 Karakter';
+    if (v == null || v.length < 8) return 'Minimum 8 characters';
     if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])').hasMatch(v)) {
-      return 'Wajib ada Kapital, Angka, & Simbol!';
+      return 'Must include Uppercase, Number, & Symbol!';
     }
     return null;
   }
@@ -35,10 +35,10 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
       Navigator.pop(context);
 
       if (resp.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Password Berhasil Diperbarui! Silakan Login.")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Password Updated! Please Login.")));
         Navigator.popUntil(context, (route) => route.isFirst);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.red, content: Text("Gagal memperbarui password!")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.red, content: Text("Failed to update password!")));
       }
     }
   }
@@ -47,7 +47,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
     const Color spektaRed = Color(0xFF990000);
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Password Baru"), backgroundColor: Colors.white, foregroundColor: spektaRed, elevation: 0),
+      appBar: AppBar(title: const Text("New Password"), backgroundColor: Colors.white, foregroundColor: spektaRed, elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 20),
         child: Form(
@@ -55,17 +55,17 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Keamanan Akun", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const Text("Buatlah password yang kuat dan sulit ditebak.", style: TextStyle(color: Colors.grey)),
+              const Text("Account Security", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text("Create a strong and unique password.", style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 40),
-              _buildPasswordInput(_passCtrl, "Password Baru"),
+              _buildPasswordInput(_passCtrl, "New Password"),
               const SizedBox(height: 20),
-              _buildPasswordInput(_confCtrl, "Konfirmasi Password Baru", isConfirm: true),
+              _buildPasswordInput(_confCtrl, "Confirm New Password", isConfirm: true),
               const SizedBox(height: 40),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 onPressed: _handleReset,
-                child: const Text("SIMPAN PASSWORD BARU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text("SAVE NEW PASSWORD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               )
             ],
           ),
@@ -87,7 +87,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
       ),
-      validator: isConfirm ? (v) => v != _passCtrl.text ? 'Password tidak cocok!' : null : _validatePassword,
+      validator: isConfirm ? (v) => v != _passCtrl.text ? 'Passwords do not match!' : null : _validatePassword,
     );
   }
 }

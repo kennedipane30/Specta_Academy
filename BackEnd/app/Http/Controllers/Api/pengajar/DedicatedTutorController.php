@@ -15,20 +15,20 @@ class DedicatedTutorController extends Controller
     {
         try {
             $user = Auth::user();
-            // Cari data student berdasarkan usersID (Primary Key Anda)
+            // user_id merujuk ke usersID (PK User yang tidak diubah)
             $student = Student::where('user_id', $user->usersID)->first();
 
             if (!$student || is_null($student->class_id)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Akses terbatas. Anda belum masuk kelas.',
+                    'message' => 'Limited access. Please enroll in a class first.',
                     'materials' => []
                 ], 200);
             }
 
-            // Ambil materi sesuai class_id siswa
+            // MODIFIKASI: Menggunakan material_id (bukan materialsID)
             $materials = Material::where('class_id', $student->class_id)
-                        ->get(['materialsID', 'title']);
+                        ->get(['material_id', 'title']);
 
             return response()->json([
                 'status' => 'success',
@@ -47,8 +47,9 @@ class DedicatedTutorController extends Controller
             $student = Student::where('user_id', $user->usersID)->first();
             if (!$student) return response()->json(['data' => []]);
 
+            // MODIFIKASI: student_id (bukan studentsID)
             $history = DedicatedTutor::with(['material', 'teacher'])
-                        ->where('student_id', $student->studentsID)
+                        ->where('student_id', $student->student_id)
                         ->latest()
                         ->get();
 
@@ -64,8 +65,9 @@ class DedicatedTutorController extends Controller
             $user = Auth::user();
             $student = Student::where('user_id', $user->usersID)->first();
 
+            // MODIFIKASI: student_id (bukan studentsID)
             $dedicated = DedicatedTutor::create([
-                'student_id'  => $student->studentsID,
+                'student_id'  => $student->student_id,
                 'teacher_id'  => null,
                 'material_id' => $request->material_id,
                 'date'        => $request->date,
@@ -73,7 +75,7 @@ class DedicatedTutorController extends Controller
                 'status'      => 'pending',
             ]);
 
-            return response()->json(['status' => 'success', 'message' => 'Berhasil'], 201);
+            return response()->json(['status' => 'success', 'message' => 'Request sent successfully!'], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }

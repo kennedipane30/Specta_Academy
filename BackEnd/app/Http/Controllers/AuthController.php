@@ -93,13 +93,34 @@ class AuthController extends Controller {
     }
 
     // 5. DAFTAR KELAS
-    public function joinClass(Request $request): JsonResponse {
-        $v = Validator::make($request->all(), ['class_id' => 'required', 'payment_proof' => 'required|image|max:2048']);
+ public function joinClass(Request $request): JsonResponse {
+        $v = Validator::make($request->all(), [
+            'class_id' => 'required',
+            'payment_proof' => 'required|image|max:2048'
+        ]);
+
         if ($v->fails()) return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
-        $user = Auth::user();
-        $path = $request->file('payment_proof')->store('proofs', 'public');
-        Enrollment::create(['user_id' => $user->usersID, 'class_id' => $request->class_id, 'payment_proof' => $path, 'status' => 'pending']);
-        return response()->json(['status' => 'success', 'message' => 'Pendaftaran terkirim!']);
+
+        try {
+            $user = Auth::user();
+            // Simpan gambar ke folder public/proofs
+            $path = $request->file('payment_proof')->store('proofs', 'public');
+
+            Enrollment::create([
+                'user_id' => $user->usersID,
+                'class_id' => $request->class_id,
+                'payment_proof' => $path,
+                'status' => 'pending' // Default pendaftaran baru
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment received! Waiting for admin confirmation.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Database error'], 500);
+        }
     }
 
     // 6. AMBIL KONTEN (MATERI, TRYOUT, LATIHAN)

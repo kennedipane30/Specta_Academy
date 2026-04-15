@@ -2,19 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
-// --- IMPORT SERVICE ---
 import '../services/auth_service.dart'; 
-
-// --- IMPORT HALAMAN (SESUAI STRUKTUR FOLDER VS CODE ANDA) ---
-// Folder 'fitur' berada di dalam folder yang sama dengan home_page.dart
 import 'fitur/about_academy_page.dart';
 import 'fitur/support_center_page.dart';
 import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
-
-// Halaman di level folder yang sama
 import 'pendaftaran_kelas_promo_page.dart';
 import 'class_detail_page.dart'; 
 
@@ -23,12 +16,7 @@ class HomePage extends StatefulWidget {
   final String token;
   final Map userData;
 
-  const HomePage({
-    super.key, 
-    required this.userName, 
-    required this.token, 
-    required this.userData
-  });
+  const HomePage({super.key, required this.userName, required this.token, required this.userData});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -36,25 +24,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Color spektaRed = const Color(0xFF990000);
-  
   Map? currentData; 
   List galeriData = [];
   List promoData = []; 
   List announcementData = []; 
   bool isEnrolled = false; 
-  
   late PageController _galeriController;
 
   @override
   void initState() {
     super.initState();
     _galeriController = PageController();
-    
-    // Inisialisasi data
     currentData = widget.userData;
     _updateEnrollmentStatus();
-
-    // Refresh data
     refreshUserData();
     fetchAnnouncements();
     fetchGaleri();
@@ -86,7 +68,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // --- API FETCHING ---
   Future<void> fetchAnnouncements() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/announcements'));
@@ -126,19 +107,18 @@ class _HomePageState extends State<HomePage> {
               _buildHeader(),
               if (announcementData.isNotEmpty) _buildAnnouncementSection(),
               if (galeriData.isNotEmpty) _buildGallerySlider(),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 35), 
-                    const Text("Layanan Spekta", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5)),
+                    const Text("Spekta Services", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5)),
                     const SizedBox(height: 25),
                     _buildMainMenuGrid(), 
                     const SizedBox(height: 35),
                     if (promoData.isNotEmpty) ...[
-                      const Text("Penawaran Spesial", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                      const Text("Special Offers", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                       const SizedBox(height: 15),
                       _buildPromoSlider(),
                     ],
@@ -155,17 +135,16 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildMainMenuGrid() {
     final List<Map<String, dynamic>> homeMenus = [
-      {'title': 'Materi Belajar', 'icon': Icons.menu_book_rounded, 'color': Colors.orange},
+      {'title': 'Learning Materials', 'icon': Icons.menu_book_rounded, 'color': Colors.orange},
       {'title': 'Dedicated Tutor', 'icon': Icons.person_search_rounded, 'color': Colors.indigo},
-      {'title': 'Bank Soal', 'icon': Icons.history_edu_rounded, 'color': Colors.green},
-      {'title': 'Tentang Spekta', 'icon': Icons.info_outline_rounded, 'color': Colors.blue},
-      {'title': 'Konsultasi', 'icon': Icons.chat_rounded, 'color': Colors.purple},
-      {'title': 'Pusat Bantuan', 'icon': Icons.support_agent_rounded, 'color': Colors.blueGrey},
+      {'title': 'Question Bank', 'icon': Icons.history_edu_rounded, 'color': Colors.green},
+      {'title': 'About Spekta', 'icon': Icons.info_outline_rounded, 'color': Colors.blue},
+      {'title': 'Consultation', 'icon': Icons.chat_rounded, 'color': Colors.purple},
+      {'title': 'Support Center', 'icon': Icons.support_agent_rounded, 'color': Colors.blueGrey},
     ];
 
     return GridView.builder(
       shrinkWrap: true,
-      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, mainAxisSpacing: 25, crossAxisSpacing: 15, childAspectRatio: 0.85,
@@ -177,48 +156,29 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(22),
           onTap: () {
             switch (item['title']) {
-              case 'Materi Belajar':
+              case 'Learning Materials':
                 if (isEnrolled && currentData?['student'] != null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ClassDetailPage(
                         classId: int.parse(currentData!['student']['class_id'].toString()), 
-                        className: currentData!['student']['class_model']?['nama_program'] ?? "Kelas Spekta", 
+                        // MODIFIKASI: Relasi class dan kolom program_name
+                        className: currentData!['student']['class']?['program_name'] ?? "Spekta Class", 
                         token: widget.token,
                         userData: currentData!, 
                       ),
                     ),
                   );
                 } else {
-                  _showWarning("⚠️ Anda belum terdaftar kelas. Silakan daftar dahulu!");
+                  _showWarning("⚠️ You are not enrolled in any class yet.");
                 }
                 break;
-              
-              case 'Dedicated Tutor':
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(
-                    builder: (c) => DedicatedTutorPage(
-                      token: widget.token,
-                      userData: currentData ?? widget.userData,
-                    )
-                  )
-                );
-                break;
-
-              case 'Bank Soal': 
-                Navigator.push(context, MaterialPageRoute(builder: (c) => const QuestionSharingPage())); 
-                break;
-              case 'Tentang Spekta': 
-                Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); 
-                break;
-              case 'Konsultasi': 
-                Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); 
-                break;
-              case 'Pusat Bantuan': 
-                Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); 
-                break;
+              case 'Dedicated Tutor': Navigator.push(context, MaterialPageRoute(builder: (c) => DedicatedTutorPage(token: widget.token, userData: currentData ?? widget.userData))); break;
+              case 'Question Bank': Navigator.push(context, MaterialPageRoute(builder: (c) => const QuestionSharingPage())); break;
+              case 'About Spekta': Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); break;
+              case 'Consultation': Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); break;
+              case 'Support Center': Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); break;
             }
           },
           child: Column(
@@ -229,7 +189,7 @@ class _HomePageState extends State<HomePage> {
                 child: Icon(item['icon'], color: item['color'], size: 30),
               ),
               const SizedBox(height: 10),
-              Text(item['title'], textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.black87)),
+              Text(item['title'], textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.black87)),
             ],
           ),
         );
@@ -238,12 +198,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showWarning(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(backgroundColor: spektaRed, content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: spektaRed, content: Text(message)));
   }
 
-  // --- UI HELPER WIDGETS ---
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -253,7 +210,7 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("Selamat Datang,", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Text("Welcome,", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
             Text(currentData?['name'] ?? widget.userName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
           ]),
           const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 28)
@@ -266,7 +223,7 @@ class _HomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(padding: EdgeInsets.only(left: 25, top: 25, bottom: 10), child: Text("Info Terkini", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+        const Padding(padding: EdgeInsets.only(left: 25, top: 25, bottom: 10), child: Text("Latest Updates", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
         SizedBox(
           height: 220,
           child: ListView.builder(
@@ -318,7 +275,13 @@ class _HomePageState extends State<HomePage> {
           var p = promoData[index];
           String imgUrl = 'http://10.0.2.2:8000/view-galeri/${p['image_banner'].split('/').last}';
           return InkWell(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => PendaftaranKelasPromoPage(classId: p['class_id'], className: p['class_model']['nama_program'], token: widget.token, userData: currentData!))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => PendaftaranKelasPromoPage(
+              classId: p['class_id'], 
+              // MODIFIKASI: Relasi class dan kolom program_name
+              className: p['class']?['program_name'] ?? "Program", 
+              token: widget.token, 
+              userData: currentData!
+            ))),
             child: Container(margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), image: DecorationImage(image: NetworkImage(imgUrl), fit: BoxFit.cover))),
           );
         },

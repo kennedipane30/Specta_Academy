@@ -13,7 +13,7 @@ class ForgotPasswordPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Lupa Password"), backgroundColor: Colors.white, foregroundColor: spektaRed, elevation: 0),
+      appBar: AppBar(title: const Text("Forgot Password"), backgroundColor: Colors.white, foregroundColor: spektaRed, elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 40),
         child: Column(
@@ -24,15 +24,15 @@ class ForgotPasswordPage extends StatelessWidget {
               child: const Icon(Icons.lock_reset_rounded, size: 80, color: spektaRed),
             ),
             const SizedBox(height: 30),
-            const Text("Atur Ulang Password", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text("Reset Password", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            const Text("Masukkan nomor WhatsApp untuk menerima kode verifikasi OTP.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const Text("Enter your WhatsApp number to receive an OTP verification code.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 40),
             TextField(
               controller: phoneCtrl,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: "Nomor WhatsApp",
+                labelText: "WhatsApp Number",
                 prefixIcon: const Icon(Icons.phone_android, color: spektaRed),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
@@ -48,16 +48,17 @@ class ForgotPasswordPage extends StatelessWidget {
               onPressed: () async {
                 showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator(color: spektaRed)));
                 var resp = await AuthService.forgotPassword(phoneCtrl.text);
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 
                 if (resp.statusCode == 200) {
                   final data = jsonDecode(resp.body);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => ResetOtpPage(phone: phoneCtrl.text, otpSimulasi: data['otp'].toString())));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.red, content: Text("Nomor tidak ditemukan!")));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.red, content: Text("Number not found!")));
                 }
               },
-              child: const Text("KIRIM KODE OTP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: const Text("SEND OTP CODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             )
           ],
         ),

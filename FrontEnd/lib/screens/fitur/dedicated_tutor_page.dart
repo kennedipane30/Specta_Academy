@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -36,6 +35,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
 
   // Mengambil data materi dan riwayat dari API
   Future<void> _fetchPageData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
       final resMateri = await TutorService.getTutorData(widget.token);
@@ -61,7 +61,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   // Mengirim pengajuan ke server
   Future<void> _handlePost() async {
     if (selectedMaterialId == null || selectedDate == null) {
-      _showSnack("Harap lengkapi materi dan tanggal!", isError: true);
+      _showSnack("Please select topic and date!", isError: true);
       return;
     }
 
@@ -74,19 +74,19 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
 
       final res = await TutorService.submitTutor(body, widget.token);
       if (res.statusCode == 201 || res.statusCode == 200) {
-        _showSnack("Berhasil diajukan! Menunggu penugasan admin.");
+        _showSnack("Request submitted! Waiting for teacher assignment.");
         setState(() {
           selectedMaterialId = null;
           selectedDate = null;
         });
-        _fetchPageData(); // Refresh list riwayat otomatis
+        _fetchPageData(); // Refresh riwayat
       } else {
-        final msg = jsonDecode(res.body)['message'] ?? "Gagal diajukan";
+        final msg = jsonDecode(res.body)['message'] ?? "Request failed";
         _showSnack(msg, isError: true);
         setState(() => isLoading = false);
       }
     } catch (e) {
-      _showSnack("Koneksi bermasalah", isError: true);
+      _showSnack("Connection error", isError: true);
       setState(() => isLoading = false);
     }
   }
@@ -117,7 +117,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                 children: [
                   _buildFormCard(),
                   const SizedBox(height: 30),
-                  const Text("Riwayat Pengajuan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text("Submission History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   _buildHistoryList(),
                   const SizedBox(height: 50),
@@ -140,19 +140,20 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
           TextField(
             controller: TextEditingController(text: widget.userData['name']),
             readOnly: true,
-            decoration: const InputDecoration(labelText: "Nama Siswa", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: "Student Name", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 15),
           
-          // Dropdown Dinamis dari tabel materials
+          // --- DROPDOWN MATERI (SINKRON DENGAN material_id) ---
           DropdownButtonFormField<int>(
             isExpanded: true,
-            hint: const Text("Pilih Materi"),
+            hint: const Text("Select Topic"),
             value: selectedMaterialId,
             items: materials.map<DropdownMenuItem<int>>((item) {
               return DropdownMenuItem<int>(
-                value: int.tryParse(item['materialsID'].toString()), 
-                child: Text(item['title'] ?? "Materi"),
+                // MODIFIKASI: Menggunakan 'material_id' (English) bukan materialsID
+                value: item['material_id'], 
+                child: Text(item['title'] ?? "Topic"),
               );
             }).toList(),
             onChanged: (val) => setState(() => selectedMaterialId = val),
@@ -162,8 +163,8 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
 
           ListTile(
             shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.grey), borderRadius: BorderRadius.circular(5)),
-            leading: const Icon(Icons.calendar_month),
-            title: Text(selectedDate == null ? "Pilih Tanggal Belajar" : DateFormat('dd MMMM yyyy').format(selectedDate!)),
+            leading: const Icon(Icons.calendar_month, color: Color(0xFF990000)),
+            title: Text(selectedDate == null ? "Select Learning Date" : DateFormat('dd MMMM yyyy').format(selectedDate!)),
             onTap: () async {
               final d = await showDatePicker(
                 context: context,
@@ -177,11 +178,14 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
           const SizedBox(height: 25),
 
           SizedBox(
-            width: double.infinity, height: 50,
+            width: double.infinity, height: 55,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: spektaRed, 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+              ),
               onPressed: _handlePost,
-              child: const Text("KIRIM PENGAJUAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           )
         ],
@@ -190,7 +194,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   }
 
   Widget _buildHistoryList() {
-    if (historyList.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Belum ada riwayat pengajuan.")));
+    if (historyList.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No submission history yet.")));
 
     return ListView.builder(
       shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
@@ -200,14 +204,15 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
         bool confirmed = h['status'] == 'confirmed';
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
-            title: Text(h['material']?['title'] ?? "Materi", style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("Tanggal: ${h['date']}\nPengajar: ${h['teacher'] != null ? h['teacher']['name'] : 'Menunggu Admin'}"),
+            title: Text(h['material']?['title'] ?? "Topic", style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Date: ${h['date']}\nTeacher: ${h['teacher'] != null ? h['teacher']['name'] : 'Waiting for Admin'}"),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: confirmed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(5)
+                borderRadius: BorderRadius.circular(8)
               ),
               child: Text(
                 h['status'].toString().toUpperCase(),

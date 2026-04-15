@@ -16,13 +16,10 @@ class AkunPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color spektaRed = Color(0xFF990000);
     
-    // Ambil data spesifik student dari Map userData
-    var student = userData['student'];
-
     return Scaffold(
       body: Column(
         children: [
-          // Header Profil Merah
+          // Header Profile
           Container(
             height: 280,
             width: double.infinity,
@@ -40,7 +37,7 @@ class AkunPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 Text(
-                  userData['name'] ?? "Siswa Spekta",
+                  userData['name'] ?? "Spekta Student",
                   style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 Text(
@@ -53,11 +50,11 @@ class AkunPage extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Tombol Lengkapi Profil
+          // Complete Profile Button
           ListTile(
             leading: const Icon(Icons.edit_note, color: spektaRed),
-            title: const Text("Lengkapi Data Diri", style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text("Nama Ortu, Alamat, WA Ortu"),
+            title: const Text("Complete Personal Data", style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text("Parent Name, Address, Parent Phone"),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               Navigator.push(
@@ -73,13 +70,13 @@ class AkunPage extends StatelessWidget {
 
           ListTile(
             leading: const Icon(Icons.phone_android, color: spektaRed),
-            title: const Text("Nomor WhatsApp"),
+            title: const Text("WhatsApp Number"),
             subtitle: Text(userData['phone'] ?? "-"),
           ),
 
           const Spacer(),
 
-          // Tombol Logout
+          // Logout Button
           Padding(
             padding: const EdgeInsets.all(25),
             child: ElevatedButton(
@@ -89,14 +86,13 @@ class AkunPage extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               onPressed: () {
-                // Balik ke Login
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
                   (route) => false,
                 );
               },
-              child: const Text("KELUAR AKUN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text("LOGOUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 10),

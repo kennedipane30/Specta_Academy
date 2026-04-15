@@ -11,16 +11,16 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $primaryKey = 'usersID'; // Pastikan PK ini ada
+    protected $table = 'users';
+    protected $primaryKey = 'usersID';
 
     protected $fillable = [
         'name', 'email', 'phone', 'role_id', 'password',
     ];
 
-    // --- TAMBAHKAN RELASI INI (PENTING!) ---
     public function student()
     {
-        // Menghubungkan user_id di tabel students dengan usersID di tabel users
+        // Parameter: Model, Foreign Key di tabel students, Local Key di tabel users
         return $this->hasOne(Student::class, 'user_id', 'usersID');
     }
 

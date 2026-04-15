@@ -14,34 +14,10 @@ class KelasPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> programs = [
-      {
-        "id": 1,
-        "name": "CALON ABDI NEGARA",
-        "image": "assets/images/abdi_negara.png",
-        "tag": "INTENSIF",
-        "subtitle": "TNI • POLRI • SEKDIN"
-      },
-      {
-        "id": 2,
-        "name": "PTN & UNHAN",
-        "image": "assets/images/ptn_unhan.png",
-        "tag": "AKADEMIK",
-        "subtitle": "PERSIAPAN MASUK KAMPUS IMPIAN"
-      },
-      {
-        "id": 3,
-        "name": "SMA & SMP REGULER",
-        "image": "assets/images/reguler.png",
-        "tag": "REGULER",
-        "subtitle": "KURSUS HARIAN SISWA"
-      },
-      {
-        "id": 4,
-        "name": "SMA FAVORIT",
-        "image": "assets/images/favorit.png",
-        "tag": "PRESTASI",
-        "subtitle": "DEL • TN • MATAULI • SOPOSURUNG"
-      },
+      {"id": 1, "name": "CALON ABDI NEGARA", "image": "assets/images/abdi_negara.png", "tag": "INTENSIF", "subtitle": "TNI • POLRI • SEKDIN"},
+      {"id": 2, "name": "PTN & UNHAN", "image": "assets/images/ptn_unhan.png", "tag": "AKADEMIK", "subtitle": "DREAM CAMPUS PREPARATION"},
+      {"id": 3, "name": "SMA & SMP REGULER", "image": "assets/images/reguler.png", "tag": "REGULER", "subtitle": "DAILY STUDENT COURSE"},
+      {"id": 4, "name": "SMA FAVORIT", "image": "assets/images/favorit.png", "tag": "PRESTASI", "subtitle": "DEL • TN • MATAULI • SOPOSURUNG"},
     ];
 
     return Scaffold(
@@ -56,75 +32,39 @@ class KelasPage extends StatelessWidget {
             backgroundColor: spektaRed,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: const Text(
-                "Pilih Program Kelas",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [spektaRed, const Color(0xFF660000)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
+              title: const Text("Select Class Program", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              background: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [spektaRed, const Color(0xFF660000)], begin: Alignment.topLeft, end: Alignment.bottomRight))),
             ),
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildProgramCard(context, programs[index]),
-                childCount: programs.length,
-              ),
-            ),
+            sliver: SliverList(delegate: SliverChildBuilderDelegate((context, index) => _buildProgramCard(context, programs[index]), childCount: programs.length)),
           ),
         ],
       ),
     );
   }
 
-  // --- FUNGSI NAVIGASI DENGAN PENGECEKAN PROFIL ---
   void _checkProfileAndNavigate(BuildContext context, Map<String, dynamic> item) {
     var student = userData['student'];
     
-    // Cek kelengkapan data siswa
+    // MODIFIKASI: Menggunakan key baru (address & parent_phone)
     bool isComplete = student != null &&
         student['parent_name'] != "-" &&
-        student['school'] != "-" &&
-        student['wa_ortu'] != "-";
+        student['address'] != "-" &&
+        student['parent_phone'] != "-";
 
     if (isComplete) {
-      // JIKA LENGKAP -> PINDAH KE DETAIL
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClassDetailPage(
-            classId: item['id'],
-            className: item['name'],
-            token: token,
-            userData: userData,
-          ),
-        ),
-      );
+      Navigator.push(context, MaterialPageRoute(builder: (context) => ClassDetailPage(classId: item['id'], className: item['name'], token: token, userData: userData)));
     } else {
-      // JIKA TIDAK LENGKAP -> TAMPILKAN PERINGATAN
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Profil Belum Lengkap", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text("Mohon lengkapi data Nama Orang Tua, Sekolah, dan WA Ortu di menu Akun sebelum mendaftar kelas."),
+          title: const Text("Incomplete Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text("Please complete your Parent Name, Address, and Parent WhatsApp in the Account menu before enrolling."),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("OKE", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)),
-            )
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("OK", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)))
           ],
         ),
       );
@@ -134,43 +74,14 @@ class KelasPage extends StatelessWidget {
   Widget _buildProgramCard(BuildContext context, Map<String, dynamic> item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 10))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                child: Image.asset(
-                  item['image'],
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 15,
-                right: 15,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Text(item['tag'], style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
-              ),
+              ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), child: Image.asset(item['image'], height: 180, width: double.infinity, fit: BoxFit.cover)),
+              Positioned(top: 15, right: 15, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(15)), child: Text(item['tag'], style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold, fontSize: 10)))),
             ],
           ),
           Padding(
@@ -182,28 +93,20 @@ class KelasPage extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(item['name'], style: TextStyle(color: spektaDark, fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 15),
-                
-                // --- PERBAIKAN: Tombol dibungkus InkWell ---
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _checkProfileAndNavigate(context, item), // Panggil Fungsi Navigasi
+                    onTap: () => _checkProfileAndNavigate(context, item),
                     borderRadius: BorderRadius.circular(15),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [spektaYellow, const Color(0xFFD49E00)]),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text("Info Selengkapnya", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                        ],
-                      ),
+                      decoration: BoxDecoration(gradient: LinearGradient(colors: [spektaYellow, const Color(0xFFD49E00)]), borderRadius: BorderRadius.circular(15)),
+                      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text("View Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                      ]),
                     ),
                   ),
                 ),

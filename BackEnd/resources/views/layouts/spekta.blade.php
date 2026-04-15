@@ -78,13 +78,8 @@
 
                     <a href="{{ route('admin.announcement.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📢</span> Pengumuman
-                    </a>
-                    <a href="{{ route('admin.galeri.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">🖼️</span> Galeri & Info
-                    </a>
-                    <a href="{{ route('admin.alumni.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">🎓</span> Manajemen Alumni
-                    </a>
+
+
 
                 @elseif(Auth::user()->role_id == 2) <!-- MENU PENGAJAR -->
                     <a href="{{ route('pengajar.dashboard') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">

@@ -12,7 +12,7 @@ class TutorService {
     );
   }
 
-  // 2. Kirim Pengajuan
+  // 2. Kirim Pengajuan Dedicated Tutor
   static Future<http.Response> submitTutor(Map body, String token) async {
     return await http.post(
       Uri.parse('$baseUrl/dedicated-tutors'),
@@ -25,7 +25,7 @@ class TutorService {
     );
   }
 
-  // 3. Ambil Riwayat
+  // 3. Ambil Riwayat Tutor
   static Future<http.Response> getTutorHistory(String token) async {
     return await http.get(
       Uri.parse('$baseUrl/dedicated-tutors'),

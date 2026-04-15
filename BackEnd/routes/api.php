@@ -1,14 +1,13 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\PromoController;
-// PERBAIKAN: Import diarahkan ke namespace folder Api/pengajar agar tidak error
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\Material;
+use App\Models\PracticeQuestion; // Menggunakan model baru
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +19,6 @@ use App\Models\Material;
 Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/galeri', [GaleriController::class, 'apiIndex']);
 Route::get('/promos', [PromoController::class, 'apiIndex']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
@@ -32,15 +30,17 @@ Route::get('/announcements', function() {
     ]);
 });
 
-// --- 2. PROTECTED ROUTES (Wajib bawa Token / auth:sanctum) ---
+// --- 2. PROTECTED ROUTES ---
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/user-profile', function (Request $request) {
-        return $request->user()->load(['role', 'student.class_model']);
+        // MODIFIKASI: relasi student.class_model -> student.class
+        return $request->user()->load(['role', 'student.class']);
     });
 
     Route::get('/user', function (Request $request) {
-        return $request->user()->load(['role', 'student.class_model']);
+        // MODIFIKASI: relasi student.class_model -> student.class
+        return $request->user()->load(['role', 'student.class']);
     });
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
@@ -65,14 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['data' => $data]);
         });
 
-        // --- TAMBAHAN FITUR DEDICATED TUTOR (MODIFIKASI SINKRON) ---
-        // 1. Mengambil materi sesuai kelas siswa untuk dropdown
+        // DEDICATED TUTOR
         Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
-
-        // 2. Mengambil riwayat pengajuan (History)
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
-
-        // 3. Menyimpan pengajuan baru
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
     });
 });

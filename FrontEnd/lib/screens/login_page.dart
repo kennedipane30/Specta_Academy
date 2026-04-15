@@ -16,12 +16,12 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
   final Color spektaRed = const Color(0xFF990000);
-  bool _isObscure = true; // Untuk toggle password
+  bool _isObscure = true; 
 
   void handleLogin() async {
     if (nameCtrl.text.isEmpty || passCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nama dan Password wajib diisi!"))
+        const SnackBar(content: Text("Name and Password are required!"))
       );
       return;
     }
@@ -53,14 +53,14 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         final errorData = jsonDecode(resp.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Nama atau Password Salah!"))
+          SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Invalid Name or Password!"))
         );
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.black, content: Text("Koneksi Error: Pastikan server Laravel menyala."))
+        const SnackBar(backgroundColor: Colors.black, content: Text("Connection Error: Check your server."))
       );
     }
   }
@@ -68,14 +68,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu-abu sangat muda
+      backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             children: [
               const SizedBox(height: 60),
-              // --- HEADER SECTION ---
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -95,16 +94,15 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const Text(
-                "Wujudkan Impian Menjadi Abdi Negara",
+                "Achieve Your Dream of Serving the Nation",
                 style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
               ),
               
               const SizedBox(height: 60),
 
-              // --- INPUT SECTION ---
               _buildTextField(
                 controller: nameCtrl,
-                label: "Nama Lengkap",
+                label: "Full Name",
                 icon: Icons.person_outline,
               ),
               const SizedBox(height: 20),
@@ -115,13 +113,12 @@ class _LoginPageState extends State<LoginPage> {
                 isPassword: true,
               ),
 
-              // --- FORGOT PASSWORD ---
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordPage())),
                   child: Text(
-                    "Lupa Password?",
+                    "Forgot Password?",
                     style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
@@ -129,7 +126,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 30),
 
-              // --- BUTTON MASUK ---
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
@@ -150,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   onPressed: handleLogin,
                   child: const Text(
-                    "MASUK KE AKUN",
+                    "LOGIN TO ACCOUNT",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
                   ),
                 ),
@@ -158,15 +154,14 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              // --- REGISTER SECTION ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Belum punya akun? ", style: TextStyle(color: Colors.grey)),
+                  const Text("Don't have an account? ", style: TextStyle(color: Colors.grey)),
                   GestureDetector(
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
                     child: Text(
-                      "Daftar Sekarang",
+                      "Register Now",
                       style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -180,7 +175,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget Reusable untuk Input Field
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
