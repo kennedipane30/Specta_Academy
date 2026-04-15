@@ -20,7 +20,14 @@ class TryoutController extends Controller
     public function buatSoal($class_id)
     {
         $class = ClassModel::findOrFail($class_id);
-        return view('pengajar.tryout.create', compact('class'));
+
+        // AMBIL DAFTAR TRYOUT UNTUK KELAS INI (Beserta jumlah soalnya)
+        $tryouts = Tryout::where('class_id', $class_id)
+                         ->withCount('questions')
+                         ->latest()
+                         ->get();
+
+        return view('pengajar.tryout.create', compact('class', 'tryouts'));
     }
 
     public function importSoal(Request $request)
@@ -40,16 +47,14 @@ class TryoutController extends Controller
             ]);
 
             $file = fopen($request->file('file_csv')->getRealPath(), 'r');
-            fgetcsv($file, 2000, ";"); // Skip header
+            fgetcsv($file, 2000, ";");
 
             $count = 0;
             while (($row = fgetcsv($file, 2000, ";")) !== FALSE) {
-                if (!isset($row[1]) || empty(trim($row[1]))) {
-                    continue;
-                }
+                if (!isset($row[1]) || empty(trim($row[1]))) continue;
 
                 Question::create([
-                    'tryout_id'      => $tryout->tryout_id, // tryoutsID -> tryout_id
+                    'tryout_id'      => $tryout->tryout_id,
                     'question'       => $row[1],
                     'option_a'       => $row[2] ?? '-',
                     'option_b'       => $row[3] ?? '-',
@@ -63,16 +68,22 @@ class TryoutController extends Controller
             fclose($file);
 
             DB::commit();
-            return redirect()->back()->with('success', "Berhasil! Tryout diterbitkan dengan $count soal.");
+            return back()->with('success', "Berhasil! Tryout diterbitkan dengan $count soal.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
+            return back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 
-    public function lihatNilai()
+    // FUNGSI HAPUS TRYOUT
+    public function destroy($id)
     {
-        return view('pengajar.tryout.nilai');
+        $tryout = Tryout::findOrFail($id);
+        $tryout->delete(); // Ini akan menghapus questions juga jika onDelete('cascade') sudah di-set di migration
+
+        return back()->with('success', 'Tryout Berhasil Dihapus!');
     }
+
+    public function lihatNilai() { return view('pengajar.tryout.nilai'); }
 }

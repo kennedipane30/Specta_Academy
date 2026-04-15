@@ -91,6 +91,7 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
         Route::get('/pilih/{class_id}', [TryoutController::class, 'buatSoal'])->name('pilih');
         Route::post('/import', [TryoutController::class, 'importSoal'])->name('import');
         Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai');
+        Route::delete('/destroy/{id}', [TryoutController::class, 'destroy'])->name('destroy');
     });
 
     // Latihan Soal
