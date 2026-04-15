@@ -7,6 +7,8 @@
 
     <!-- Google Fonts: Montserrat -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -18,7 +20,7 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #990000; border-radius: 10px; }
 
-        .nav-link { transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .nav-link { transition: all 0.3s ease; }
         .nav-link:hover { padding-left: 1.75rem; background: rgba(255, 255, 255, 0.1); }
         .nav-link.active { background: rgba(255, 255, 255, 0.15); border-right: 4px solid #fbbf24; }
 
@@ -43,11 +45,11 @@
                 <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-4 mb-2">Main Menu</p>
 
                 @if(Auth::user()->role_id == 1) <!-- MENU ADMIN -->
-                    <a href="{{ route('admin.dashboard') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
 
-                     <div class="relative">
+                    <div class="relative">
                         <button onclick="toggleSiswaDropdown()" class="nav-link w-full flex justify-between items-center py-3 px-4 rounded-xl focus:outline-none">
                             <span class="flex items-center"><span class="mr-3 text-lg">👥</span> Siswa</span>
                             <svg id="siswa-arrow" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -57,36 +59,38 @@
                             <a href="{{ route('admin.siswa.pendaftaran') }}" class="dropdown-item block py-2 pl-8 text-sm opacity-80 flex justify-between items-center pr-4">
                                 <span>Tambah Kelas</span>
                                 @php $pendingCount = \App\Models\Enrollment::where('status', 'pending')->count(); @endphp
-                                @if($pendingCount > 0) <span class="bg-yellow-500 text-black text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm animate-pulse">{{ $pendingCount }}</span> @endif
+                                @if($pendingCount > 0)
+                                    <span class="bg-yellow-500 text-black text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm animate-pulse">{{ $pendingCount }}</span>
+                                @endif
                             </a>
                         </div>
                     </div>
-                    <a href="{{ route('admin.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+
+                    <a href="{{ route('admin.jadwal.index') }}" class="nav-link {{ request()->routeIs('admin.jadwal.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📅</span> Jadwal Kelas
                     </a>
 
-                    <a href="{{ route('admin.tutor.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('admin.tutor.index') }}" class="nav-link {{ request()->routeIs('admin.tutor.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🤝</span> Konfirmasi Tutor
                     </a>
 
-                    <a href="{{ route('admin.promo.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('admin.promo.index') }}" class="nav-link {{ request()->routeIs('admin.promo.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🎁</span> Kode Promo
                     </a>
-                    <a href="{{ route('admin.manajemen-pengajar.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+
+                    <a href="{{ route('admin.manajemen-pengajar.index') }}" class="nav-link {{ request()->routeIs('admin.manajemen-pengajar.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">👨‍🏫</span> Pengajar
                     </a>
 
-                    <a href="{{ route('admin.announcement.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('admin.announcement.index') }}" class="nav-link {{ request()->routeIs('admin.announcement.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📢</span> Pengumuman
-
-
+                    </a> {{-- PENUTUP TAG DISINI --}}
 
                 @elseif(Auth::user()->role_id == 2) <!-- MENU PENGAJAR -->
-                    <a href="{{ route('pengajar.dashboard') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.dashboard') }}" class="nav-link {{ request()->routeIs('pengajar.dashboard') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
 
-                    {{-- MODIFIKASI: DROPDOWN DIHAPUS, LANGSUNG KE INDEX ABSENSI --}}
                     <a href="{{ route('pengajar.absensi.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📝</span> Absensi Siswa
                     </a>
@@ -122,8 +126,9 @@
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col bg-gray-50">
-            <header class="bg-white shadow-sm px-10 py-5 flex justify-between items-center border-b border-gray-100">
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col bg-gray-50 overflow-hidden">
+            <header class="bg-white shadow-sm px-10 py-5 flex-shrink-0 flex justify-between items-center border-b border-gray-100 z-10">
                 <h2 class="font-extrabold text-gray-800 uppercase tracking-widest text-sm">@yield('title')</h2>
 
                 <div class="flex items-center space-x-6">
@@ -139,7 +144,7 @@
 
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
-                        <button class="group flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg shadow-red-200 hover:bg-red-800 transition transform active:scale-95">
+                        <button type="submit" class="group flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg shadow-red-200 hover:bg-red-800 transition transform active:scale-95">
                             LOGOUT
                             <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                         </button>
@@ -147,7 +152,7 @@
                 </div>
             </header>
 
-            <main class="p-10 overflow-y-auto pb-32">
+            <main class="flex-1 overflow-y-auto p-10 pb-32">
                 <div class="max-w-7xl mx-auto">
                     @yield('content')
                 </div>
@@ -162,16 +167,7 @@
         }
 
         window.onload = function() {
-            const currentUrl = window.location.href;
-            const navLinks = document.querySelectorAll('.nav-link');
-
-            navLinks.forEach(link => {
-                if (currentUrl.includes(link.getAttribute('href'))) {
-                    link.classList.add('active');
-                }
-            });
-
-            if (currentUrl.includes('admin/siswa')) toggleSiswaDropdown();
+            if (window.location.href.includes('admin/siswa')) toggleSiswaDropdown();
         }
     </script>
 </body>

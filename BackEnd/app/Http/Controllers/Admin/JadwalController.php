@@ -22,7 +22,16 @@ class JadwalController extends Controller {
         ]);
 
         Schedule::create($request->all());
-        return back()->with('success', 'Jadwal berhasil ditambahkan!');
+
+        // MODIFIKASI: Jangan pakai back(), langsung tembak rute jadwal
+        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil ditambahkan!');
+    }
+
+    public function destroy($id) {
+        Schedule::findOrFail($id)->delete();
+
+        // MODIFIKASI: Jangan pakai back()
+        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal dihapus!');
     }
 
     public function edit($id) {
@@ -48,9 +57,5 @@ class JadwalController extends Controller {
         return response()->json($materi);
     }
 
-    public function destroy($id) {
-        // PK schedule_id ditangani otomatis oleh model
-        Schedule::findOrFail($id)->delete();
-        return back()->with('success', 'Jadwal dihapus!');
-    }
+
 }

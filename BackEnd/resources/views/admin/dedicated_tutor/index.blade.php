@@ -12,7 +12,7 @@
     </div>
 
     @if(session('success'))
-    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show">
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4">
         {{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -36,18 +36,17 @@
                     <tr>
                         <td class="ps-4">
                             <div class="fw-bold text-dark">{{ $t->student->user->name ?? 'N/A' }}</div>
-                            {{-- national_id_number --}}
                             <small class="text-muted">NISN: {{ $t->student->national_id_number }}</small>
                         </td>
-                        <td><span class="badge bg-light text-dark border">{{ $t->material->title }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ $t->material->title ?? 'General Topic' }}</span></td>
                         <td>
                             <div class="small"><i class="far fa-calendar me-1"></i> {{ $t->date }}</div>
                             <div class="small text-muted"><i class="far fa-clock me-1"></i> {{ substr($t->time, 0, 5) }}</div>
                         </td>
                         <td>
                             @if($t->status == 'pending')
-                                {{-- dedicated_tutor_id --}}
-                                <form action="{{ route('admin.tutor.update', $t->dedicated_tutor_id) }}" method="POST" id="form-{{ $t->dedicated_tutor_id }}">
+                                {{-- PERBAIKAN: Gunakan dedicated_tutor_id sebagai ID form --}}
+                                <form action="{{ route('admin.tutor.update', $t->dedicated_tutor_id) }}" method="POST" id="form-approve-{{ $t->dedicated_tutor_id }}">
                                     @csrf
                                     <select name="teacher_id" class="form-select form-select-sm" required>
                                         <option value="" disabled selected>Select Teacher...</option>
@@ -73,20 +72,22 @@
                         <td class="text-end pe-4">
                             @if($t->status == 'pending')
                                 <div class="btn-group">
-                                    <button type="submit" form="form-{{ $t->dedicated_tutor_id }}" class="btn btn-sm btn-success">Approve</button>
+                                    {{-- PERBAIKAN: Atribut 'form' merujuk ke ID yang menggunakan dedicated_tutor_id --}}
+                                    <button type="submit" form="form-approve-{{ $t->dedicated_tutor_id }}" class="btn btn-sm btn-success">Approve</button>
+
                                     <form action="{{ route('admin.tutor.update', $t->dedicated_tutor_id) }}" method="POST" class="ms-1">
                                         @csrf
                                         <input type="hidden" name="status" value="rejected">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject?')">Reject</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject this request?')">Reject</button>
                                     </form>
                                 </div>
                             @else
-                                <span class="text-muted small">Processed</span>
+                                <span class="text-muted small italic">Processed</span>
                             @endif
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center py-4">No tutor requests available.</td></tr>
+                    <tr><td colspan="6" class="text-center py-5 text-muted italic">No tutor requests available.</td></tr>
                     @endforelse
                 </tbody>
             </table>

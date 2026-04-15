@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 class AdminDedicatedTutorController extends Controller {
 
     public function index() {
+        // Relasi student.user, teacher, dan material sudah sesuai Model Anda
         $tutors = DedicatedTutor::with(['student.user', 'teacher', 'material'])->latest()->get();
         $availableTeachers = User::where('role_id', 2)->get();
 
@@ -22,6 +23,7 @@ class AdminDedicatedTutorController extends Controller {
             'teacher_id' => 'required_if:status,confirmed'
         ]);
 
+        // Mencari data berdasarkan dedicated_tutor_id
         $tutor = DedicatedTutor::findOrFail($id);
 
         $tutor->update([
@@ -29,6 +31,7 @@ class AdminDedicatedTutorController extends Controller {
             'teacher_id' => ($request->status == 'confirmed') ? $request->teacher_id : null,
         ]);
 
-        return redirect()->route('admin.tutor.index')->with('success', 'Pengajuan berhasil diperbarui!');
+        // PERBAIKAN REDIRECT: Pastikan kembali ke rute tutor index
+        return redirect()->route('admin.tutor.index')->with('success', 'Assignment updated successfully!');
     }
 }

@@ -1,145 +1,171 @@
 @extends('layouts.spekta')
-@section('title', 'Admin Dashboard')
+@section('title', 'Admin Dashboard - Spekta Academy')
 
 @section('content')
-{{-- Pastikan pembungkus utamanya menggunakan padding agar tidak menempel ke sidebar --}}
-<div class="p-4 w-full">
+<div class="p-6 w-full min-h-screen bg-[#FDFDFD]">
 
-    <!-- Welcome Header -->
+    <!-- TOP BAR: Greeting & Date -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-            <h1 class="text-3xl font-black text-gray-800 tracking-tight">HELLO, <span class="text-[#990000]">ADMINISTRATOR!</span></h1>
-            <p class="text-gray-500 text-sm font-medium">Welcome back to Spekta Academy Control Panel.</p>
+        <div class="animate__animated animate__fadeInLeft">
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                <span class="w-2 h-10 bg-[#990000] rounded-full"></span>
+                DASHBOARD <span class="text-[#990000]">ADMINISTRATOR</span>
+            </h1>
+            <p class="text-gray-500 font-medium ml-5 mt-1">Sistem Manajemen Terpadu Spekta Academy Indonesia</p>
         </div>
-        <div class="text-right hidden md:block">
-            <div class="text-gray-800 font-black text-lg">{{ now()->translatedFormat('d F Y') }}</div>
-            <span class="bg-gray-100 text-gray-400 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">Dashboard System v2.0</span>
+
+        <div class="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 animate__animated animate__fadeInRight">
+            <div class="text-right border-r pr-4 border-gray-100">
+                <div class="text-gray-900 font-black text-sm">{{ now()->translatedFormat('l, d F Y') }}</div>
+                <div class="text-[10px] text-[#990000] font-bold uppercase tracking-widest">Waktu Server Aktif</div>
+            </div>
+            <div class="bg-red-50 p-2 rounded-xl">
+                <i class="fas fa-calendar-alt text-[#990000]"></i>
+            </div>
         </div>
     </div>
 
-    <!-- Stats Grid (Menggunakan Grid Tailwind agar presisi) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <!-- STATS SECTION: 4 Main Pillars -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
         <!-- Total Students -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-100 border-l-8 border-[#990000] flex justify-between items-center transition-transform hover:scale-105 duration-300">
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Students</p>
-                <h2 class="text-3xl font-black text-gray-800">{{ $total_siswa }}</h2>
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+            <div class="flex justify-between items-start mb-4">
+                <div class="bg-red-50 p-4 rounded-2xl group-hover:bg-[#990000] transition-colors duration-300">
+                    <i class="fas fa-user-graduate text-[#990000] group-hover:text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black text-green-500 bg-green-50 px-2 py-1 rounded-lg">+ Live Data</span>
             </div>
-            <div class="text-red-100">
-                <i class="fas fa-user-graduate fa-2x"></i>
-            </div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Students</p>
+            <h2 class="text-4xl font-black text-gray-900">{{ number_format($total_siswa) }}</h2>
         </div>
 
-        <!-- Teachers -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-100 border-l-8 border-blue-600 flex justify-between items-center transition-transform hover:scale-105 duration-300">
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teachers</p>
-                <h2 class="text-3xl font-black text-gray-800">{{ $total_pengajar }}</h2>
+        <!-- Active Teachers -->
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+            <div class="flex justify-between items-start mb-4">
+                <div class="bg-blue-50 p-4 rounded-2xl group-hover:bg-blue-600 transition-colors duration-300">
+                    <i class="fas fa-chalkboard-teacher text-blue-600 group-hover:text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg">Verified</span>
             </div>
-            <div class="text-blue-100">
-                <i class="fas fa-chalkboard-teacher fa-2x"></i>
-            </div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Teachers</p>
+            <h2 class="text-4xl font-black text-gray-900">{{ number_format($total_pengajar) }}</h2>
         </div>
 
-        <!-- Class Activation -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-100 border-l-8 border-yellow-500 flex justify-between items-center transition-transform hover:scale-105 duration-300">
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Class Activation</p>
-                <h2 class="text-3xl font-black text-yellow-600">{{ $pendaftaran_pending }}</h2>
+        <!-- Class Activations (Pending) -->
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+            <div class="flex justify-between items-start mb-4">
+                <div class="bg-yellow-50 p-4 rounded-2xl group-hover:bg-yellow-500 transition-colors duration-300">
+                    <i class="fas fa-wallet text-yellow-600 group-hover:text-white text-xl"></i>
+                </div>
+                @if($pendaftaran_pending > 0)
+                <span class="animate-pulse text-[10px] font-black text-white bg-red-600 px-2 py-1 rounded-lg">Action Needed</span>
+                @endif
             </div>
-            <div class="text-yellow-100">
-                <i class="fas fa-key fa-2x"></i>
-            </div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Class Activations</p>
+            <h2 class="text-4xl font-black {{ $pendaftaran_pending > 0 ? 'text-red-600' : 'text-gray-900' }}">{{ $pendaftaran_pending }}</h2>
         </div>
 
-        <!-- Tutor Request -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-100 border-l-8 border-green-600 flex justify-between items-center transition-transform hover:scale-105 duration-300">
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Tutor Request</p>
-                <h2 class="text-3xl font-black text-green-600">{{ $tutor_pending }}</h2>
+        <!-- Tutor Requests -->
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+            <div class="flex justify-between items-start mb-4">
+                <div class="bg-green-50 p-4 rounded-2xl group-hover:bg-green-600 transition-colors duration-300">
+                    <i class="fas fa-headset text-green-600 group-hover:text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dedicated</span>
             </div>
-            <div class="text-green-100">
-                <i class="fas fa-headset fa-2x"></i>
-            </div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Tutor Requests</p>
+            <h2 class="text-4xl font-black text-gray-900">{{ $tutor_pending }}</h2>
         </div>
 
     </div>
 
-    <!-- Log Activity & Quick Actions -->
+    <!-- MAIN GRID: Activities & Quick Access -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        <!-- Activity Log -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-            <div class="flex justify-between items-center mb-8">
-                <h5 class="font-black text-gray-800 uppercase tracking-tight">Recent Activity Log</h5>
-                <a href="#" class="text-[10px] font-black text-gray-400 uppercase hover:text-[#990000]">View All &rarr;</a>
+        <!-- RECENT ACTIVITY: Professional Table Design -->
+        <div class="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+            <div class="flex justify-between items-center mb-8 pb-4 border-b">
+                <h5 class="font-black text-gray-800 uppercase tracking-tight text-lg">LOG AKTIVITAS SISTEM</h5>
+                <button class="text-[10px] font-black text-[#990000] uppercase hover:bg-red-50 px-4 py-2 rounded-full transition-all">Audit Trail &rarr;</button>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="text-[10px] font-black text-gray-300 uppercase tracking-widest border-b border-gray-50">
-                        <tr>
-                            <th class="pb-4">Time</th>
-                            <th class="pb-4">Activity Description</th>
-                            <th class="pb-4 text-right">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm">
-                        <tr class="border-b border-gray-50">
-                            <td class="py-4 text-gray-400">10 Mins ago</td>
-                            <td class="py-4 font-bold text-gray-700">Student "Budi" enrolled in SMA Reguler Class</td>
-                            <td class="py-4 text-right">
-                                <span class="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Success</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="py-4 text-gray-400">1 Hour ago</td>
-                            <td class="py-4 font-bold text-gray-700">Admin updated PTN material data</td>
-                            <td class="py-4 text-right">
-                                <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Update</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="space-y-6">
+                {{-- Example Item --}}
+                <div class="flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all border-l-4 border-transparent hover:border-[#990000]">
+                    <div class="flex items-center gap-5">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">BK</div>
+                        <div>
+                            <h6 class="text-sm font-black text-gray-800 mb-1 uppercase">Pendaftaran Siswa Baru</h6>
+                            <p class="text-[11px] text-gray-400">Siswa <b>Budi Kurniawan</b> mendaftar pada Kelas SMA SMP Reguler</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-300 mb-1 uppercase">12 MENIT LALU</div>
+                        <span class="text-[9px] bg-green-50 text-green-600 px-3 py-1 rounded-full font-black uppercase">Success</span>
+                    </div>
+                </div>
+
+                {{-- Example Item --}}
+                <div class="flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all border-l-4 border-transparent hover:border-blue-600">
+                    <div class="flex items-center gap-5">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">AD</div>
+                        <div>
+                            <h6 class="text-sm font-black text-gray-800 mb-1 uppercase">Pembaruan Modul</h6>
+                            <p class="text-[11px] text-gray-400">Administrator memperbarui file materi pada Program PTN & UNHAN</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-300 mb-1 uppercase">2 JAM LALU</div>
+                        <span class="text-[9px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-black uppercase">Update</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Quick Access -->
-        <div class="bg-gray-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-            {{-- Abstract Decoration --}}
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full"></div>
+        <!-- QUICK ACCESS: Sidebar Action Panel -->
+        <div class="space-y-6">
+            <div class="bg-gray-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group min-h-[450px]">
+                <div class="absolute -right-20 -top-20 w-64 h-64 bg-[#990000]/20 rounded-full blur-3xl group-hover:bg-[#990000]/30 transition-all duration-500"></div>
 
-            <h5 class="text-white font-black uppercase tracking-widest mb-8 relative z-10 flex items-center gap-2">
-                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"></path></svg>
-                Quick Access
-            </h5>
+                <h5 class="text-white font-black uppercase tracking-[0.2em] text-xs mb-10 relative z-10 opacity-60">Kontrol Cepat</h5>
 
-            <div class="flex flex-col gap-4 relative z-10">
-                <a href="{{ route('admin.siswa.index') }}" class="group/btn bg-white/10 hover:bg-[#990000] p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 transform hover:translate-x-2">
-                    <div class="bg-white/10 p-2 rounded-xl group-hover/btn:bg-white/20">
-                        <i class="fas fa-users-cog text-white text-xs"></i>
-                    </div>
-                    <span class="text-white text-xs font-black uppercase tracking-wider">Student Management</span>
-                </a>
+                <div class="flex flex-col gap-5 relative z-10">
+                    <a href="{{ route('admin.siswa.index') }}" class="group/link bg-white/5 hover:bg-white p-5 rounded-[1.5rem] flex items-center gap-5 transition-all duration-500 transform hover:scale-105">
+                        <div class="bg-[#990000] p-3 rounded-xl group-hover/link:rotate-12 transition-transform shadow-lg shadow-red-900/50">
+                            <i class="fas fa-users-cog text-white text-sm"></i>
+                        </div>
+                        <span class="text-white group-hover/link:text-gray-900 text-xs font-black uppercase tracking-wider">Student Management</span>
+                    </a>
 
-                <a href="{{ route('admin.tutor.index') }}" class="group/btn bg-white/10 hover:bg-[#990000] p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 transform hover:translate-x-2">
-                    <div class="bg-white/10 p-2 rounded-xl group-hover/btn:bg-white/20">
-                        <i class="fas fa-user-check text-white text-xs"></i>
-                    </div>
-                    <span class="text-white text-xs font-black uppercase tracking-wider">Confirm Tutor Request</span>
-                </a>
+                    <a href="{{ route('admin.tutor.index') }}" class="group/link bg-white/5 hover:bg-white p-5 rounded-[1.5rem] flex items-center gap-5 transition-all duration-500 transform hover:scale-105">
+                        <div class="bg-blue-600 p-3 rounded-xl group-hover/link:rotate-12 transition-transform shadow-lg shadow-blue-900/50">
+                            <i class="fas fa-user-check text-white text-sm"></i>
+                        </div>
+                        <span class="text-white group-hover/link:text-gray-900 text-xs font-black uppercase tracking-wider">Tutor Requests</span>
+                    </a>
 
-                <a href="{{ route('admin.promo.index') }}" class="group/btn bg-white/10 hover:bg-[#990000] p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 transform hover:translate-x-2">
-                    <div class="bg-white/10 p-2 rounded-xl group-hover/btn:bg-white/20">
-                        <i class="fas fa-tags text-white text-xs"></i>
-                    </div>
-                    <span class="text-white text-xs font-black uppercase tracking-wider">Create New Promo</span>
-                </a>
+                    <a href="{{ route('admin.promo.index') }}" class="group/link bg-white/5 hover:bg-white p-5 rounded-[1.5rem] flex items-center gap-5 transition-all duration-500 transform hover:scale-105">
+                        <div class="bg-yellow-500 p-3 rounded-xl group-hover/link:rotate-12 transition-transform shadow-lg shadow-yellow-900/50">
+                            <i class="fas fa-tags text-white text-sm"></i>
+                        </div>
+                        <span class="text-white group-hover/link:text-gray-900 text-xs font-black uppercase tracking-wider">Marketing Promo</span>
+                    </a>
+                </div>
+
+                <div class="mt-12 pt-8 border-t border-white/10 relative z-10">
+                    <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center italic">Spekta Academy v2.4.0 High-Performance Mode</p>
+                </div>
             </div>
         </div>
 
     </div>
 
 </div>
+
+<style>
+    /* Professional Font & Smoothness */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+</style>
 @endsection

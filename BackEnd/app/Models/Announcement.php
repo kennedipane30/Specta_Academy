@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Announcement extends Model
 {
-    // Pastikan nama ini SAMA PERSIS dengan yang ada di migration (Langkah 1)
-    protected $primaryKey = 'announcementsID';
+    protected $table = 'announcements';
+
+    // SESUAIKAN DENGAN PGADMIN: PK adalah announcement_id
+    protected $primaryKey = 'announcement_id';
 
     protected $fillable = [
         'title',

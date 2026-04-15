@@ -39,7 +39,8 @@ class PromoController extends Controller
             'end_date'         => $request->end_date,
         ]);
 
-        return back()->with('success', 'Promo Berhasil Diterbitkan!');
+        // MODIFIKASI: Jangan pakai back(), langsung tembak rute promo
+        return redirect()->route('admin.promo.index')->with('success', 'Promo Berhasil Diterbitkan!');
     }
 
     public function destroy($id) {

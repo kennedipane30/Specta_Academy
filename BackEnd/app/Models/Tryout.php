@@ -6,15 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Tryout extends Model
 {
-    protected $primaryKey = 'tryoutsID';
+    // MODIFIKASI: Gunakan tryout_id sesuai pgAdmin
+    protected $primaryKey = 'tryout_id';
 
     protected $fillable = [
         'class_id',
         'title',
-        'duration' // <--- PASTIKAN ADA BARIS INI
+        'duration'
     ];
 
     public function questions() {
-        return $this->hasMany(Question::class, 'tryout_id', 'tryoutsID');
+        // Relasi ke Model Question menggunakan foreign key tryout_id
+        return $this->hasMany(Question::class, 'tryout_id', 'tryout_id');
     }
 }
