@@ -67,7 +67,7 @@ class AuthController extends Controller {
     // 2. VERIFIKASI OTP
     public function verifyRegistration(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
-        if (!$user) return response()->json(['status' => 'error', 'message' => 'User not found'], 404);
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
 
         $otpRecord = OtpCode::where('user_id', $user->usersID)->where('otp', $request->otp)->where('valid_until', '>', now())->first();
         if (!$otpRecord) return response()->json(['status' => 'error', 'message' => 'Kode OTP Salah/Kadaluarsa'], 401);
@@ -77,18 +77,15 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'message' => 'Akun Aktif!']);
     }
 
-    // 3. LOGIN (MODIFIKASI: Ambil nilai manual untuk menghindari error relasi)
+    // 3. LOGIN (MODIFIKASI: Tarik nilai manual agar nampak di HP saat pertama masuk)
     public function login(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->first();
         if (!$user || !Hash::check($request->password, $user->password)) return response()->json(['status' => 'error', 'message' => 'Nama/Password Salah'], 401);
         if (!$user->is_verified) return response()->json(['status' => 'error', 'message' => 'Akun belum verifikasi WA!'], 403);
 
-        // Ambil data student & class
+        // Ambil profil & hasil nilai manual (Menghindari error relasi pada model)
         $user->load(['student.class']);
-
-        // Ambil data nilai secara manual (Bypass relationship error)
-        $results = TryoutResult::with('tryout')->where('user_id', $user->usersID)->latest()->get();
-        $user->tryout_results = $results; // Lampirkan ke object user
+        $user->tryout_results = TryoutResult::with('tryout')->where('user_id', $user->usersID)->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -157,7 +154,7 @@ class AuthController extends Controller {
         }
     }
 
-    // 7. AMBIL JADWAL
+    // 7. JADWAL
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
         $activeClassIds = Enrollment::where('user_id', $user->usersID)->where('status', 'active')->pluck('class_id');
@@ -206,14 +203,14 @@ class AuthController extends Controller {
         }
     }
 
-    // 10. AMBIL PROFIL (MODIFIKASI: Ambil nilai manual agar tidak error relasi)
+    // 10. AMBIL PROFIL (MODIFIKASI: Manual query hasil tryout agar bypass error relationship)
     public function getUserProfile(Request $request) {
         $user = User::with(['student.class'])->find(Auth::id());
 
-        // Ambil data nilai secara manual (Bypass relationship error)
+        // Ambil data nilai secara manual berdasarkan usersID
         $results = TryoutResult::with('tryout')->where('user_id', $user->usersID)->latest()->get();
 
-        // Pasang secara manual ke JSON response
+        // Tempelkan data ke object user supaya terbaca di Flutter key 'tryout_results'
         $user->tryout_results = $results;
 
         return response()->json([

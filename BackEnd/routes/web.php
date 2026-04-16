@@ -37,6 +37,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+    //nilai
+    Route::prefix('scores')->name('scores.')->group(function() {
+        Route::get('/', [App\Http\Controllers\Pengajar\TryoutController::class, 'lihatNilai'])->name('index');
+        Route::get('/detail/{class_id}', [App\Http\Controllers\Pengajar\TryoutController::class, 'detailNilai'])->name('detail');
+        Route::post('/export-selected', [App\Http\Controllers\Pengajar\TryoutController::class, 'exportPdfSelected'])->name('pdf_selected');
+    });
+
     // Manajemen Jadwal & Akun Pengajar
     Route::resource('jadwal', JadwalController::class);
     Route::get('/get-materi/{class_id}', [JadwalController::class, 'getMateri'])->name('jadwal.getMateri');
@@ -86,14 +93,23 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
 
     // Tryout
+    // --- GROUP TRYOUT PENGAJAR ---
+// --- GROUP TRYOUT PENGAJAR ---
     Route::prefix('tryout')->name('tryout.')->group(function() {
+        // Alur Input Soal (CSV)
         Route::get('/', [TryoutController::class, 'index'])->name('index');
         Route::get('/pilih/{class_id}', [TryoutController::class, 'buatSoal'])->name('pilih');
         Route::post('/import', [TryoutController::class, 'importSoal'])->name('import');
-        Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai');
         Route::delete('/destroy/{id}', [TryoutController::class, 'destroy'])->name('destroy');
-    });
 
+        // Alur Monitoring Nilai & Export PDF
+        Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai'); // Daftar kelas
+        Route::get('/nilai/detail/{class_id}', [TryoutController::class, 'detailNilai'])->name('nilai.detail'); // Daftar nilai
+        Route::get('/nilai/export-pdf/{class_id}', [TryoutController::class, 'exportPdf'])->name('nilai.pdf'); // Download Semua Nilai
+
+        // MODIFIKASI: Tambahan rute untuk ekspor nilai yang dipilih saja (Checkbox)
+        Route::post('/nilai/export-selected', [TryoutController::class, 'exportPdfSelected'])->name('nilai.pdf_selected');
+    });
     // Latihan Soal
     Route::prefix('latihan')->name('latihan.')->group(function() {
         Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
