@@ -38,14 +38,14 @@ return new class extends Migration
 
         foreach ($data as $classId => $subjects) {
             foreach ($subjects as $s) {
-                // DB::table('materials')->insert([
-                //     'class_id'      => $classId,
-                //     'title'         => $s . ' Material', // Contoh: TIU Material
-                //     'material_name' => $s,
-                //     'week'          => 1, // Default week 1
-                //     'created_at'    => now(),
-                //     'updated_at'    => now()
-                // ]);
+                DB::table('materials')->insert([
+                    'class_id'      => $classId,
+                    'title'         => $s . ' Material', // Contoh: TIU Material
+                    'material_name' => $s,
+                    'week'          => 1, // Default week 1
+                    'created_at'    => now(),
+                    'updated_at'    => now()
+                ]);
             }
         }
     }

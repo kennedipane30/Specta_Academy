@@ -1,4 +1,4 @@
-<?php
+{# <?php
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\PromoController;
@@ -8,7 +8,7 @@ use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\Material;
-use App\Models\PracticeQuestion; 
+use App\Models\PracticeQuestion;
 use App\Models\ClassModel;
 
 
@@ -21,7 +21,7 @@ use App\Models\ClassModel;
 // --- 1. PUBLIC ROUTES (Tanpa Login) ---
 Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
-Route::post('/resend-otp', [AuthController::class, 'resendOtp']); 
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/promos', [PromoController::class, 'apiIndex']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -76,10 +76,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
-        
+
         Route::get('/classes', function () {
             return ClassModel::with('materials')->get();
         });
     });
 
-});
+}); 
