@@ -7,7 +7,9 @@ use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\Material;
-use App\Models\PracticeQuestion; // Menggunakan model baru
+use App\Models\PracticeQuestion; 
+use App\Models\ClassModel;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -15,9 +17,10 @@ use App\Models\PracticeQuestion; // Menggunakan model baru
 |--------------------------------------------------------------------------
 */
 
-// --- 1. PUBLIC ROUTES ---
+// --- 1. PUBLIC ROUTES (Tanpa Login) ---
 Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']); // 🔥 TAMBAHKAN INI
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/promos', [PromoController::class, 'apiIndex']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -30,16 +33,14 @@ Route::get('/announcements', function() {
     ]);
 });
 
-// --- 2. PROTECTED ROUTES ---
+// --- 2. PROTECTED ROUTES (Wajib Login/Token) ---
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/user-profile', function (Request $request) {
-        // MODIFIKASI: relasi student.class_model -> student.class
         return $request->user()->load(['role', 'student.class']);
     });
 
     Route::get('/user', function (Request $request) {
-        // MODIFIKASI: relasi student.class_model -> student.class
         return $request->user()->load(['role', 'student.class']);
     });
 
@@ -69,5 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
+        
+        Route::get('/classes', function () {
+            return ClassModel::with('materials')->get();
+        });
     });
 });

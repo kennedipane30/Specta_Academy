@@ -12,10 +12,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat Role Sesuai ERD
-        $adminRole = Role::create(['name' => 'admin']);
-        $guruRole  = Role::create(['name' => 'pengajar']);
-        $siswaRole = Role::create(['name' => 'siswa']);
+        // Panggil RoleSeeder dulu
+        $this->call(RoleSeeder::class);
+
+        // Ambil data role yang sudah dibuat
+        $adminRole = Role::where('name', 'admin')->first();
+        $guruRole  = Role::where('name', 'pengajar')->first();
 
         // 2. Buat User ADMIN
         User::create([
@@ -35,20 +37,19 @@ class DatabaseSeeder extends Seeder
             'phone' => '08123456788'
         ]);
 
-        // 4. Isi data 4 Program Utama Spekta
+       
+
         $programs = [
-            ['nama_program' => 'CALON ABDI NEGARA', 'gambar' => 'abdi_negara.png'],
-            ['nama_program' => 'PTN & UNHAN', 'gambar' => 'ptn.png'],
-            ['nama_program' => 'SMA & SMP REGULER', 'gambar' => 'reguler.png'],
-            ['nama_program' => 'SMA FAVORIT', 'gambar' => 'favorit.png'],
+            ['program_name' => 'CALON ABDI NEGARA', 'image' => 'abdi_negara.png'],
+            ['program_name' => 'PTN & UNHAN', 'image' => 'ptn.png'],
+            ['program_name' => 'SMA & SMP REGULER', 'image' => 'reguler.png'],
+            ['program_name' => 'SMA FAVORIT', 'image' => 'favorit.png'],
         ];
 
         foreach ($programs as $program) {
             ClassModel::create($program);
         }
 
-        // --- MODIFIKASI: PANGGIL SEEDER MATERI DI SINI ---
-        // Ini menjamin Kelas sudah ada sebelum Materi dibuat
         $this->call(ClassContentSeeder::class);
     }
 }

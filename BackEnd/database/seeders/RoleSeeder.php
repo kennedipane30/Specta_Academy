@@ -12,8 +12,8 @@ class RoleSeeder extends Seeder
         // Menghapus data lama agar tidak duplikat saat dijalankan ulang
         Role::truncate();
 
-        Role::create(['nama_role' => 'admin']);
-        Role::create(['nama_role' => 'pengajar']);
-        Role::create(['nama_role' => 'siswa']);
+       $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $guruRole  = Role::firstOrCreate(['name' => 'pengajar']);
+        $siswaRole = Role::firstOrCreate(['name' => 'siswa']);
     }
 }

@@ -20,36 +20,36 @@ return new class extends Migration
         });
 
         // ISI DATA 4 PROGRAM UTAMA (Sesuaikan kolom dengan yang baru di atas)
-        DB::table('classes')->insert([
-            [
-                'class_id' => 1,
-                'program_name' => 'CALON ABDI NEGARA',
-                'image' => 'abdi_negara.png',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'class_id' => 2,
-                'program_name' => 'PTN & UNHAN',
-                'image' => 'ptn.png',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'class_id' => 3,
-                'program_name' => 'SMA & SMP REGULER',
-                'image' => 'reguler.png',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'class_id' => 4,
-                'program_name' => 'SMA FAVORIT',
-                'image' => 'favorit.png',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-        ]);
+        // DB::table('classes')->insert([
+        //     [
+        //         'class_id' => 1,
+        //         'program_name' => 'CALON ABDI NEGARA',
+        //         'image' => 'abdi_negara.png',
+        //         'created_at' => now(),
+        //         'updated_at' => now()
+        //     ],
+        //     [
+        //         'class_id' => 2,
+        //         'program_name' => 'PTN & UNHAN',
+        //         'image' => 'ptn.png',
+        //         'created_at' => now(),
+        //         'updated_at' => now()
+        //     ],
+        //     [
+        //         'class_id' => 3,
+        //         'program_name' => 'SMA & SMP REGULER',
+        //         'image' => 'reguler.png',
+        //         'created_at' => now(),
+        //         'updated_at' => now()
+        //     ],
+        //     [
+        //         'class_id' => 4,
+        //         'program_name' => 'SMA FAVORIT',
+        //         'image' => 'favorit.png',
+        //         'created_at' => now(),
+        //         'updated_at' => now()
+        //     ],
+        // ]);
     }
 
     public function down(): void

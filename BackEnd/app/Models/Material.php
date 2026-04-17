@@ -20,4 +20,10 @@ class Material extends Model
         'file_path',
         'week'           // Sebelumnya: minggu
     ];
+
+    public function class()
+    {
+        return $this->belongsTo(\App\Models\ClassModel::class, 'class_id');
+    }
 }
+
