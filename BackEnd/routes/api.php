@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
+use App\Http\Controllers\Api\QuestionBankController;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -70,4 +71,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
     });
+
+    Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/question-bank', [QuestionBankController::class, 'index']);
+    Route::post('/question-bank/upload', [QuestionBankController::class, 'store']);
+});
+
 });
