@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+// --- IMPORT SERVICE ---
 import '../services/auth_service.dart'; 
+
+// --- IMPORT HALAMAN ---
 import 'fitur/about_academy_page.dart';
 import 'fitur/support_center_page.dart';
 import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
+
 import 'pendaftaran_kelas_promo_page.dart';
 import 'class_detail_page.dart'; 
 
@@ -16,7 +21,12 @@ class HomePage extends StatefulWidget {
   final String token;
   final Map userData;
 
-  const HomePage({super.key, required this.userName, required this.token, required this.userData});
+  const HomePage({
+    super.key, 
+    required this.userName, 
+    required this.token, 
+    required this.userData
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -24,19 +34,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Color spektaRed = const Color(0xFF990000);
+  
   Map? currentData; 
   List galeriData = [];
   List promoData = []; 
   List announcementData = []; 
   bool isEnrolled = false; 
+  
   late PageController _galeriController;
 
   @override
   void initState() {
     super.initState();
     _galeriController = PageController();
+    
+    // Inisialisasi data
     currentData = widget.userData;
     _updateEnrollmentStatus();
+
+    // Refresh data
     refreshUserData();
     fetchAnnouncements();
     fetchGaleri();
@@ -68,6 +84,7 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  // --- API FETCHING ---
   Future<void> fetchAnnouncements() async {
     try {
       final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/announcements'));
@@ -107,6 +124,7 @@ class _HomePageState extends State<HomePage> {
               _buildHeader(),
               if (announcementData.isNotEmpty) _buildAnnouncementSection(),
               if (galeriData.isNotEmpty) _buildGallerySlider(),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25.0),
                 child: Column(
@@ -145,6 +163,7 @@ class _HomePageState extends State<HomePage> {
 
     return GridView.builder(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, mainAxisSpacing: 25, crossAxisSpacing: 15, childAspectRatio: 0.85,
@@ -163,7 +182,6 @@ class _HomePageState extends State<HomePage> {
                     MaterialPageRoute(
                       builder: (context) => ClassDetailPage(
                         classId: int.parse(currentData!['student']['class_id'].toString()), 
-                        // MODIFIKASI: Relasi class dan kolom program_name
                         className: currentData!['student']['class']?['program_name'] ?? "Spekta Class", 
                         token: widget.token,
                         userData: currentData!, 
@@ -171,14 +189,40 @@ class _HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  _showWarning("⚠️ You are not enrolled in any class yet.");
+                  _showWarning("⚠️ You are not enrolled in any class yet. Please enroll first!");
                 }
                 break;
-              case 'Dedicated Tutor': Navigator.push(context, MaterialPageRoute(builder: (c) => DedicatedTutorPage(token: widget.token, userData: currentData ?? widget.userData))); break;
-              case 'Question Bank': Navigator.push(context, MaterialPageRoute(builder: (c) => const QuestionSharingPage())); break;
-              case 'About Spekta': Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); break;
-              case 'Consultation': Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); break;
-              case 'Support Center': Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); break;
+              
+              case 'Dedicated Tutor':
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (c) => DedicatedTutorPage(
+                      token: widget.token,
+                      userData: currentData ?? widget.userData,
+                    )
+                  )
+                );
+                break;
+
+              case 'Question Bank': 
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (c) => QuestionSharingPage(token: widget.token)
+                  )
+                ); 
+                break;
+
+              case 'About Spekta': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); 
+                break;
+              case 'Consultation': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); 
+                break;
+              case 'Support Center': 
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); 
+                break;
             }
           },
           child: Column(
@@ -189,7 +233,7 @@ class _HomePageState extends State<HomePage> {
                 child: Icon(item['icon'], color: item['color'], size: 30),
               ),
               const SizedBox(height: 10),
-              Text(item['title'], textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.black87)),
+              Text(item['title'], textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.black87)),
             ],
           ),
         );
@@ -198,9 +242,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showWarning(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: spektaRed, content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(backgroundColor: spektaRed, content: Text(message)),
+    );
   }
 
+  // --- UI HELPER WIDGETS ---
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -277,7 +324,6 @@ class _HomePageState extends State<HomePage> {
           return InkWell(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => PendaftaranKelasPromoPage(
               classId: p['class_id'], 
-              // MODIFIKASI: Relasi class dan kolom program_name
               className: p['class']?['program_name'] ?? "Program", 
               token: widget.token, 
               userData: currentData!

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
+use App\Http\Controllers\Api\QuestionBankController;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -20,7 +21,7 @@ use App\Models\ClassModel;
 // --- 1. PUBLIC ROUTES (Tanpa Login) ---
 Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
-Route::post('/resend-otp', [AuthController::class, 'resendOtp']); // 🔥 TAMBAHKAN INI
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']); 
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/promos', [PromoController::class, 'apiIndex']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -33,9 +34,10 @@ Route::get('/announcements', function() {
     ]);
 });
 
-// --- 2. PROTECTED ROUTES (Wajib Login/Token) ---
+// --- 2. PROTECTED ROUTES (Wajib Login/Token Sanctum) ---
 Route::middleware('auth:sanctum')->group(function () {
 
+    // Profil User
     Route::get('/user-profile', function (Request $request) {
         return $request->user()->load(['role', 'student.class']);
     });
@@ -46,6 +48,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Manajemen Bank Soal (Question Bank)
+    Route::get('/question-bank', [QuestionBankController::class, 'index']);
+    Route::post('/question-bank/upload', [QuestionBankController::class, 'store']);
 
     // --- 3. KHUSUS ROLE SISWA ---
     Route::middleware('role:siswa')->group(function () {
@@ -66,7 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['data' => $data]);
         });
 
-        // DEDICATED TUTOR
+        // Dedicated Tutor
         Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
@@ -75,4 +81,5 @@ Route::middleware('auth:sanctum')->group(function () {
             return ClassModel::with('materials')->get();
         });
     });
+
 });

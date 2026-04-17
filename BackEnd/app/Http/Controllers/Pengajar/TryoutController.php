@@ -6,17 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Models\Tryout;
 use App\Models\Question;
 use App\Models\ClassModel;
+use App\Models\TryoutResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf; // Pastikan library dompdf sudah terinstal
 
 class TryoutController extends Controller
 {
+    /**
+     * 1. Halaman utama manajemen tryout (Pilih kelas untuk buat soal)
+     */
     public function index()
     {
         $classes = ClassModel::all();
         return view('pengajar.tryout.index', compact('classes'));
     }
 
+    /**
+     * 2. Form buat soal & List Tryout per Kelas
+     */
     public function buatSoal($class_id)
     {
         $class = ClassModel::findOrFail($class_id);
@@ -30,6 +38,9 @@ class TryoutController extends Controller
         return view('pengajar.tryout.create', compact('class', 'tryouts'));
     }
 
+    /**
+     * 3. Proses Import Soal dari CSV
+     */
     public function importSoal(Request $request)
     {
         $request->validate([
@@ -68,22 +79,85 @@ class TryoutController extends Controller
             fclose($file);
 
             DB::commit();
-            return back()->with('success', "Berhasil! Tryout diterbitkan dengan $count soal.");
+            return back()->with('success', "Success! Tryout published with $count questions.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal: ' . $e->getMessage());
+            return back()->with('error', 'Failed: ' . $e->getMessage());
         }
     }
 
-    // FUNGSI HAPUS TRYOUT
+    /**
+     * 4. Hapus Tryout
+     */
     public function destroy($id)
     {
         $tryout = Tryout::findOrFail($id);
-        $tryout->delete(); // Ini akan menghapus questions juga jika onDelete('cascade') sudah di-set di migration
+        $tryout->delete();
 
-        return back()->with('success', 'Tryout Berhasil Dihapus!');
+        return back()->with('success', 'Tryout successfully deleted!');
     }
 
-    public function lihatNilai() { return view('pengajar.tryout.nilai'); }
+    /**
+     * 5. Lihat Nilai (Langkah 1: Pilih Kelas)
+     */
+    public function lihatNilai()
+{
+    // Langkah 1: Ambil semua kelas untuk dipilih
+    $classes = ClassModel::all();
+    return view('pengajar.tryout.nilai', compact('classes'));
+}
+
+public function detailNilai($class_id)
+{
+    // Langkah 2: Ambil detail nilai di kelas yang dipilih
+    $class = ClassModel::findOrFail($class_id);
+    $tryouts = Tryout::where('class_id', $class_id)
+                     ->with(['results.user.student', 'questions'])
+                     ->latest()
+                     ->get();
+
+    return view('pengajar.tryout.nilai_detail', compact('class', 'tryouts'));
+}
+
+    /**
+     * 7. Export PDF Nilai per Kelas
+     */
+    public function exportPdf($class_id)
+    {
+        $class = ClassModel::findOrFail($class_id);
+        $tryouts = Tryout::where('class_id', $class_id)
+                         ->with(['results.user.student'])
+                         ->get();
+
+        $pdf = Pdf::loadView('pdf.rekap_nilai', compact('class', 'tryouts'));
+
+        return $pdf->download('Score_Report_' . $class->program_name . '.pdf');
+    }
+
+    public function exportPdfSelected(Request $request)
+        {
+            // 1. Ambil ID hasil yang dicentang dari form
+            $resultIds = $request->input('selected_results');
+
+            if (!$resultIds) {
+                return back()->with('error', 'Please select at least one student score to export.');
+            }
+
+            // 2. Ambil data Kelas (PENTING: Agar variabel $class tidak undefined)
+            $class = ClassModel::findOrFail($request->class_id);
+
+            // 3. Ambil data nilai berdasarkan ID yang dipilih dan kelompokkan berdasarkan judul Tryout
+            $results = TryoutResult::whereIn('tryout_result_id', $resultIds)
+                        ->with(['user.student', 'tryout'])
+                        ->get()
+                        ->groupBy('tryout.title');
+
+            // 4. Kirim variabel 'results' dan 'class' ke view PDF
+            $pdf = Pdf::loadView('pdf.rekap_nilai', compact('results', 'class'));
+
+            return $pdf->download('Selected_Score_Report_' . $class->program_name . '.pdf');
+        }
+
+    public function lihatNilaiMobile() { return view('pengajar.tryout.nilai'); }
 }

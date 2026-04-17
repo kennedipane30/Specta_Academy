@@ -82,9 +82,15 @@
                         <span class="mr-3 text-lg">👨‍🏫</span> Pengajar
                     </a>
 
+
+
                     <a href="{{ route('admin.announcement.index') }}" class="nav-link {{ request()->routeIs('admin.announcement.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📢</span> Pengumuman
                     </a> {{-- PENUTUP TAG DISINI --}}
+
+                    <a href="{{ route('admin.scores.index') }}" class="nav-link {{ request()->routeIs('admin.scores.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">📊</span> Rekap Nilai Siswa
+                    </a>
 
                 @elseif(Auth::user()->role_id == 2) <!-- MENU PENGAJAR -->
                     <a href="{{ route('pengajar.dashboard') }}" class="nav-link {{ request()->routeIs('pengajar.dashboard') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
