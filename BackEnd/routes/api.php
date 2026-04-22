@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Admin\PromoController; // Pastikan namespace ini benar
+use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
 use App\Http\Controllers\Api\QuestionBankController;
 use App\Http\Controllers\Api\PaymentController; 
@@ -30,15 +30,17 @@ Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
 Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// 🔥 FITUR LUPA PASSWORD (PASTIKAN AuthController sudah ada fungsinya)
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// ✅ WEBHOOK MIDTRANS (Harus Publik / Di luar Middleware Auth)
+// ✅ WEBHOOK MIDTRANS (Harus Publik)
 Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification']);
 Route::post('/payment/callback', [PaymentController::class, 'handleNotification']);
 
 // --- INFO PUBLIK ---
-Route::get('/promos', [PromoController::class, 'apiIndex']); // Pastikan fungsi apiIndex ada di Controller
+Route::get('/promos', [PromoController::class, 'apiIndex']); 
 Route::get('/announcements', function() {
     return response()->json([
         'status' => 'success', 

@@ -12,7 +12,7 @@ class ClassDetailPage extends StatefulWidget {
   final String token;
   final Map userData;
 
-  const ClassDetailPage({
+  const ClassDetailPage({ 
     super.key,
     required this.classId,
     required this.className,

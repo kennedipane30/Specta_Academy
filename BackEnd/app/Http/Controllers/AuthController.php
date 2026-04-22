@@ -111,37 +111,31 @@ class AuthController extends Controller {
     }
 
     /**
-     * 🔥 4. GET CLASS CONTENT (MODIFIKASI DINAMIS ADMIN)
-     * Fungsi ini digunakan saat Siswa membuka Detail Kelas di Flutter.
+     * 4. GET CLASS CONTENT (MODIFIKASI DINAMIS ADMIN)
      */
     public function getClassContent(Request $request): JsonResponse {
         $classId = $request->class_id;
         $user = Auth::user();
 
-        // Ambil data kelas beserta relasi materi & tryout
         $class = ClassModel::with(['materials'])->find($classId);
 
         if (!$class) {
             return response()->json(['status' => 'error', 'message' => 'Kelas tidak ditemukan'], 404);
         }
 
-        // Cek status pendaftaran user di tabel enrollments
         $enrollment = Enrollment::where('user_id', $user->usersID)
                                 ->where('class_id', $classId)
                                 ->first();
 
         $status = $enrollment ? $enrollment->status : 'none';
-
-        // Ambil Tryout khusus kelas ini
         $tryouts = Tryout::where('class_id', $classId)->get();
 
-        // Kembalikan JSON yang berisi Harga, Desc, dan Image dari hasil input Admin
         return response()->json([
             'status'        => 'success',
             'enroll_status' => $status,
-            'price'         => $class->price,       // DARI ADMIN
-            'description'   => $class->description, // DARI ADMIN
-            'image_url'     => $class->image_url,   // DARI ADMIN
+            'price'         => $class->price,      
+            'description'   => $class->description,
+            'image_url'     => $class->image_url,  
             'materi'        => $class->materials,
             'tryouts'       => $tryouts,
         ]);
@@ -169,7 +163,7 @@ class AuthController extends Controller {
     }
 
     /**
-     * 6. JOIN CLASS (PEMBAYARAN MANUAL)
+     * 6. JOIN CLASS
      */
     public function joinClass(Request $request): JsonResponse {
         $request->validate(['class_id' => 'required', 'payment_proof' => 'required|image']);
@@ -223,7 +217,6 @@ class AuthController extends Controller {
      * 9. CEK PROMO
      */
     public function checkPromo(Request $request): JsonResponse {
-        // Ambil harga dari database kelas, jangan percaya input user
         $class = ClassModel::find($request->class_id);
         if (!$class) return response()->json(['status' => 'error', 'message' => 'Kelas tidak ditemukan'], 404);
 
@@ -243,21 +236,95 @@ class AuthController extends Controller {
             'new_price' => $class->price - $potongan
         ]);
     }
+
+    /**
+     * 10. GET SISWA SCHEDULE
+     */
     public function getSiswaSchedule(Request $request): JsonResponse {
-    $user = Auth::user();
-    
-    // Mengambil jadwal berdasarkan kelas yang diikuti siswa
-    // Asumsi: Anda memiliki relasi 'classes' di model User
-    $classIds = $user->classes()->wherePivot('status', 'active')->pluck('classes.class_id');
+        $user = Auth::user();
+        $classIds = Enrollment::where('user_id', $user->usersID)->where('status', 'active')->pluck('class_id');
 
-    $schedules = Schedule::whereIn('class_id', $classIds)
-                ->with(['class', 'material']) // Eager load agar data lengkap
-                ->orderBy('date', 'asc')
-                ->get();
+        $schedules = Schedule::whereIn('class_id', $classIds)
+                    ->with(['class', 'material']) 
+                    ->orderBy('date', 'asc')
+                    ->get();
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $schedules
-    ]);
-}
+        return response()->json([
+            'status' => 'success',
+            'data' => $schedules
+        ]);
+    }
+
+    /**
+     * 🔥 11. FORGOT PASSWORD (REQUEST OTP)
+     * Tambahkan fungsi ini agar error "Undefined Method" hilang
+     */
+    public function forgotPassword(Request $request): JsonResponse {
+        $v = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['status' => 'error', 'message' => 'Email tidak terdaftar di sistem kami.'], 422);
+        }
+
+        try {
+            $user = User::where('email', $request->email)->first();
+            $otp = rand(100000, 999999);
+
+            // Simpan OTP ke tabel OtpCode (Sama seperti saat daftar)
+            OtpCode::updateOrCreate(['user_id' => $user->usersID], [
+                'otp' => $otp,
+                'valid_until' => Carbon::now()->addMinutes(15)
+            ]);
+
+            // Kirim Email
+            Mail::to($user->email)->send(new OtpMail($otp));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Kode OTP berhasil dikirim ke email Anda.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Gagal mengirim email: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 🔥 12. RESET PASSWORD (VERIFIKASI OTP & UPDATE PASSWORD)
+     */
+    public function resetPassword(Request $request): JsonResponse {
+        $v = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required',
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['status' => 'error', 'message' => $v->errors()->first()], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        // Cek OTP
+        $otpRecord = OtpCode::where('user_id', $user->usersID)
+                            ->where('otp', $request->otp)
+                            ->where('valid_until', '>', now())
+                            ->first();
+
+        if (!$otpRecord) {
+            return response()->json(['status' => 'error', 'message' => 'Kode OTP salah atau sudah kadaluarsa.'], 401);
+        }
+
+        // Update Password
+        $user->update(['password' => bcrypt($request->password)]);
+
+        // Hapus OTP setelah sukses
+        $otpRecord->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password berhasil diubah. Silakan login kembali.'
+        ]);
+    }
 }
