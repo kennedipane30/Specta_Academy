@@ -146,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   onPressed: handleLogin,
                   child: const Text(
-                    "LOGIN TO ACCOUNT",
+                    "LOGIN ",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
                   ),
                 ),

@@ -28,4 +28,10 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class, 'role_id', 'rolesID');
     }
+    public function classes()
+{
+    return $this->belongsToMany(ClassModel::class, 'enrollments', 'user_id', 'class_id')
+                ->withPivot('status', 'payment_proof')
+                ->withTimestamps();
+}
 }

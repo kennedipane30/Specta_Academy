@@ -23,23 +23,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final Color spektaRed = const Color(0xFF990000);
-  late List<Widget> _pages;
 
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      HomePage(
-        userName: widget.userName,
-        token: widget.token,
-        userData: widget.userProfileData,
-      ),
-      KelasPage(token: widget.token, userData: widget.userProfileData),
-      JadwalPage(token: widget.token),
-      AkunPage(token: widget.token, userData: widget.userProfileData),
-    ];
-  }
-
+  // Fungsi untuk berpindah tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -48,11 +33,31 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Kita pindahkan list halaman ke sini agar bisa mengirim callback _onItemTapped
+    final List<Widget> pages = [
+      HomePage(
+        userName: widget.userName,
+        token: widget.token,
+        userData: widget.userProfileData,
+      ),
+      KelasPage(
+        token: widget.token, 
+        userData: widget.userProfileData,
+        // Fungsi ini akan dijalankan saat tombol "COMPLETE NOW" diklik
+        onGoToProfile: () => _onItemTapped(3), 
+      ),
+      JadwalPage(token: widget.token),
+      AkunPage(
+        token: widget.token, 
+        userData: widget.userProfileData
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages, // Menggunakan list pages yang didefinisikan di atas
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

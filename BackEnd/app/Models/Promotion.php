@@ -6,24 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class Promotion extends Model
 {
-    protected $primaryKey = 'promotionsID'; // Sesuai ERD
+    protected $table = 'promotions';
+    protected $primaryKey = 'promotion_id';
 
     protected $fillable = [
-        'class_id',
-        'image_banner',
-        'code',
-        'discount_percent',
-        'start_date',
+        'class_id', 
+        'code', 
+        'discount_type', 
+        'discount_percent', // Nama kolom di database Anda
+        'quota', 
+        'start_date', 
         'end_date',
-        'is_active'
+        'is_active',
+        'image_banner'
     ];
 
-    /**
-     * RELASI INI YANG TADI HILANG (WAJIB ADA)
-     */
-    public function classModel()
+    public function class()
     {
-        // Menghubungkan class_id di tabel promotions ke class_modelsID di tabel class_models
-        return $this->belongsTo(ClassModel::class, 'class_id', 'class_modelsID');
+        // Relasi ke ClassModel
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 }

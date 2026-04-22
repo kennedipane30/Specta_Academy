@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
 import '../services/auth_service.dart';
-import 'tryout_detail_page.dart'; 
-import 'module_week_list_page.dart'; 
-import 'practice_week_list_page.dart'; 
+import 'payment_confirmation_page.dart'; // Pastikan import halaman baru ini
+import 'midtrans_payment_page.dart';
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -27,14 +25,19 @@ class ClassDetailPage extends StatefulWidget {
 }
 
 class _ClassDetailPageState extends State<ClassDetailPage> {
+  // State dasar kelas
   String status = "none";
+  int basePrice = 0;
+  String description = "";
+  String imageUrl = "";
   List materi = [];
-  List tryouts = []; 
-  List practiceQuestions = []; 
+  List tryouts = [];
+  List practiceQuestions = [];
   bool isLoading = true;
-  bool isShowingMateri = false; 
-  bool isShowingLatihan = false; 
+
   final Color spektaRed = const Color(0xFF990000);
+  final currency = NumberFormat.currency(
+      locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -42,7 +45,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
-  // 1. Fungsi Ambil Data dari API Laravel
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -52,9 +54,11 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
           setState(() {
             status = data['enroll_status'] ?? "none";
             materi = data['materi'] ?? [];
-            tryouts = data['tryouts'] ?? []; 
-            // MODIFIKASI: Menggunakan key 'practice_questions' (Bahasa Inggris)
-            practiceQuestions = data['practice_questions'] ?? []; 
+            tryouts = data['tryouts'] ?? [];
+            practiceQuestions = data['practice_questions'] ?? [];
+            basePrice = int.tryParse(data['price'].toString()) ?? 0;
+            description = data['description'] ?? "Deskripsi program belum tersedia.";
+            imageUrl = data['image_url'] ?? "";
             isLoading = false;
           });
         }
@@ -64,322 +68,238 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  // 2. Fungsi Proses Konfirmasi Pembayaran
-  void _processUpload(File image) async {
-    showDialog(
-      context: context, 
-      barrierDismissible: false, 
-      builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF990000)))
+  // --- FUNGSI NAVIGASI KE KONFIRMASI PEMBAYARAN ---
+  void _navigateToConfirmation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentConfirmationPage(
+          classId: widget.classId,
+          className: widget.className,
+          basePrice: basePrice,
+          token: widget.token,
+          userData: widget.userData,
+        ),
+      ),
     );
-
-    try {
-      var streamedResp = await AuthService.joinClass(widget.classId, image.path, widget.token);
-      var response = await http.Response.fromStream(streamedResp);
-
-      if (!mounted) return;
-      Navigator.pop(context); // Tutup Loading
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.green, 
-            content: Text("✅ Payment Processing! Please wait for admin verification.")
-          )
-        );
-        _fetchDetail(); // Refresh halaman agar status berubah jadi 'pending'
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.red, content: Text("Failed to send enrollment data."))
-        );
-      }
-    } catch (e) { 
-      Navigator.pop(context); 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connection Error!"))
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // MODIFIKASI: Menggunakan 'active' (Bahasa Inggris) sesuai perbaikan Database
-    bool isRegistered = status == 'active';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(
-          isShowingMateri ? "Video Materials" : (isShowingLatihan ? "Practice Materials" : widget.className), 
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
-        ),
-        backgroundColor: spektaRed,
-        foregroundColor: Colors.white,
-        leading: (isShowingMateri || isShowingLatihan) 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back), 
-              onPressed: () => setState(() {
-                isShowingMateri = false;
-                isShowingLatihan = false;
-              })
-            ) 
-          : null,
-      ),
+      backgroundColor: Colors.white,
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: spektaRed))
-          : SingleChildScrollView(
+          : CustomScrollView(
+              slivers: [
+                _buildSliverAppBar(),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStatusBadge(),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.className,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle("Tentang Kelas"),
+                        const SizedBox(height: 8),
+                        Text(
+                          description,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey[700],
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle("Apa yang akan kamu pelajari?"),
+                        const SizedBox(height: 12),
+                        _buildFeatureItem(Icons.menu_book_rounded, "${materi.length} Materi Video & PDF"),
+                        _buildFeatureItem(Icons.assignment_rounded, "${tryouts.length} Tryout Simulasi"),
+                        _buildFeatureItem(Icons.quiz_rounded, "${practiceQuestions.length} Latihan Soal"),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      bottomNavigationBar: (status != 'active') ? _buildPremiumBottomBar() : _buildActiveBottomBar(),
+    );
+  }
+
+  Widget _buildSliverAppBar() {
+    String finalImageUrl = imageUrl
+        .replaceAll('127.0.0.1', '10.0.2.2')
+        .replaceAll('localhost', '10.0.2.2');
+
+    return SliverAppBar(
+      expandedHeight: 250.0,
+      floating: false,
+      pinned: true,
+      backgroundColor: spektaRed,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: CircleAvatar(
+          backgroundColor: Colors.black26,
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            imageUrl.isNotEmpty
+                ? Image.network(finalImageUrl, fit: BoxFit.cover)
+                : Container(color: spektaRed),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.4),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.6),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    Color badgeColor;
+    String label;
+
+    switch (status) {
+      case 'active':
+        badgeColor = Colors.green;
+        label = "TERDAFTAR";
+        break;
+      case 'pending':
+        badgeColor = Colors.orange;
+        label = "MENUNGGU PEMBAYARAN";
+        break;
+      default:
+        badgeColor = Colors.blue;
+        label = "TERSEDIA";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: badgeColor),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: spektaRed, size: 22),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumBottomBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -2))
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatusBanner(),
-                  if (isShowingMateri) ...[
-                    _buildMateriList(materi, isRegistered)
-                  ] else if (isShowingLatihan) ...[
-                    _buildLatihanSubjectList(materi, isRegistered)
-                  ] else ...[
-                    if (tryouts.isNotEmpty) ...[
-                      const Padding(padding: EdgeInsets.only(left: 20, top: 20), child: Text("Try-Out Simulation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                      _buildTryoutList(tryouts, isRegistered),
-                    ],
-                    const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(left: 20), child: Text("Learning Center", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                    
-                    _buildCategoryMenu(
-                      title: "Learning Video Materials",
-                      subtitle: "Collection of expert explanation videos",
-                      icon: isRegistered ? Icons.play_circle_fill : Icons.lock_outline,
-                      color: isRegistered ? Colors.blue.shade700 : Colors.grey,
-                      onTap: isRegistered ? () => setState(() => isShowingMateri = true) : _showLockedMessage,
-                    ),
-
-                    _buildCategoryMenu(
-                      title: "Self-Practice Questions",
-                      subtitle: "Sharpen your skills here",
-                      icon: isRegistered ? Icons.edit_note_rounded : Icons.lock_outline,
-                      color: isRegistered ? Colors.orange.shade700 : Colors.grey,
-                      onTap: isRegistered ? () => setState(() => isShowingLatihan = true) : _showLockedMessage,
-                    ),
-                  ],
-                  const SizedBox(height: 120),
+                  const Text("Harga Investasi", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    currency.format(basePrice),
+                    style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
-      // Tombol daftar hanya muncul jika status 'none'
-      bottomNavigationBar: status == 'none' ? _buildBottomAction() : null,
-    );
-  }
-
-  // 3. Form Pendaftaran (Form Pembayaran)
-  void _showDaftarForm() {
-    File? imageFile;
-    final nameController = TextEditingController(text: widget.userData['name']);
-    
-    // PERBAIKAN: Menggunakan key 'national_id_number' agar 909 muncul (bukan strip)
-    var student = widget.userData['student'];
-    final String nisnValue = student != null ? (student['national_id_number']?.toString() ?? "-") : "-";
-    final nisnController = TextEditingController(text: nisnValue);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 25, right: 25, top: 25),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Enrollment Form", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              _buildField(nameController, "Name", Icons.person, true),
-              _buildField(nisnController, "NISN", Icons.numbers, true),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: () async {
-                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-                  if (picked != null) setModalState(() => imageFile = File(picked.path));
-                },
-                child: Container(
-                  height: 120, width: double.infinity,
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(15)),
-                  child: imageFile == null ? const Icon(Icons.add_a_photo) : Image.file(imageFile!, fit: BoxFit.cover),
+            SizedBox(
+              height: 50,
+              width: 180,
+              child: ElevatedButton(
+                onPressed: _navigateToConfirmation, // Pindah ke halaman konfirmasi
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: spektaRed,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  status == 'pending' ? "SELESAIKAN" : "DAFTAR SEKARANG",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: imageFile == null ? null : () { Navigator.pop(context); _processUpload(imageFile!); },
-                style: ElevatedButton.styleFrom(backgroundColor: spektaRed, minimumSize: const Size(double.infinity, 50)),
-                child: const Text("CONFIRM PAYMENT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );
   }
 
-  // --- WIDGET HELPER ---
-
-  Widget _buildStatusBanner() {
-    if (status == 'pending') {
-      return Container(
-        width: double.infinity, 
-        padding: const EdgeInsets.all(15), 
-        color: Colors.orange[50], 
-        child: const Text("⌛ Payment verification in progress by admin", textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))
-      );
-    }
-    return const SizedBox();
-  }
-
-  void _showLockedMessage() {
-    String msg = status == 'pending' 
-        ? "⌛ Your enrollment is being verified." 
-        : "⚠️ Please enroll in this class first.";
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.orange, content: Text(msg)));
-  }
-
-  Widget _buildCategoryMenu({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildActiveBottomBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-            border: Border.all(color: Colors.grey.shade200)
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
-                child: Icon(icon, color: color, size: 30),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-            ],
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(color: Colors.white),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton(
+            onPressed: () {},
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: spektaRed),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text("ANDA SUDAH TERDAFTAR", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)),
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildTryoutList(List items, bool isRegistered) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: ListTile(
-            leading: Icon(isRegistered ? Icons.assignment : Icons.lock_outline, color: isRegistered ? Colors.orange : Colors.grey),
-            title: Text(items[index]['title'], style: TextStyle(fontWeight: FontWeight.bold, color: isRegistered ? Colors.black87 : Colors.grey)),
-            onTap: isRegistered 
-              ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutDetailPage(tryoutData: items[index], token: widget.token))) 
-              : _showLockedMessage,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMateriList(List items, bool isRegistered) {
-    final List uniqueSubjects = items.map((m) => m['title']).toSet().toList();
-    return ListView.builder(
-      padding: const EdgeInsets.all(15),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: uniqueSubjects.length,
-      itemBuilder: (context, index) {
-        String subjectName = uniqueSubjects[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: ListTile(
-            leading: const Icon(Icons.folder_special_rounded, color: Colors.green),
-            title: Text(subjectName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-            subtitle: const Text("View weekly modules", style: TextStyle(fontSize: 11)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-            onTap: isRegistered 
-              ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => ModuleWeekListPage(subjectName: subjectName, allMaterials: materi, token: widget.token)))
-              : _showLockedMessage,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLatihanSubjectList(List items, bool isRegistered) {
-    final List uniqueSubjects = items.map((m) => m['title']).toSet().toList();
-    if (uniqueSubjects.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(50), child: Text("No subjects available")));
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(15),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: uniqueSubjects.length,
-      itemBuilder: (context, index) {
-        String fullName = uniqueSubjects[index].toString();
-        String subjectName = fullName.replaceAll("Materi ", "").replaceAll("Material ", "");
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: const Color(0xFFFDF7F2), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.folder_special_rounded, color: Color(0xFF4CAF50), size: 28)),
-            title: Text("$subjectName Practice", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-            subtitle: const Text("View weekly practice questions", style: TextStyle(fontSize: 11)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeWeekListPage(
-                subjectName: fullName,
-                allExercises: practiceQuestions,
-                token: widget.token,
-              )));
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBottomAction() {
-    return Container(
-      height: 110, padding: const EdgeInsets.all(20), 
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3))]),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-        children: [
-          Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("Program Price", style: TextStyle(color: Colors.grey, fontSize: 12)), 
-            Text("Rp 900.000", style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))
-          ]),
-          ElevatedButton(
-            onPressed: _showDaftarForm, 
-            style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), 
-            child: const Text("ENROLL NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-          )
-        ]
-      )
-    );
-  }
-
-  Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool isReadOnly) {
-    return Padding(padding: const EdgeInsets.only(top: 15), child: TextField(controller: ctrl, readOnly: isReadOnly, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: spektaRed), filled: true, fillColor: isReadOnly ? Colors.grey[100] : Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))));
   }
 }

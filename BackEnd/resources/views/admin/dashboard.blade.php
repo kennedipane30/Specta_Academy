@@ -27,7 +27,6 @@
 
     <!-- STATS SECTION: 4 Main Pillars -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-
         <!-- Total Students -->
         <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
             <div class="flex justify-between items-start mb-4">
@@ -77,13 +76,12 @@
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Tutor Requests</p>
             <h2 class="text-4xl font-black text-gray-900">{{ $tutor_pending }}</h2>
         </div>
-
     </div>
 
     <!-- MAIN GRID: Activities & Quick Access -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        <!-- RECENT ACTIVITY: Professional Table Design -->
+        <!-- RECENT ACTIVITY -->
         <div class="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-8 pb-4 border-b">
                 <h5 class="font-black text-gray-800 uppercase tracking-tight text-lg">LOG AKTIVITAS SISTEM</h5>
@@ -91,33 +89,16 @@
             </div>
 
             <div class="space-y-6">
-                {{-- Example Item --}}
                 <div class="flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all border-l-4 border-transparent hover:border-[#990000]">
                     <div class="flex items-center gap-5">
                         <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">BK</div>
                         <div>
                             <h6 class="text-sm font-black text-gray-800 mb-1 uppercase">Pendaftaran Siswa Baru</h6>
-                            <p class="text-[11px] text-gray-400">Siswa <b>Budi Kurniawan</b> mendaftar pada Kelas SMA SMP Reguler</p>
+                            <p class="text-[11px] text-gray-400">Siswa mendaftar pada Kelas Reguler</p>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-[10px] font-bold text-gray-300 mb-1 uppercase">12 MENIT LALU</div>
                         <span class="text-[9px] bg-green-50 text-green-600 px-3 py-1 rounded-full font-black uppercase">Success</span>
-                    </div>
-                </div>
-
-                {{-- Example Item --}}
-                <div class="flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all border-l-4 border-transparent hover:border-blue-600">
-                    <div class="flex items-center gap-5">
-                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">AD</div>
-                        <div>
-                            <h6 class="text-sm font-black text-gray-800 mb-1 uppercase">Pembaruan Modul</h6>
-                            <p class="text-[11px] text-gray-400">Administrator memperbarui file materi pada Program PTN & UNHAN</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-[10px] font-bold text-gray-300 mb-1 uppercase">2 JAM LALU</div>
-                        <span class="text-[9px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-black uppercase">Update</span>
                     </div>
                 </div>
             </div>
@@ -151,20 +132,25 @@
                         </div>
                         <span class="text-white group-hover/link:text-gray-900 text-xs font-black uppercase tracking-wider">Marketing Promo</span>
                     </a>
+
+                    <!-- Class Content Management (FITUR BARU) -->
+                    <a href="{{ route('admin.classes.index') }}" class="group/link bg-white/5 hover:bg-white p-5 rounded-[1.5rem] flex items-center gap-5 transition-all duration-500 transform hover:scale-105">
+                        <div class="bg-indigo-600 p-3 rounded-xl group-hover/link:rotate-12 transition-transform shadow-lg shadow-indigo-900/50">
+                            <i class="fas fa-edit text-white text-sm"></i>
+                        </div>
+                        <span class="text-white group-hover/link:text-gray-900 text-xs font-black uppercase tracking-wider">Class Content</span>
+                    </a>
                 </div>
 
                 <div class="mt-12 pt-8 border-t border-white/10 relative z-10">
-                    <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center italic">Spekta Academy v2.4.0 High-Performance Mode</p>
+                    <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center italic">Spekta Academy High-Performance Mode</p>
                 </div>
             </div>
         </div>
-
     </div>
-
 </div>
 
 <style>
-    /* Professional Font & Smoothness */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
     body { font-family: 'Inter', sans-serif; }
 </style>
