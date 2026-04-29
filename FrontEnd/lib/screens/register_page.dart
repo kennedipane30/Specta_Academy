@@ -5,16 +5,17 @@ import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
-  @override State<RegisterPage> createState() => _RegisterPageState();
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final Color spektaRed = const Color(0xFF990000);
-  
-  // Dua variabel terpisah untuk ikon mata yang mandiri
-  bool _obscurePass = true; 
-  bool _obscureConfirm = true; 
+
+  bool _isDark = false;
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
 
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -22,167 +23,460 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
 
+  // ================= DESIGN SYSTEM =================
+
+  static const Color lightPink = Color(0xFFFFDBE8);
+  static const Color softPink = Color(0xFFFF94B2);
+  static const Color mainRed = Color(0xFFF24455);
+  static const Color deepRed = Color(0xFFE5203A);
+  static const Color darkBg = Color(0xFF02060E);
+  static const Color darkCard = Color(0xFF121722);
+  static const Color textDark = Color(0xFF1F2028);
+  static const Color textMuted = Color(0xFF8C8C95);
+
+  static const double radiusLg = 28;
+  static const double radiusMd = 18;
+  static const double spacing = 16;
+
+  List<Color> get bgGradient => _isDark
+      ? const [
+          Color(0xFF02060E),
+          Color(0xFF15101A),
+          Color(0xFF660F24),
+        ]
+      : const [
+          Color(0xFFFFDBE8),
+          Color(0xFFFF94B2),
+          Color(0xFFF24455),
+        ];
+
+  Color get primaryText => _isDark ? Colors.white : textDark;
+  Color get secondaryText =>
+      _isDark ? Colors.white.withOpacity(0.62) : textDark.withOpacity(0.58);
+  Color get cardColor => _isDark ? Colors.white.withOpacity(0.08) : Colors.white;
+  Color get inputColor =>
+      _isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFFFF7FA);
+  Color get borderColor =>
+      _isDark ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.75);
+  Color get iconColor => _isDark ? Colors.white70 : deepRed;
+  Color get fieldText => _isDark ? Colors.white : textDark;
+  Color get labelText =>
+      _isDark ? Colors.white.withOpacity(0.55) : textMuted;
+
+  // ==================================================
+
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       showDialog(
-        context: context, 
-        barrierDismissible: false, 
-        builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF990000)))
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: mainRed),
+        ),
       );
-      
+
       try {
         var response = await AuthService.register({
-          'name': _nameCtrl.text.trim(), 
-          'email': _emailCtrl.text.trim(), 
-          'nomor_wa': _waCtrl.text.trim(), 
-          'password': _passCtrl.text, 
-          'password_confirmation': _confirmPassCtrl.text
+          'name': _nameCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+          'nomor_wa': _waCtrl.text.trim(),
+          'password': _passCtrl.text,
+          'password_confirmation': _confirmPassCtrl.text,
         });
 
-        if (!mounted) return; 
-        Navigator.pop(context); // Tutup Loading
+        if (!mounted) return;
+        Navigator.pop(context);
 
         if (response.statusCode == 201) {
-          // Berhasil, pindah ke halaman OTP
           Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (_) => OtpPage(name: _nameCtrl.text))
+            context,
+            MaterialPageRoute(
+              builder: (_) => OtpPage(name: _nameCtrl.text),
+            ),
           );
         } else {
           final err = jsonDecode(response.body);
-          // Sekarang pesan error "Name taken" tidak akan muncul lagi setelah Laravel diubah
-          _showSnackBar(err['message'] ?? "Registrasi Gagal", Colors.red);
+          _showSnackBar(err['message'] ?? "Registration failed", Colors.red);
         }
-      } catch (e) { 
+      } catch (e) {
         if (mounted) Navigator.pop(context);
-        _showSnackBar("Kesalahan Koneksi!", Colors.black); 
+        _showSnackBar("Connection error. Please try again.", Colors.black);
       }
     }
   }
 
   void _showSnackBar(String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(backgroundColor: color, content: Text(msg))
+      SnackBar(backgroundColor: color, content: Text(msg)),
     );
   }
 
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Buat Akun Baru", style: TextStyle(fontWeight: FontWeight.bold)), 
-        backgroundColor: Colors.white, 
-        foregroundColor: spektaRed, 
-        elevation: 0
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children: [
-              const Text("Register Spekta Academy", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const Text("Lengkapi data untuk mendaftar.", style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 30),
-              
-              _buildInput(_nameCtrl, "Nama Lengkap", Icons.person_outline, (v) => v!.isEmpty ? 'Wajib diisi' : null),
-              _buildInput(_emailCtrl, "Email Aktif", Icons.email_outlined, (v) => v!.contains('@') ? null : "Email tidak valid"),
-              _buildInput(_waCtrl, "Nomor WhatsApp", Icons.phone_android_outlined, (v) => v!.length < 10 ? "Nomor tidak valid" : null),
-              
-              // PASSWORD 1
-              _buildPasswordInput(
-                _passCtrl, 
-                "Password", 
-                _obscurePass, 
-                () => setState(() => _obscurePass = !_obscurePass),
-                (v) => v!.length < 8 ? 'Minimal 8 karakter' : null
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: bgGradient,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+
+                  const SizedBox(height: 28),
+
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : Colors.white.withOpacity(0.75),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(_isDark ? 0.18 : 0.08),
+                            blurRadius: 22,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.person_add_alt_1_rounded,
+                        size: 56,
+                        color: _isDark ? Colors.white : deepRed,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  Center(
+                    child: Text(
+                      "Register Spekta Academy",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        color: primaryText,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Center(
+                    child: Text(
+                      "Create your account to start learning.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  _buildFormCard(),
+
+                  const SizedBox(height: 22),
+
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Already have an account? ",
+                          style: TextStyle(
+                            color: secondaryText,
+                            fontSize: 13,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: "Login",
+                              style: TextStyle(
+                                color: _isDark ? Colors.white : deepRed,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
               ),
-              
-              const SizedBox(height: 15),
-              
-              // CONFIRM PASSWORD
-              _buildPasswordInput(
-                _confirmPassCtrl, 
-                "Konfirmasi Password", 
-                _obscureConfirm, 
-                () => setState(() => _obscureConfirm = !_obscureConfirm),
-                (v) => v != _passCtrl.text ? 'Password tidak cocok' : null
-              ),
-              
-              const SizedBox(height: 40),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: spektaRed, 
-                  minimumSize: const Size(double.infinity, 55), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
-                ),
-                onPressed: _handleRegister, 
-                child: const Text("REGISTER NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context), 
-                  child: RichText(
-                    text: TextSpan(
-                      text: "Sudah punya akun? ", 
-                      style: const TextStyle(color: Colors.grey), 
-                      children: [
-                        TextSpan(text: "Login", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold))
-                      ]
-                    )
-                  )
-                )
-              ),
-            ]
-          )
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInput(TextEditingController ctrl, String label, IconData icon, String? Function(String?)? validator) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20), 
-      child: TextFormField(
-        controller: ctrl, 
-        decoration: InputDecoration(
-          labelText: label, 
-          prefixIcon: Icon(icon, color: spektaRed), 
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), 
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFFEEEEEE))), 
-          filled: true, 
-          fillColor: const Color(0xFFF9F9F9)
-        ), 
-        validator: validator
-      )
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(
+            Icons.arrow_back_rounded,
+            color: primaryText,
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+
+        const SizedBox(width: 12),
+
+        Expanded(
+          child: Text(
+            "Create Account",
+            style: TextStyle(
+              color: primaryText,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+
+        GestureDetector(
+          onTap: () => setState(() => _isDark = !_isDark),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isDark
+                  ? Colors.white.withOpacity(0.12)
+                  : Colors.white.withOpacity(0.75),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: borderColor),
+            ),
+            child: Icon(
+              _isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              color: _isDark ? Colors.white : deepRed,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(radiusLg),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(_isDark ? 0.20 : 0.08),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInput(
+            _nameCtrl,
+            "Full Name",
+            Icons.person_outline_rounded,
+            (v) => v!.isEmpty ? "Full name is required" : null,
+          ),
+          const SizedBox(height: spacing),
+
+          _buildInput(
+            _emailCtrl,
+            "Active Email",
+            Icons.email_outlined,
+            (v) => v!.contains('@') ? null : "Invalid email address",
+          ),
+          const SizedBox(height: spacing),
+
+          _buildInput(
+            _waCtrl,
+            "WhatsApp Number",
+            Icons.phone_android_rounded,
+            (v) => v!.length < 10 ? "Invalid phone number" : null,
+          ),
+          const SizedBox(height: spacing),
+
+          _buildPasswordInput(
+            _passCtrl,
+            "Password",
+            _obscurePass,
+            () => setState(() => _obscurePass = !_obscurePass),
+            (v) => v!.length < 8 ? "Minimum 8 characters" : null,
+          ),
+          const SizedBox(height: spacing),
+
+          _buildPasswordInput(
+            _confirmPassCtrl,
+            "Confirm Password",
+            _obscureConfirm,
+            () => setState(() => _obscureConfirm = !_obscureConfirm),
+            (v) => v != _passCtrl.text ? "Passwords do not match" : null,
+          ),
+
+          const SizedBox(height: 28),
+
+          _buildRegisterButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton() {
+    return Container(
+      width: double.infinity,
+      height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radiusMd),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFF24455),
+            Color(0xFFE5203A),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: deepRed.withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _handleRegister,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+        ),
+        child: const Text(
+          "REGISTER NOW",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            letterSpacing: 1.1,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInput(
+    TextEditingController ctrl,
+    String label,
+    IconData icon,
+    String? Function(String?)? validator,
+  ) {
+    return TextFormField(
+      controller: ctrl,
+      validator: validator,
+      style: TextStyle(
+        color: fieldText,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: _inputDecoration(label, icon),
     );
   }
 
   Widget _buildPasswordInput(
-    TextEditingController ctrl, 
-    String label, 
-    bool obscure, 
-    VoidCallback onToggle, 
-    String? Function(String?)? validator
+    TextEditingController ctrl,
+    String label,
+    bool obscure,
+    VoidCallback onToggle,
+    String? Function(String?)? validator,
   ) {
     return TextFormField(
-      controller: ctrl, 
-      obscureText: obscure, 
-      decoration: InputDecoration(
-        labelText: label, 
-        prefixIcon: Icon(Icons.lock_outline, color: spektaRed), 
+      controller: ctrl,
+      obscureText: obscure,
+      validator: validator,
+      style: TextStyle(
+        color: fieldText,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: _inputDecoration(label, Icons.lock_outline_rounded).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey), 
-          onPressed: onToggle, 
-        ), 
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), 
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFFEEEEEE))), 
-        filled: true, 
-        fillColor: const Color(0xFFF9F9F9)
-      ), 
-      validator: validator
+          icon: Icon(
+            obscure ? Icons.visibility_off : Icons.visibility,
+            color: _isDark ? Colors.white54 : textMuted,
+          ),
+          onPressed: onToggle,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      filled: true,
+      fillColor: inputColor,
+      labelText: label,
+      labelStyle: TextStyle(
+        color: labelText,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+      prefixIcon: Icon(icon, color: iconColor),
+      errorStyle: TextStyle(
+        color: _isDark ? const Color(0xFFFFCCD5) : deepRed,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusMd),
+        borderSide: BorderSide(
+          color: _isDark
+              ? Colors.white.withOpacity(0.12)
+              : const Color(0xFFFFD1DC),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusMd),
+        borderSide: const BorderSide(
+          color: mainRed,
+          width: 1.6,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusMd),
+        borderSide: const BorderSide(color: deepRed),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusMd),
+        borderSide: const BorderSide(color: deepRed),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 18,
+        horizontal: 16,
+      ),
     );
   }
 }

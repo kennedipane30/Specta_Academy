@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'register_page.dart'; 
-import 'main_screen.dart';   
+import 'register_page.dart';
+import 'main_screen.dart';
 import 'forgot_password_page.dart';
 import 'dart:convert';
 
@@ -15,52 +15,106 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
-  final Color spektaRed = const Color(0xFF990000);
-  bool _isObscure = true; 
+
+  bool _isDark = false;
+  bool _isObscure = true;
+
+  // ================= DESIGN SYSTEM =================
+
+  static const Color lightPink = Color(0xFFFFDBE8);
+  static const Color softPink = Color(0xFFFF94B2);
+  static const Color mainRed = Color(0xFFF24455);
+  static const Color deepRed = Color(0xFFE5203A);
+  static const Color darkBg = Color(0xFF02060E);
+  static const Color textDark = Color(0xFF1F2028);
+  static const Color textMuted = Color(0xFF8C8C95);
+
+  static const double radiusLg = 28;
+  static const double radiusMd = 18;
+  static const double spacing = 16;
+
+  List<Color> get bgGradient => _isDark
+      ? const [
+          Color(0xFF02060E),
+          Color(0xFF15101A),
+          Color(0xFF660F24),
+        ]
+      : const [
+          Color(0xFFFFDBE8),
+          Color(0xFFFF94B2),
+          Color(0xFFF24455),
+        ];
+
+  Color get primaryText => _isDark ? Colors.white : textDark;
+  Color get secondaryText =>
+      _isDark ? Colors.white.withOpacity(0.62) : textDark.withOpacity(0.58);
+  Color get cardColor => _isDark ? Colors.white.withOpacity(0.08) : Colors.white;
+  Color get inputColor =>
+      _isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFFFF7FA);
+  Color get borderColor =>
+      _isDark ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.75);
+  Color get iconColor => _isDark ? Colors.white70 : deepRed;
+  Color get fieldText => _isDark ? Colors.white : textDark;
+  Color get labelText =>
+      _isDark ? Colors.white.withOpacity(0.55) : textMuted;
+
+  // ==================================================
 
   void handleLogin() async {
     if (nameCtrl.text.isEmpty || passCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name and Password are required!"))
+        const SnackBar(content: Text("Name and Password are required!")),
       );
       return;
     }
 
     showDialog(
-      context: context, 
-      barrierDismissible: false, 
-      builder: (context) => Center(child: CircularProgressIndicator(color: spektaRed))
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: mainRed),
+      ),
     );
 
     try {
       var resp = await AuthService.login(nameCtrl.text, passCtrl.text);
-      
+
       if (!mounted) return;
-      Navigator.pop(context); 
+      Navigator.pop(context);
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        
+
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => MainScreen(
-            userName: data['user']['name'], 
-            token: data['token'],
-            userProfileData: data['user'], 
-          )),
+          MaterialPageRoute(
+            builder: (_) => MainScreen(
+              userName: data['user']['name'],
+              token: data['token'],
+              userProfileData: data['user'],
+            ),
+          ),
           (route) => false,
         );
       } else {
         final errorData = jsonDecode(resp.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: Colors.red, content: Text(errorData['message'] ?? "Invalid Name or Password!"))
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              errorData['message'] ?? "Invalid Name or Password!",
+            ),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.black, content: Text("Connection Error: Check your server."))
+        const SnackBar(
+          backgroundColor: Colors.black,
+          content: Text("Connection Error: Check your server."),
+        ),
       );
     }
   }
@@ -68,146 +122,301 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: spektaRed.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.school_rounded, size: 80, color: spektaRed),
-              ),
-              const SizedBox(height: 25),
-              Text(
-                "SPEKTA ACADEMY",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: spektaRed,
-                  letterSpacing: 2,
-                ),
-              ),
-              const Text(
-                "Achieve Your Dream of Serving the Nation",
-                style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              
-              const SizedBox(height: 60),
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: bgGradient,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            child: Column(
+              children: [
+                _buildTopToggle(),
 
-              _buildTextField(
-                controller: nameCtrl,
-                label: "Full Name",
-                icon: Icons.person_outline,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: passCtrl,
-                label: "Password",
-                icon: Icons.lock_outline,
-                isPassword: true,
-              ),
+                const SizedBox(height: 34),
 
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordPage())),
-                  child: Text(
-                    "Forgot Password?",
-                    style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold, fontSize: 13),
+                _buildLogo(),
+
+                const SizedBox(height: 24),
+
+                Text(
+                  "SPEKTA ACADEMY",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: primaryText,
+                    letterSpacing: 1.2,
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 8),
 
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: spektaRed.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+                Text(
+                  "Achieve Your Dream of Serving the Nation",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: secondaryText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                const SizedBox(height: 42),
+
+                _buildLoginCard(),
+
+                const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 13,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterPage(),
+                        ),
+                      ),
+                      child: Text(
+                        "Register",
+                        style: TextStyle(
+                          color: _isDark ? Colors.white : deepRed,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: spektaRed,
-                    minimumSize: const Size(double.infinity, 55),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    elevation: 0,
-                  ),
-                  onPressed: handleLogin,
-                  child: const Text(
-                    "LOGIN ",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 40),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account? ", style: TextStyle(color: Colors.grey)),
-                  GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
-                    child: Text(
-                      "Register Now",
-                      style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildTopToggle() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: () => setState(() => _isDark = !_isDark),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isDark
+                ? Colors.white.withOpacity(0.12)
+                : Colors.white.withOpacity(0.75),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: borderColor),
+          ),
+          child: Icon(
+            _isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: _isDark ? Colors.white : deepRed,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _isDark
+            ? Colors.white.withOpacity(0.08)
+            : Colors.white.withOpacity(0.75),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(_isDark ? 0.18 : 0.08),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.school_rounded,
+        size: 66,
+        color: _isDark ? Colors.white : deepRed,
+      ),
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(radiusLg),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(_isDark ? 0.20 : 0.08),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInput(
+            controller: nameCtrl,
+            label: "Full Name",
+            icon: Icons.person_outline_rounded,
+          ),
+
+          const SizedBox(height: spacing),
+
+          _buildInput(
+            controller: passCtrl,
+            label: "Password",
+            icon: Icons.lock_outline_rounded,
+            isPassword: true,
+          ),
+
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ForgotPasswordPage(),
+                ),
+              ),
+              child: Text(
+                "Forgot Password?",
+                style: TextStyle(
+                  color: _isDark ? Colors.white : deepRed,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          _buildLoginButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return Container(
+      width: double.infinity,
+      height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radiusMd),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFF24455),
+            Color(0xFFE5203A),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: deepRed.withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: handleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+        ),
+        child: const Text(
+          "LOGIN",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInput({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     bool isPassword = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return TextField(
+      controller: controller,
+      obscureText: isPassword ? _isObscure : false,
+      style: TextStyle(
+        color: fieldText,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword ? _isObscure : false,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-          prefixIcon: Icon(icon, color: spektaRed),
-          suffixIcon: isPassword 
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: inputColor,
+        labelText: label,
+        labelStyle: TextStyle(
+          color: labelText,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        prefixIcon: Icon(icon, color: iconColor),
+        suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                icon: Icon(
+                  _isObscure ? Icons.visibility_off : Icons.visibility,
+                  color: _isDark ? Colors.white54 : textMuted,
+                ),
                 onPressed: () => setState(() => _isObscure = !_isObscure),
               )
             : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: BorderSide(
+            color: _isDark
+                ? Colors.white.withOpacity(0.12)
+                : const Color(0xFFFFD1DC),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: const BorderSide(
+            color: mainRed,
+            width: 1.6,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 16,
         ),
       ),
     );
