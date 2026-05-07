@@ -5,22 +5,36 @@ namespace App\Http\Controllers\Pengajar;
 use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
 use App\Models\PracticeQuestion;
+use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PracticeQuestionController extends Controller
 {
     public function index()
     {
-        $classes = ClassModel::all();
-        return view('pengajar.latihan.index', compact('classes'));
+        $assignments = TeacherAssignment::with('classModel')
+                        ->where('user_id', Auth::user()->usersID)
+                        ->get();
+
+        return view('pengajar.Latihan.index', compact('assignments'));
     }
 
-    public function selectPractice($class_id)
+    public function selectPractice($class_id, $subject_name)
     {
-        $class = ClassModel::findOrFail($class_id);
-        $practices = PracticeQuestion::where('class_id', $class_id)->get();
+        $access = TeacherAssignment::where('user_id', Auth::user()->usersID)
+                    ->where('class_id', $class_id)
+                    ->where('subject_name', $subject_name)
+                    ->exists();
 
-        return view('pengajar.latihan.pilih', compact('class', 'practices'));
+        if (!$access) abort(403);
+
+        $class = ClassModel::findOrFail($class_id);
+        $practices = PracticeQuestion::where('class_id', $class_id)
+                        ->where('subject', $subject_name)
+                        ->get();
+
+        return view('pengajar.Latihan.pilih', compact('class', 'subject_name', 'practices'));
     }
 
     public function storeCSV(Request $request, $class_id)
@@ -33,7 +47,7 @@ class PracticeQuestionController extends Controller
 
         $file = $request->file('file_csv');
         $handle = fopen($file->getRealPath(), "r");
-        fgetcsv($handle, 2000, ";");
+        fgetcsv($handle, 2000, ";"); // Skip header
 
         while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
             if (!isset($row[0]) || empty(trim($row[0]))) continue;
@@ -53,6 +67,6 @@ class PracticeQuestionController extends Controller
         }
 
         fclose($handle);
-        return back()->with('success', 'Practice Questions imported successfully!');
+        return back()->with('success', 'Latihan soal berhasil diimport!');
     }
 }

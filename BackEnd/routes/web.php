@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ManajemenSiswaController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
 use App\Http\Controllers\Admin\AdminDedicatedTutorController;
+use App\Http\Controllers\Admin\TeacherAssignmentController;
 use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ClassManagementController;
@@ -85,6 +86,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
     Route::delete('/promo/{id}', [PromoController::class, 'destroy'])->name('promo.destroy');
 
+    // ✨ PERBAIKAN: Pindah rute Penugasan ke sini (Admin Group)
+    Route::get('/penugasan-materi', [TeacherAssignmentController::class, 'index'])->name('assignments.index');
+    Route::post('/penugasan-materi', [TeacherAssignmentController::class, 'store'])->name('assignments.store');
+    Route::delete('/penugasan-materi/{id}', [TeacherAssignmentController::class, 'destroy'])->name('assignments.destroy');
+
     // Manajemen Kelas
     Route::resource('classes', ClassManagementController::class)->only(['index', 'edit', 'update','create','store', 'destroy']);
 
@@ -105,7 +111,10 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi/detail/{schedule_id}', [PengajarDashboardController::class, 'detailAbsensi'])->name('absensi.detail');
 
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
-    Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
+
+    // ✨ MODIFIKASI: Tambahkan {subject_name} agar controller menerima 2 argumen
+    Route::get('/materi/pilih/{class_id}/{subject_name}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
+
     Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
 
     Route::prefix('tryout')->name('tryout.')->group(function() {
@@ -121,7 +130,10 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
 
     Route::prefix('latihan')->name('latihan.')->group(function() {
         Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
-        Route::get('/pilih/{class_id}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
+
+        // ✨ MODIFIKASI: Tambahkan {subject_name} di sini juga agar konsisten
+        Route::get('/pilih/{class_id}/{subject_name}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
+
         Route::post('/upload/{class_id}', [PracticeQuestionController::class, 'storeCSV'])->name('store');
     });
 

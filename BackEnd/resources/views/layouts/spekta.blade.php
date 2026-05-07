@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- TAMBAHKAN META CSRF DI BAWAH INI UNTUK FIX 419 --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>Spekta Academy - @yield('title')</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -29,6 +32,7 @@
 <body class="bg-gray-50 text-gray-800">
     <div class="flex h-screen overflow-hidden">
 
+        <!-- Sidebar -->
         <div class="w-72 bg-spekta text-white flex-shrink-0 shadow-2xl flex flex-col">
             <div class="p-8 flex flex-col items-center border-b border-white/10">
                 <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-lg">
@@ -42,7 +46,7 @@
                 <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-4 mb-2">Main Menu</p>
 
                 @if(Auth::user()->role_id == 1)
-
+                    {{-- Navigasi Admin --}}
                     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
@@ -56,21 +60,12 @@
                         </button>
 
                         <div id="siswa-menu" class="hidden mt-1 ml-4 border-l border-white/20 space-y-1">
-                            <a href="{{ route('admin.siswa.index') }}" class="dropdown-item block py-2 pl-8 text-sm opacity-80">
-                                Semua Siswa
-                            </a>
-
+                            <a href="{{ route('admin.siswa.index') }}" class="dropdown-item block py-2 pl-8 text-sm opacity-80">Semua Siswa</a>
                             <a href="{{ route('admin.siswa.pendaftaran') }}" class="dropdown-item block py-2 pl-8 text-sm opacity-80 flex justify-between items-center pr-4">
                                 <span>Tambah Kelas</span>
-
-                                @php
-                                    $pendingCount = \App\Models\Enrollment::where('status', 'pending')->count();
-                                @endphp
-
+                                @php $pendingCount = \App\Models\Enrollment::where('status', 'pending')->count(); @endphp
                                 @if($pendingCount > 0)
-                                    <span class="bg-yellow-500 text-black text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm animate-pulse">
-                                        {{ $pendingCount }}
-                                    </span>
+                                    <span class="bg-yellow-500 text-black text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm animate-pulse">{{ $pendingCount }}</span>
                                 @endif
                             </a>
                         </div>
@@ -79,65 +74,54 @@
                     <a href="{{ route('admin.jadwal.index') }}" class="nav-link {{ request()->routeIs('admin.jadwal.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📅</span> Jadwal Kelas
                     </a>
-
                     <a href="{{ route('admin.tutor.index') }}" class="nav-link {{ request()->routeIs('admin.tutor.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🤝</span> Konfirmasi Tutor
                     </a>
-
                     <a href="{{ route('admin.promo.index') }}" class="nav-link {{ request()->routeIs('admin.promo.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🎁</span> Kode Promo
                     </a>
-
                     <a href="{{ route('admin.banners.index') }}" class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🖼️</span> Banner
                     </a>
-
                     <a href="{{ route('admin.manajemen-pengajar.index') }}" class="nav-link {{ request()->routeIs('admin.manajemen-pengajar.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">👨‍🏫</span> Pengajar
                     </a>
-
                     <a href="{{ route('admin.announcement.index') }}" class="nav-link {{ request()->routeIs('admin.announcement.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📢</span> Pengumuman
                     </a>
-
+                    <a href="{{ route('admin.assignments.index') }}" class="nav-link {{ request()->routeIs('admin.assignments.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
+    <span class="mr-3 text-lg">📝</span> Penugasan Materi
+</a>
                     <a href="{{ route('admin.scores.index') }}" class="nav-link {{ request()->routeIs('admin.scores.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📊</span> Rekap Nilai Siswa
                     </a>
 
                 @elseif(Auth::user()->role_id == 2)
-
+                    {{-- Navigasi Pengajar --}}
                     <a href="{{ route('pengajar.dashboard') }}" class="nav-link {{ request()->routeIs('pengajar.dashboard') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🏠</span> Dashboard
                     </a>
-
-                    <a href="{{ route('pengajar.absensi.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.absensi.index') }}" class="nav-link {{ request()->routeIs('pengajar.absensi.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📝</span> Absensi Siswa
                     </a>
-
-                    <a href="{{ route('pengajar.jadwal.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.jadwal.index') }}" class="nav-link {{ request()->routeIs('pengajar.jadwal.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📅</span> Jadwal Mengajar
                     </a>
-
-                    <a href="{{ route('pengajar.tutor.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.tutor.index') }}" class="nav-link {{ request()->routeIs('pengajar.tutor.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🗓️</span> Jadwal Tutor
                     </a>
-
-                    <a href="{{ route('pengajar.materi.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.materi.index') }}" class="nav-link {{ request()->routeIs('pengajar.materi.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📚</span> Upload Materi
                     </a>
-
-                    <a href="{{ route('pengajar.latihan.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.latihan.index') }}" class="nav-link {{ request()->routeIs('pengajar.latihan.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📖</span> Latihan Soal
                     </a>
-
-                    <a href="{{ route('pengajar.tryout.index') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.tryout.index') }}" class="nav-link {{ request()->routeIs('pengajar.tryout.index') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">⏱️</span> Input Soal TO
                     </a>
-
-                    <a href="{{ route('pengajar.tryout.nilai') }}" class="nav-link flex items-center py-3 px-4 rounded-xl mb-1">
+                    <a href="{{ route('pengajar.tryout.nilai') }}" class="nav-link {{ request()->routeIs('pengajar.tryout.nilai') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📊</span> Lihat Nilai
                     </a>
-
                 @endif
             </nav>
 
@@ -146,6 +130,7 @@
             </div>
         </div>
 
+        <!-- Main Content -->
         <div class="flex-1 flex flex-col bg-gray-50 overflow-hidden">
             <header class="bg-white shadow-sm px-10 py-5 flex-shrink-0 flex justify-between items-center border-b border-gray-100 z-10">
                 <h2 class="font-extrabold text-gray-800 uppercase tracking-widest text-sm">
@@ -160,12 +145,12 @@
                                 {{ Auth::user()->role->name }}
                             </span>
                         </div>
-
-                        <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500">
+                        <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 uppercase">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                     </div>
 
+                    {{-- Form Logout dengan @csrf --}}
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="group flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg shadow-red-200 hover:bg-red-800 transition transform active:scale-95">
@@ -188,13 +173,18 @@
 
     <script>
         function toggleSiswaDropdown() {
-            document.getElementById('siswa-menu').classList.toggle('hidden');
-            document.getElementById('siswa-arrow').classList.toggle('rotate-180');
+            const menu = document.getElementById('siswa-menu');
+            const arrow = document.getElementById('siswa-arrow');
+            if (menu) menu.classList.toggle('hidden');
+            if (arrow) arrow.classList.toggle('rotate-180');
         }
 
         window.onload = function() {
             if (window.location.href.includes('admin/siswa')) {
-                toggleSiswaDropdown();
+                const menu = document.getElementById('siswa-menu');
+                const arrow = document.getElementById('siswa-arrow');
+                if (menu) menu.classList.remove('hidden');
+                if (arrow) arrow.classList.add('rotate-180');
             }
         }
     </script>
