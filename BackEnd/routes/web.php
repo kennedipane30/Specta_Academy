@@ -13,10 +13,20 @@ use App\Http\Controllers\Admin\ManajemenSiswaController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\ManajemenPengajarController;
 use App\Http\Controllers\Admin\AdminDedicatedTutorController;
-use App\Http\Controllers\Admin\PromoController; // <--- Controller Promo
+use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ClassManagementController;
 use App\Http\Controllers\Admin\BannerController;
+
+// ============================================================
+// ✨ MODIFIKASI: Tambahkan Import Controller Pengajar di Sini
+// ============================================================
+use App\Http\Controllers\Pengajar\PengajarDashboardController;
+use App\Http\Controllers\Pengajar\MateriController;
+use App\Http\Controllers\Pengajar\TryoutController;
+use App\Http\Controllers\Pengajar\PracticeQuestionController;
+use App\Http\Controllers\Pengajar\JadwalTutorController;
+// ============================================================
 
 
 /*
@@ -69,7 +79,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
 
     // ============================
-    // 🏷️ MANAJEMEN PROMO (BAGIAN INI)
+    // 🏷️ MANAJEMEN PROMO
     // ============================
     Route::get('/promo', [PromoController::class, 'index'])->name('promo.index');
     Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
@@ -93,7 +103,7 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::get('/absensi/{class_id}', [PengajarDashboardController::class, 'showAbsensi'])->name('absensi.show');
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
     Route::get('/absensi/detail/{schedule_id}', [PengajarDashboardController::class, 'detailAbsensi'])->name('absensi.detail');
-    
+
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/pilih/{class_id}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
     Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
@@ -103,7 +113,7 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
         Route::get('/pilih/{class_id}', [TryoutController::class, 'buatSoal'])->name('pilih');
         Route::post('/import', [TryoutController::class, 'importSoal'])->name('import');
         Route::delete('/destroy/{id}', [TryoutController::class, 'destroy'])->name('destroy');
-        Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai'); 
+        Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai');
         Route::get('/nilai/detail/{class_id}', [TryoutController::class, 'detailNilai'])->name('nilai.detail');
         Route::get('/nilai/export-pdf/{class_id}', [TryoutController::class, 'exportPdf'])->name('nilai.pdf');
         Route::post('/nilai/export-selected', [TryoutController::class, 'exportPdfSelected'])->name('nilai.pdf_selected');
