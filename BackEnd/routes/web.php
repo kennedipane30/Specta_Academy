@@ -6,7 +6,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OtpMail;
 
+// --- AUTH CONTROLLERS ---
 use App\Http\Controllers\WebAuthController;
+
+// --- ADMIN CONTROLLERS ---
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\ManajemenSiswaController;
@@ -18,16 +21,14 @@ use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ClassManagementController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\AdminTryoutController; // ✨ Import Baru
 
-// ============================================================
-// ✨ MODIFIKASI: Tambahkan Import Controller Pengajar di Sini
-// ============================================================
+// --- PENGAJAR CONTROLLERS ---
 use App\Http\Controllers\Pengajar\PengajarDashboardController;
 use App\Http\Controllers\Pengajar\MateriController;
 use App\Http\Controllers\Pengajar\TryoutController;
 use App\Http\Controllers\Pengajar\PracticeQuestionController;
 use App\Http\Controllers\Pengajar\JadwalTutorController;
-// ============================================================
 
 
 /*
@@ -50,7 +51,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Monitoring Nilai
+    // Monitoring Nilai (Dijalankan oleh Admin)
     Route::prefix('scores')->name('scores.')->group(function() {
         Route::get('/', [TryoutController::class, 'lihatNilai'])->name('index');
         Route::get('/detail/{class_id}', [TryoutController::class, 'detailNilai'])->name('detail');
@@ -79,22 +80,25 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
 
-    // ============================
-    // 🏷️ MANAJEMEN PROMO
-    // ============================
+    // Manajemen Promo
     Route::get('/promo', [PromoController::class, 'index'])->name('promo.index');
     Route::post('/promo', [PromoController::class, 'store'])->name('promo.store');
     Route::delete('/promo/{id}', [PromoController::class, 'destroy'])->name('promo.destroy');
 
-    // ✨ PERBAIKAN: Pindah rute Penugasan ke sini (Admin Group)
+    // Penugasan Materi (Master Key)
     Route::get('/penugasan-materi', [TeacherAssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/penugasan-materi', [TeacherAssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('/penugasan-materi/{id}', [TeacherAssignmentController::class, 'destroy'])->name('assignments.destroy');
 
-    // Manajemen Kelas
-    Route::resource('classes', ClassManagementController::class)->only(['index', 'edit', 'update','create','store', 'destroy']);
+    // ✨ FITUR BARU: Manajemen Master Tryout (Admin)
+    Route::prefix('tryout-master')->name('tryout.')->group(function() {
+        Route::get('/', [AdminTryoutController::class, 'index'])->name('index'); // Review kiriman
+        Route::get('/export/{class_id}', [AdminTryoutController::class, 'exportCsv'])->name('export'); // Download CSV Gabungan
+        Route::post('/upload-final', [AdminTryoutController::class, 'uploadMaster'])->name('upload'); // Upload ke Mobile
+    });
 
-    // Banner
+    // Manajemen Kelas & Banner
+    Route::resource('classes', ClassManagementController::class)->only(['index', 'edit', 'update','create','store', 'destroy']);
     Route::resource('banners', BannerController::class)->except(['show']);
 });
 
@@ -110,30 +114,26 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     Route::post('/absensi/simpan', [PengajarDashboardController::class, 'storeAbsensi'])->name('absensi.store');
     Route::get('/absensi/detail/{schedule_id}', [PengajarDashboardController::class, 'detailAbsensi'])->name('absensi.detail');
 
+    // Materi
     Route::get('/materi', [MateriController::class, 'index'])->name('materi.index');
-
-    // ✨ MODIFIKASI: Tambahkan {subject_name} agar controller menerima 2 argumen
     Route::get('/materi/pilih/{class_id}/{subject_name}', [MateriController::class, 'pilihMateri'])->name('materi.pilih');
-
     Route::post('/materi/upload/{class_id}', [MateriController::class, 'store'])->name('materi.store');
 
+    // ✨ REVISI: Fitur Tryout Pengajar (Kirim per-soal)
     Route::prefix('tryout')->name('tryout.')->group(function() {
-        Route::get('/', [TryoutController::class, 'index'])->name('index');
-        Route::get('/pilih/{class_id}', [TryoutController::class, 'buatSoal'])->name('pilih');
-        Route::post('/import', [TryoutController::class, 'importSoal'])->name('import');
+        Route::get('/', [TryoutController::class, 'index'])->name('index'); // Pilih subjek tugas
+        Route::get('/buat/{class_id}/{subject_name}', [TryoutController::class, 'create'])->name('create'); // Form input soal
+        Route::post('/simpan', [TryoutController::class, 'store'])->name('store'); // Aksi kirim ke Admin
+
+        // Hapus rute import soal lama karena fungsi sudah dipindah ke Admin
         Route::delete('/destroy/{id}', [TryoutController::class, 'destroy'])->name('destroy');
         Route::get('/nilai', [TryoutController::class, 'lihatNilai'])->name('nilai');
-        Route::get('/nilai/detail/{class_id}', [TryoutController::class, 'detailNilai'])->name('nilai.detail');
-        Route::get('/nilai/export-pdf/{class_id}', [TryoutController::class, 'exportPdf'])->name('nilai.pdf');
-        Route::post('/nilai/export-selected', [TryoutController::class, 'exportPdfSelected'])->name('nilai.pdf_selected');
     });
 
+    // Latihan Soal
     Route::prefix('latihan')->name('latihan.')->group(function() {
         Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
-
-        // ✨ MODIFIKASI: Tambahkan {subject_name} di sini juga agar konsisten
         Route::get('/pilih/{class_id}/{subject_name}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
-
         Route::post('/upload/{class_id}', [PracticeQuestionController::class, 'storeCSV'])->name('store');
     });
 

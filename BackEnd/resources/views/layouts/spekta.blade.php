@@ -74,6 +74,12 @@
                     <a href="{{ route('admin.jadwal.index') }}" class="nav-link {{ request()->routeIs('admin.jadwal.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📅</span> Jadwal Kelas
                     </a>
+
+                    <a href="{{ route('admin.tryout.index') }}" class="nav-link {{ request()->routeIs('admin.tryout.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
+                        <span class="mr-3 text-lg">⏱️</span> Master Tryout
+                    </a>
+
+
                     <a href="{{ route('admin.tutor.index') }}" class="nav-link {{ request()->routeIs('admin.tutor.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">🤝</span> Konfirmasi Tutor
                     </a>
