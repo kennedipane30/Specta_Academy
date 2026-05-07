@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\AdminDedicatedTutorController;
 use App\Http\Controllers\Admin\PromoController; // <--- Controller Promo
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ClassManagementController;
+use App\Http\Controllers\Admin\BannerController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -75,6 +77,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Manajemen Kelas
     Route::resource('classes', ClassManagementController::class)->only(['index', 'edit', 'update','create','store', 'destroy']);
+
+    // Banner
+    Route::resource('banners', BannerController::class)->except(['show']);
 });
 
 

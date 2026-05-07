@@ -25,6 +25,10 @@ dependencies:
   url_launcher: ^6.2.5
   file_picker: ^8.0.0+1
   google_fonts: ^6.2.1
+  provider: ^6.1.2
+  carousel_slider: ^5.0.0
+  cached_network_image: ^3.4.1
+  smooth_page_indicator: ^1.2.0
 
 dev_dependencies:
   flutter_test:

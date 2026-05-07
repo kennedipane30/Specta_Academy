@@ -10,6 +10,7 @@ use App\Models\Material;
 use App\Models\ClassModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\BannerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,7 @@ Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification
 Route::post('/payment/callback', [PaymentController::class, 'handleNotification']);
 
 // --- INFO PUBLIK ---
+Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/promos', [PromoController::class, 'apiIndex']); // Pastikan fungsi apiIndex ada di Controller
 Route::get('/announcements', function() {
     return response()->json([

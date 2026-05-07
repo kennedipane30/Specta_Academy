@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
+import '../theme/theme_controller.dart';
 import 'register_page.dart';
 import 'main_screen.dart';
 import 'forgot_password_page.dart';
-import 'dart:convert';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,16 +20,10 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
 
-  bool _isDark = false;
   bool _isObscure = true;
 
-  // ================= DESIGN SYSTEM =================
-
-  static const Color lightPink = Color(0xFFFFDBE8);
-  static const Color softPink = Color(0xFFFF94B2);
   static const Color mainRed = Color(0xFFF24455);
   static const Color deepRed = Color(0xFFE5203A);
-  static const Color darkBg = Color(0xFF02060E);
   static const Color textDark = Color(0xFF1F2028);
   static const Color textMuted = Color(0xFF8C8C95);
 
@@ -33,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
   static const double radiusMd = 18;
   static const double spacing = 16;
 
-  List<Color> get bgGradient => _isDark
+  List<Color> bgGradient(bool isDark) => isDark
       ? const [
           Color(0xFF02060E),
           Color(0xFF15101A),
@@ -45,20 +43,26 @@ class _LoginPageState extends State<LoginPage> {
           Color(0xFFF24455),
         ];
 
-  Color get primaryText => _isDark ? Colors.white : textDark;
-  Color get secondaryText =>
-      _isDark ? Colors.white.withOpacity(0.62) : textDark.withOpacity(0.58);
-  Color get cardColor => _isDark ? Colors.white.withOpacity(0.08) : Colors.white;
-  Color get inputColor =>
-      _isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFFFF7FA);
-  Color get borderColor =>
-      _isDark ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.75);
-  Color get iconColor => _isDark ? Colors.white70 : deepRed;
-  Color get fieldText => _isDark ? Colors.white : textDark;
-  Color get labelText =>
-      _isDark ? Colors.white.withOpacity(0.55) : textMuted;
+  Color primaryText(bool isDark) => isDark ? Colors.white : textDark;
 
-  // ==================================================
+  Color secondaryText(bool isDark) =>
+      isDark ? Colors.white.withOpacity(0.62) : textDark.withOpacity(0.58);
+
+  Color cardColor(bool isDark) =>
+      isDark ? Colors.white.withOpacity(0.08) : Colors.white;
+
+  Color inputColor(bool isDark) =>
+      isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFFFF7FA);
+
+  Color borderColor(bool isDark) =>
+      isDark ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.75);
+
+  Color iconColor(bool isDark) => isDark ? Colors.white70 : deepRed;
+
+  Color fieldText(bool isDark) => isDark ? Colors.white : textDark;
+
+  Color labelText(bool isDark) =>
+      isDark ? Colors.white.withOpacity(0.55) : textMuted;
 
   void handleLogin() async {
     if (nameCtrl.text.isEmpty || passCtrl.text.isEmpty) {
@@ -121,6 +125,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeController>(context);
+    final isDark = theme.isDark;
+
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -130,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: bgGradient,
+            colors: bgGradient(isDark),
           ),
         ),
         child: SafeArea(
@@ -138,11 +145,11 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
             child: Column(
               children: [
-                _buildTopToggle(),
+                _buildTopToggle(isDark),
 
                 const SizedBox(height: 34),
 
-                _buildLogo(),
+                _buildLogo(isDark),
 
                 const SizedBox(height: 24),
 
@@ -152,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: primaryText,
+                    color: primaryText(isDark),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -163,7 +170,7 @@ class _LoginPageState extends State<LoginPage> {
                   "Achieve Your Dream of Serving the Nation",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: secondaryText,
+                    color: secondaryText(isDark),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -171,7 +178,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 42),
 
-                _buildLoginCard(),
+                _buildLoginCard(isDark),
 
                 const SizedBox(height: 24),
 
@@ -181,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                     Text(
                       "Don't have an account? ",
                       style: TextStyle(
-                        color: secondaryText,
+                        color: secondaryText(isDark),
                         fontSize: 13,
                       ),
                     ),
@@ -195,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         "Register",
                         style: TextStyle(
-                          color: _isDark ? Colors.white : deepRed,
+                          color: isDark ? Colors.white : deepRed,
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
@@ -213,24 +220,26 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTopToggle() {
+  Widget _buildTopToggle(bool isDark) {
     return Align(
       alignment: Alignment.centerRight,
       child: GestureDetector(
-        onTap: () => setState(() => _isDark = !_isDark),
+        onTap: () {
+          Provider.of<ThemeController>(context, listen: false).toggleTheme();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _isDark
+            color: isDark
                 ? Colors.white.withOpacity(0.12)
                 : Colors.white.withOpacity(0.75),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: borderColor),
+            border: Border.all(color: borderColor(isDark)),
           ),
           child: Icon(
-            _isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-            color: _isDark ? Colors.white : deepRed,
+            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: isDark ? Colors.white : deepRed,
             size: 20,
           ),
         ),
@@ -238,18 +247,18 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _isDark
+        color: isDark
             ? Colors.white.withOpacity(0.08)
             : Colors.white.withOpacity(0.75),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: borderColor(isDark)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(_isDark ? 0.18 : 0.08),
+            color: Colors.black.withOpacity(isDark ? 0.18 : 0.08),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -258,22 +267,22 @@ class _LoginPageState extends State<LoginPage> {
       child: Icon(
         Icons.school_rounded,
         size: 66,
-        color: _isDark ? Colors.white : deepRed,
+        color: isDark ? Colors.white : deepRed,
       ),
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildLoginCard(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: cardColor(isDark),
         borderRadius: BorderRadius.circular(radiusLg),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: borderColor(isDark)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(_isDark ? 0.20 : 0.08),
+            color: Colors.black.withOpacity(isDark ? 0.20 : 0.08),
             blurRadius: 26,
             offset: const Offset(0, 14),
           ),
@@ -282,20 +291,19 @@ class _LoginPageState extends State<LoginPage> {
       child: Column(
         children: [
           _buildInput(
+            isDark: isDark,
             controller: nameCtrl,
             label: "Full Name",
             icon: Icons.person_outline_rounded,
           ),
-
           const SizedBox(height: spacing),
-
           _buildInput(
+            isDark: isDark,
             controller: passCtrl,
             label: "Password",
             icon: Icons.lock_outline_rounded,
             isPassword: true,
           ),
-
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -308,16 +316,14 @@ class _LoginPageState extends State<LoginPage> {
               child: Text(
                 "Forgot Password?",
                 style: TextStyle(
-                  color: _isDark ? Colors.white : deepRed,
+                  color: isDark ? Colors.white : deepRed,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
           _buildLoginButton(),
         ],
       ),
@@ -367,6 +373,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildInput({
+    required bool isDark,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -376,25 +383,25 @@ class _LoginPageState extends State<LoginPage> {
       controller: controller,
       obscureText: isPassword ? _isObscure : false,
       style: TextStyle(
-        color: fieldText,
+        color: fieldText(isDark),
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         filled: true,
-        fillColor: inputColor,
+        fillColor: inputColor(isDark),
         labelText: label,
         labelStyle: TextStyle(
-          color: labelText,
+          color: labelText(isDark),
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(icon, color: iconColor),
+        prefixIcon: Icon(icon, color: iconColor(isDark)),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   _isObscure ? Icons.visibility_off : Icons.visibility,
-                  color: _isDark ? Colors.white54 : textMuted,
+                  color: isDark ? Colors.white54 : textMuted,
                 ),
                 onPressed: () => setState(() => _isObscure = !_isObscure),
               )
@@ -402,7 +409,7 @@ class _LoginPageState extends State<LoginPage> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
           borderSide: BorderSide(
-            color: _isDark
+            color: isDark
                 ? Colors.white.withOpacity(0.12)
                 : const Color(0xFFFFD1DC),
           ),
