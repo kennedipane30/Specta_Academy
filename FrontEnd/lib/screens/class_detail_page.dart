@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../services/auth_service.dart';
 import 'payment_confirmation_page.dart';
+import 'subject_list_page.dart'; // ✨ IMPORT HALAMAN PILIH SUBJEK
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -33,8 +34,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   bool isLoading = true;
 
   final Color spektaRed = const Color(0xFF990000);
-  final currency = NumberFormat.currency(
-      locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -42,25 +42,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
-  // --- FUNGSI MAPPING GAMBAR LOKAL BERDASARKAN CLASS ID ---
-  String _getLocalAsset() {
-    // Memastikan ID diparsing dengan benar
-    int cid = int.tryParse(widget.classId.toString()) ?? 0;
-    
-    switch (cid) {
-      case 1:
-        return 'assets/images/abdi_negara.png';
-      case 2:
-        return 'assets/images/ptn_unhan.png'; // DISESUAIKAN
-      case 3:
-        return 'assets/images/reguler.png';
-      case 4:
-        return 'assets/images/favorit.png';
-      default:
-        return 'assets/images/abdi_negara.png';
-    }
-  }
-
+  // Ambil data detail dari API
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -83,19 +65,22 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  void _navigateToConfirmation() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PaymentConfirmationPage(
-          classId: widget.classId,
-          className: widget.className,
-          basePrice: basePrice,
-          token: widget.token,
-          userData: widget.userData,
-        ),
-      ),
-    );
+  // --- LOGIKA NAVIGASI ---
+
+  void _navigateToMaterials() {
+    if (status != 'active') return;
+    Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectListPage(
+      classId: widget.classId,
+      className: widget.className,
+      token: widget.token,
+      materi: materi,
+    )));
+  }
+
+  void _navigateToTryouts() {
+    if (status != 'active') return;
+    // Pindah ke halaman list tryout (buat file tryout_list_page jika belum ada)
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => TryoutListPage(...)));
   }
 
   @override
@@ -115,31 +100,20 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                       children: [
                         _buildStatusBadge(),
                         const SizedBox(height: 12),
-                        Text(
-                          widget.className,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
+                        Text(widget.className, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 24),
                         _buildSectionTitle("Tentang Kelas"),
                         const SizedBox(height: 8),
-                        Text(
-                          description,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[700],
-                            height: 1.5,
-                          ),
-                        ),
+                        Text(description, style: TextStyle(fontSize: 15, color: Colors.grey[700], height: 1.5)),
                         const SizedBox(height: 24),
                         _buildSectionTitle("Apa yang akan kamu pelajari?"),
                         const SizedBox(height: 12),
-                        _buildFeatureItem(Icons.menu_book_rounded, "${materi.length} Materi Video & PDF"),
-                        _buildFeatureItem(Icons.assignment_rounded, "${tryouts.length} Tryout Simulasi"),
-                        _buildFeatureItem(Icons.quiz_rounded, "${practiceQuestions.length} Latihan Soal"),
+                        
+                        // Icon-icon Fitur (Bisa diklik jika sudah active)
+                        _buildFeatureItem(Icons.menu_book_rounded, "${materi.length} Materi Video & PDF", _navigateToMaterials),
+                        _buildFeatureItem(Icons.assignment_rounded, "${tryouts.length} Tryout Simulasi", _navigateToTryouts),
+                        _buildFeatureItem(Icons.quiz_rounded, "${practiceQuestions.length} Latihan Soal", () {}),
+                        
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -147,150 +121,67 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 ),
               ],
             ),
-      bottomNavigationBar: (status != 'active') ? _buildPremiumBottomBar() : _buildActiveBottomBar(),
+      bottomNavigationBar: (status == 'active') ? _buildActiveBottomBar() : _buildPremiumBottomBar(),
     );
   }
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 280.0,
-      floating: false,
-      pinned: true,
-      backgroundColor: spektaRed,
-      elevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: CircleAvatar(
-          backgroundColor: Colors.black26,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-      ),
+      expandedHeight: 280.0, pinned: true, backgroundColor: spektaRed,
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
+        background: Image.asset('assets/images/abdi_negara.png', fit: BoxFit.cover), // Contoh asset
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    bool isActive = status == 'active';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: (isActive ? Colors.green : Colors.blue).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isActive ? Colors.green : Colors.blue),
+      ),
+      child: Text(isActive ? "TERDAFTAR" : "TERSEDIA", style: TextStyle(color: isActive ? Colors.green : Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold));
+  }
+
+  // ✨ MODIFIKASI: Ditambahkan onTap agar item bisa diklik
+  Widget _buildFeatureItem(IconData icon, String text, VoidCallback onTap) {
+    return InkWell(
+      onTap: status == 'active' ? onTap : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
           children: [
-            Image.asset(
-              _getLocalAsset(),
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: Colors.grey[300],
-                child: const Icon(Icons.broken_image, size: 50),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.3),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-              ),
-            ),
+            Icon(icon, color: status == 'active' ? spektaRed : Colors.grey, size: 22),
+            const SizedBox(width: 12),
+            Text(text, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: status == 'active' ? Colors.black : Colors.grey)),
+            const Spacer(),
+            if(status == 'active') const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey)
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusBadge() {
-    Color badgeColor;
-    String label;
-
-    switch (status) {
-      case 'active':
-        badgeColor = Colors.green;
-        label = "TERDAFTAR";
-        break;
-      case 'pending':
-        badgeColor = Colors.orange;
-        label = "MENUNGGU PEMBAYARAN";
-        break;
-      default:
-        badgeColor = Colors.blue;
-        label = "TERSEDIA";
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: badgeColor),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 12),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildFeatureItem(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: spektaRed, size: 22),
-          const SizedBox(width: 12),
-          Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPremiumBottomBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -2))
-        ],
-      ),
+      padding: const EdgeInsets.all(20),
+      color: Colors.white,
       child: SafeArea(
         child: Row(
           children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Harga Investasi", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  Text(
-                    currency.format(basePrice),
-                    style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 50,
-              width: 180,
-              child: ElevatedButton(
-                onPressed: _navigateToConfirmation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: spektaRed,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: Text(
-                  status == 'pending' ? "SELESAIKAN" : "DAFTAR SEKARANG",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-              ),
+            Expanded(child: Text(currency.format(basePrice), style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))),
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentConfirmationPage(classId: widget.classId, className: widget.className, basePrice: basePrice, token: widget.token, userData: widget.userData))),
+              style: ElevatedButton.styleFrom(backgroundColor: spektaRed),
+              child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white)),
             )
           ],
         ),
@@ -301,19 +192,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   Widget _buildActiveBottomBar() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(color: Colors.white),
+      color: Colors.white,
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: spektaRed),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text("ANDA SUDAH TERDAFTAR", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)),
-          ),
+        child: ElevatedButton(
+          onPressed: _navigateToMaterials,
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20), minimumSize: const Size(double.infinity, 55)),
+          child: const Text("MULAI BELAJAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       ),
     );
