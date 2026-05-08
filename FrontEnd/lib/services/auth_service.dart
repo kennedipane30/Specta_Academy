@@ -250,4 +250,28 @@ class AuthService {
       body: data.map((key, value) => MapEntry(key, value.toString())),
     );
   }
+
+  // Di dalam class AuthService
+static Future<http.Response> getAnnouncements(String token) async {
+  return await http.get(
+    Uri.parse('$baseUrl/announcements'), // Pastikan endpoint ini ada di api.php Laravel
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+// Tambahkan fungsi ini di dalam class AuthService
+static Future<http.Response> getLearningReport(String token) async {
+  return await http.get(
+    Uri.parse('$baseUrl/learning-report'), // Endpoint yang kita buat di api.php
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+
 }

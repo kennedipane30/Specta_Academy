@@ -1,13 +1,14 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Admin\PromoController; // Pastikan namespace ini benar
+use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
 use App\Http\Controllers\Api\QuestionBankController;
-use App\Http\Controllers\Api\PaymentController; 
+use App\Http\Controllers\Api\PaymentController;
 use App\Models\Announcement;
 use App\Models\Material;
 use App\Models\ClassModel;
+use App\Models\TryoutResult; // Tambahkan ini jika ingin menampilkan statistik nilai
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BannerController;
@@ -21,7 +22,7 @@ use App\Http\Controllers\Api\BannerController;
 // --- 0. SDK HANDSHAKE ---
 Route::get('/', function () {
     return response()->json([
-        'status' => 'success', 
+        'status' => 'success',
         'message' => 'Specta Academy API is Ready'
     ]);
 });
@@ -34,27 +35,26 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// ✅ WEBHOOK MIDTRANS (Harus Publik / Di luar Middleware Auth)
+// ✅ WEBHOOK MIDTRANS
 Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification']);
 Route::post('/payment/callback', [PaymentController::class, 'handleNotification']);
-
-// --- INFO PUBLIK ---
-Route::get('/banners', [BannerController::class, 'index']);
-Route::get('/promos', [PromoController::class, 'apiIndex']); // Pastikan fungsi apiIndex ada di Controller
-Route::get('/announcements', function() {
-    return response()->json([
-        'status' => 'success', 
-        'data' => Announcement::latest()->get()
-    ]);
-});
 
 // --- 2. PROTECTED ROUTES (Wajib Login / Pakai Token) ---
 Route::middleware('auth:sanctum')->group(function () {
 
-    // ✅ PROMO CHECK (Diarahkan ke PromoController fungsi checkPromo)
-    Route::post('/promo/check', [PromoController::class, 'checkPromo']);
+    // ✅ INFO AKADEMIK & PENGUMUMAN (Dinamis untuk Report Page)
+    Route::get('/announcements', function() {
+        return response()->json([
+            'status' => 'success',
+            'data' => Announcement::latest()->get() // Mengambil data terbaru dari Admin
+        ]);
+    });
 
-    // ✅ PAYMENT (Diarahkan ke PaymentController fungsi getSnapToken)
+    Route::get('/banners', [BannerController::class, 'index']);
+    Route::get('/promos', [PromoController::class, 'apiIndex']);
+
+    // ✅ PROMO & PAYMENT
+    Route::post('/promo/check', [PromoController::class, 'checkPromo']);
     Route::post('/payment/snap-token', [PaymentController::class, 'getSnapToken']);
 
     Route::get('/user', function (Request $request) {
@@ -74,12 +74,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- KHUSUS SISWA ---
     Route::middleware('role:siswa')->group(function () {
 
+        // ✅ STATISTIK BELAJAR (Untuk Grafik di Report Page)
+        Route::get('/learning-report', function(Request $request) {
+            $user = $request->user();
+            // Mengambil 7 hasil tryout/latihan terakhir untuk grafik
+            $stats = TryoutResult::where('user_id', $user->usersID)
+                        ->latest()
+                        ->take(7)
+                        ->get()
+                        ->reverse()
+                        ->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $stats
+            ]);
+        });
+
         // CLASS & CONTENT
         Route::post('/class/content', [AuthController::class, 'getClassContent']);
         Route::post('/class/check-status', [AuthController::class, 'checkClassStatus']);
         Route::post('/class/join', [AuthController::class, 'joinClass']);
         Route::get('/schedules', [AuthController::class, 'getSiswaSchedule']);
-        
+
         // TRYOUT & LATIHAN
         Route::post('/tryout/questions', [AuthController::class, 'getQuestions']);
         Route::post('/tryout/submit', [AuthController::class, 'submitTryout']);
