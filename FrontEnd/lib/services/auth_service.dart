@@ -103,11 +103,27 @@ class AuthService {
     );
   }
 
+  // ✨ MODIFIKASI: FUNGSI PENDAFTARAN MANUAL (UPLOAD GAMBAR)
+  static Future<http.StreamedResponse> joinClass(int classId, String filePath, String token) async {
+    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/class/join'));
+    request.headers.addAll({
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+    
+    // Kirim ID Kelas
+    request.fields['class_id'] = classId.toString();
+    
+    // Tambahkan File Bukti Bayar
+    request.files.add(await http.MultipartFile.fromPath('payment_proof', filePath));
+    
+    return await request.send();
+  }
+
   // ============================
-  // 🏷️ 4. PROMO MANAGEMENT (FIX ERROR)
+  // 🏷️ 4. PROMO MANAGEMENT
   // ============================
 
-  // Digunakan di home_page.dart
   static Future<http.Response> getActivePromos() async {
     return await http.get(
       Uri.parse('$baseUrl/promos'),
@@ -115,7 +131,6 @@ class AuthService {
     );
   }
 
-  // Digunakan di pendaftaran_kelas_promo_page.dart
   static Future<http.Response> checkPromoCode(String code, int classId, int price, String token) async {
     return await http.post(
       Uri.parse('$baseUrl/promo/check'),
@@ -131,7 +146,6 @@ class AuthService {
     );
   }
 
-  // Digunakan untuk pendaftaran jalur promo manual (jika masih dipakai)
   static Future<http.StreamedResponse> joinClassPromo({
     required int classId,
     required String promoCode,

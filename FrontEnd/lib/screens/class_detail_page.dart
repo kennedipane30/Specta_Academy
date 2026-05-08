@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 
 import '../services/auth_service.dart';
-import 'payment_confirmation_page.dart'; // Pastikan import halaman baru ini
-import 'midtrans_payment_page.dart';
+import 'payment_confirmation_page.dart';
 
 class ClassDetailPage extends StatefulWidget {
   final int classId;
@@ -25,11 +24,9 @@ class ClassDetailPage extends StatefulWidget {
 }
 
 class _ClassDetailPageState extends State<ClassDetailPage> {
-  // State dasar kelas
   String status = "none";
   int basePrice = 0;
   String description = "";
-  String imageUrl = "";
   List materi = [];
   List tryouts = [];
   List practiceQuestions = [];
@@ -45,6 +42,25 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     _fetchDetail();
   }
 
+  // --- FUNGSI MAPPING GAMBAR LOKAL BERDASARKAN CLASS ID ---
+  String _getLocalAsset() {
+    // Memastikan ID diparsing dengan benar
+    int cid = int.tryParse(widget.classId.toString()) ?? 0;
+    
+    switch (cid) {
+      case 1:
+        return 'assets/images/abdi_negara.png';
+      case 2:
+        return 'assets/images/ptn_unhan.png'; // DISESUAIKAN
+      case 3:
+        return 'assets/images/reguler.png';
+      case 4:
+        return 'assets/images/favorit.png';
+      default:
+        return 'assets/images/abdi_negara.png';
+    }
+  }
+
   Future<void> _fetchDetail() async {
     try {
       var resp = await AuthService.getClassContent(widget.classId, widget.token);
@@ -58,7 +74,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             practiceQuestions = data['practice_questions'] ?? [];
             basePrice = int.tryParse(data['price'].toString()) ?? 0;
             description = data['description'] ?? "Deskripsi program belum tersedia.";
-            imageUrl = data['image_url'] ?? "";
             isLoading = false;
           });
         }
@@ -68,7 +83,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  // --- FUNGSI NAVIGASI KE KONFIRMASI PEMBAYARAN ---
   void _navigateToConfirmation() {
     Navigator.push(
       context,
@@ -138,15 +152,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Widget _buildSliverAppBar() {
-    String finalImageUrl = imageUrl
-        .replaceAll('127.0.0.1', '10.0.2.2')
-        .replaceAll('localhost', '10.0.2.2');
-
     return SliverAppBar(
-      expandedHeight: 250.0,
+      expandedHeight: 280.0,
       floating: false,
       pinned: true,
       backgroundColor: spektaRed,
+      elevation: 0,
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
@@ -161,18 +172,23 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            imageUrl.isNotEmpty
-                ? Image.network(finalImageUrl, fit: BoxFit.cover)
-                : Container(color: spektaRed),
+            Image.asset(
+              _getLocalAsset(),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image, size: 50),
+              ),
+            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withOpacity(0.3),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.6),
+                    Colors.black.withOpacity(0.7),
                   ],
                 ),
               ),
@@ -264,7 +280,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               height: 50,
               width: 180,
               child: ElevatedButton(
-                onPressed: _navigateToConfirmation, // Pindah ke halaman konfirmasi
+                onPressed: _navigateToConfirmation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: spektaRed,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

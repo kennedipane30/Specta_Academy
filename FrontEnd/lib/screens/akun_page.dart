@@ -54,6 +54,72 @@ class _AkunPageState extends State<AkunPage> {
     }
   }
 
+  // --- MODIFIKASI: FUNGSI DIALOG KONFIRMASI LOGOUT ---
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          title: Text(
+            "Konfirmasi Logout",
+            style: TextStyle(
+              color: redWine,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: const Text(
+            "Apakah Anda yakin ingin keluar dari aplikasi Spekta Academy?",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Tutup dialog
+              child: Text(
+                "Batal",
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: redPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  // Aksi Logout Sebenarnya
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  "Ya, Logout",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -541,16 +607,11 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
+  // --- MODIFIKASI: BUTTON SIGN OUT MEMANGGIL DIALOG ---
   Widget _buildSignOutButton() {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
-      onTap: () {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-        );
-      },
+      onTap: _showLogoutDialog, // Panggil dialog konfirmasi
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 19),
