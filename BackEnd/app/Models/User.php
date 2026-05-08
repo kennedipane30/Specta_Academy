@@ -32,6 +32,13 @@ class User extends Authenticatable
 {
     return $this->belongsToMany(ClassModel::class, 'enrollments', 'user_id', 'class_id')
                 ->withPivot('status', 'payment_proof')
-                ->withTimestamps();
+
+             ->withTimestamps();
 }
+
+public function assignments()
+{
+    return $this->hasMany(TeacherAssignment::class, 'user_id', 'usersID');
+}
+
 }

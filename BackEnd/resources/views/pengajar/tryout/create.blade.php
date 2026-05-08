@@ -1,88 +1,97 @@
 @extends('layouts.spekta')
-@section('title', 'Kelola Tryout')
+@section('title', 'Buat Paket Soal')
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-10">
-
-    {{-- BAGIAN ATAS: FORM INPUT --}}
-    <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border-t-8 border-[#990000]">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h3 class="text-2xl font-black text-gray-800 uppercase tracking-tighter">Setup <span class="text-[#990000]">Tryout</span></h3>
-                <p class="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-1">{{ $class->program_name }}</p>
-            </div>
-            <a href="{{ route('pengajar.tryout.index') }}" class="text-xs font-black text-gray-400 hover:text-spekta transition">&larr; BACK</a>
-        </div>
-
-        @if(session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-xl font-bold">{{ session('success') }}</div>
-        @endif
-
-        <form action="{{ route('pengajar.tryout.import') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            @csrf
-            <input type="hidden" name="class_id" value="{{ $class->class_id }}">
-
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-black text-gray-400 uppercase ml-2">Tryout Title</label>
-                    <input type="text" name="title" placeholder="Ex: Simulasi Batch 1" class="w-full p-4 rounded-2xl bg-gray-50 border-none shadow-inner font-bold" required>
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-gray-400 uppercase ml-2">Duration (Min)</label>
-                    <input type="number" name="duration" value="60" class="w-full p-4 rounded-2xl bg-gray-50 border-none shadow-inner font-bold" required>
-                </div>
-            </div>
-
-            <div class="bg-gray-50 p-6 rounded-3xl border-2 border-dashed border-gray-200 text-center flex flex-col justify-center items-center">
-                <label class="text-xs font-black text-gray-600 mb-2 uppercase">Choose Question CSV</label>
-                <input type="file" name="file_csv" accept=".csv" class="text-[10px]" required>
-            </div>
-
-            <button type="submit" class="md:col-span-2 bg-[#990000] text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-800 transition uppercase tracking-widest text-xs">
-                🚀 Publish Tryout Now
-            </button>
-        </form>
+<div class="mb-10 flex justify-between items-center">
+    <div>
+        <h2 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Kirim Soal Tryout</h2>
+        <p class="text-sm font-bold text-[#990000] uppercase tracking-widest">{{ $subject_name }} • Soal: <span id="counter">1</span>/10</p>
     </div>
-
-    {{-- BAGIAN BAWAH: DAFTAR TRYOUT YANG SUDAH TERBIT (SESUAI GAMBAR 3) --}}
-    <div class="space-y-4">
-        <div class="flex items-center gap-4">
-            <h4 class="font-black text-gray-800 uppercase tracking-tight">Published Tryouts</h4>
-            <div class="flex-1 h-[2px] bg-gray-100"></div>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4">
-            @forelse($tryouts as $t)
-                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-red-50 text-[#990000] rounded-2xl flex items-center justify-center shadow-sm">
-                            <i class="fas fa-stopwatch text-xl"></i>
-                        </div>
-                        <div>
-                            <h5 class="font-black text-gray-800 uppercase text-sm mb-1">{{ $t->title }}</h5>
-                            <div class="flex items-center gap-4">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase"><i class="far fa-clock mr-1"></i> {{ $t->duration }} Min</span>
-                                <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-lg uppercase">{{ $t->questions_count }} Questions Available</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        {{-- TOMBOL HAPUS --}}
-                        <form action="{{ route('pengajar.tryout.destroy', $t->tryout_id) }}" method="POST">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition shadow-sm" onclick="return confirm('Hapus tryout ini beserta semua soalnya?')">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            @empty
-                <div class="text-center py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-white">
-                    <p class="text-gray-400 font-bold uppercase text-[10px] tracking-widest italic">No tryouts published for this class yet.</p>
-                </div>
-            @endforelse
-        </div>
+    <div id="min-status" class="bg-red-50 text-red-600 px-6 py-2 rounded-2xl font-black text-[10px] uppercase border border-red-100">
+        Wajib minimal 5 soal
     </div>
 </div>
+
+{{-- Alert Error --}}
+@if(session('error'))
+    <div class="bg-red-600 text-white p-4 rounded-2xl mb-6 text-sm font-bold shadow-lg">⚠️ {{ session('error') }}</div>
+@endif
+
+<form action="{{ route('pengajar.tryout.store') }}" method="POST" enctype="multipart/form-data">
+    @csrf
+    <input type="hidden" name="class_id" value="{{ $class_id }}">
+    <input type="hidden" name="subject_name" value="{{ $subject_name }}">
+
+    <div id="questions-container">
+        @for($i = 0; $i < 10; $i++)
+        <div class="question-step {{ $i > 0 ? 'hidden' : '' }}" id="step-{{ $i }}">
+            <div class="bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 relative mb-8">
+                <div class="absolute -left-4 top-10 bg-[#990000] text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-lg">{{ $i + 1 }}</div>
+
+                <div class="space-y-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <label class="text-[10px] font-black text-gray-400 uppercase mb-2 block">Isi Pertanyaan (Teks)</label>
+                            <textarea name="soal[{{ $i }}][question]" rows="4" class="w-full bg-gray-50 border-none rounded-[30px] p-6 text-sm font-bold focus:ring-2 focus:ring-[#990000]"></textarea>
+                        </div>
+                        <div class="bg-gray-50 p-8 rounded-[30px] border-2 border-dashed flex flex-col justify-center items-center text-center">
+                            <label class="text-[10px] font-black text-gray-400 uppercase mb-3">Atau Gambar Soal</label>
+                            <input type="file" name="soal[{{ $i }}][q_img]" class="text-[10px] text-gray-400">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        @foreach(['a','b','c','d'] as $opt)
+                        <div class="p-6 bg-white border border-gray-100 rounded-[35px] shadow-sm">
+                            <label class="text-[10px] font-black text-[#990000] uppercase mb-4 block">Pilihan {{ strtoupper($opt) }}</label>
+                            <input type="text" name="soal[{{ $i }}][option_{{ $opt }}]" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-xs font-bold mb-4" placeholder="Teks jawaban...">
+                            <input type="file" name="soal[{{ $i }}][{{ $opt }}_img]" class="text-[9px] text-gray-400">
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="text-[10px] font-black text-gray-400 uppercase mb-2 block">Kunci</label>
+                            <select name="soal[{{ $i }}][correct_answer]" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold">
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase mb-2 block">Pembahasan (Huruf & Angka)</label>
+                            <textarea name="soal[{{ $i }}][explanation]" rows="2" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endfor
+    </div>
+
+    <div class="flex gap-4 mb-20">
+        <button type="button" id="btn-tambah" onclick="nextQ()" class="flex-1 bg-white border-2 border-[#990000] text-[#990000] py-4 rounded-[25px] font-black text-xs uppercase transition">➕ Tambah Soal</button>
+        <button type="submit" id="btn-submit" disabled class="flex-1 bg-gray-300 text-white py-4 rounded-[25px] font-black text-xs uppercase cursor-not-allowed transition">🚀 Terbitkan Paket Soal</button>
+    </div>
+</form>
+
+<script>
+    let current = 0;
+    function nextQ() {
+        if (current < 9) {
+            current++;
+            document.getElementById(`step-${current}`).classList.remove('hidden');
+            document.getElementById('counter').innerText = current + 1;
+            if (current + 1 >= 5) {
+                const btn = document.getElementById('btn-submit');
+                btn.disabled = false;
+                btn.classList.replace('bg-gray-300', 'bg-green-600');
+                btn.classList.remove('cursor-not-allowed');
+                document.getElementById('min-status').classList.replace('text-red-600', 'text-green-600');
+                document.getElementById('min-status').innerText = "Syarat Terpenuhi";
+            }
+            if (current === 9) document.getElementById('btn-tambah').classList.add('hidden');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    }
+</script>
 @endsection
