@@ -15,18 +15,17 @@ class DedicatedTutorController extends Controller
     {
         try {
             $user = Auth::user();
-            // user_id merujuk ke usersID (PK User yang tidak diubah)
             $student = Student::where('user_id', $user->usersID)->first();
 
             if (!$student || is_null($student->class_id)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Limited access. Please enroll in a class first.',
+                    'message' => 'Silakan daftar kelas terlebih dahulu.',
                     'materials' => []
                 ], 200);
             }
 
-            // MODIFIKASI: Menggunakan material_id (bukan materialsID)
+            // Ambil materi yang sesuai dengan class_id siswa
             $materials = Material::where('class_id', $student->class_id)
                         ->get(['material_id', 'title']);
 
@@ -47,7 +46,6 @@ class DedicatedTutorController extends Controller
             $student = Student::where('user_id', $user->usersID)->first();
             if (!$student) return response()->json(['data' => []]);
 
-            // MODIFIKASI: student_id (bukan studentsID)
             $history = DedicatedTutor::with(['material', 'teacher'])
                         ->where('student_id', $student->student_id)
                         ->latest()
@@ -65,13 +63,21 @@ class DedicatedTutorController extends Controller
             $user = Auth::user();
             $student = Student::where('user_id', $user->usersID)->first();
 
-            // MODIFIKASI: student_id (bukan studentsID)
+            // ✨ MODIFIKASI: CEK KUOTA (MAKSIMAL 3)
+            $existingCount = DedicatedTutor::where('student_id', $student->student_id)->count();
+            if ($existingCount >= 3) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Maaf, batas maksimal pengajuan tutor adalah 3 kali.'
+                ], 403);
+            }
+
             $dedicated = DedicatedTutor::create([
                 'student_id'  => $student->student_id,
-                'teacher_id'  => null,
+                'teacher_id'  => null, // Nanti diisi oleh Admin
                 'material_id' => $request->material_id,
                 'date'        => $request->date,
-                'time'        => '10:00',
+                'time'        => '10:00', // Default time
                 'status'      => 'pending',
             ]);
 

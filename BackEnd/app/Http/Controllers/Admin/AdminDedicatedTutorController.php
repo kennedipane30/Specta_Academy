@@ -5,16 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DedicatedTutor;
 use App\Models\User;
+use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
 
 class AdminDedicatedTutorController extends Controller {
 
     public function index() {
-        // Relasi student.user, teacher, dan material sudah sesuai Model Anda
+        // Ambil data tutor dengan relasi lengkap
         $tutors = DedicatedTutor::with(['student.user', 'teacher', 'material'])->latest()->get();
-        $availableTeachers = User::where('role_id', 2)->get();
 
-        return view('admin.dedicated_tutor.index', compact('tutors', 'availableTeachers'));
+        return view('admin.dedicated_tutor.index', compact('tutors'));
     }
 
     public function updateAssignment(Request $request, $id) {
@@ -23,7 +23,6 @@ class AdminDedicatedTutorController extends Controller {
             'teacher_id' => 'required_if:status,confirmed'
         ]);
 
-        // Mencari data berdasarkan dedicated_tutor_id
         $tutor = DedicatedTutor::findOrFail($id);
 
         $tutor->update([
@@ -31,7 +30,7 @@ class AdminDedicatedTutorController extends Controller {
             'teacher_id' => ($request->status == 'confirmed') ? $request->teacher_id : null,
         ]);
 
-        // PERBAIKAN REDIRECT: Pastikan kembali ke rute tutor index
-        return redirect()->route('admin.tutor.index')->with('success', 'Assignment updated successfully!');
+        // ✨ PERBAIKAN: Gunakan back() agar tetap di halaman yang sama dan memunculkan alert
+        return back()->with('success', 'Tutor assignment updated successfully!');
     }
 }

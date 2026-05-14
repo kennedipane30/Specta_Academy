@@ -168,45 +168,49 @@
         @endforelse
     </div>
 </div>
-
 <script>
     let current = 0;
 
     function nextQ() {
-        // --- VALIDASI SEDERHANA SEBELUM LANJUT ---
-        const qText = document.getElementById(`q_text_${current}`).value.trim();
-        const expText = document.getElementById(`exp_${current}`).value.trim();
+        // 1. Ambil elemen input pada step yang sedang aktif
+        const currentStep = document.getElementById(`step-${current}`);
+        const questionText = currentStep.querySelector(`textarea[name="soal[${current}][question]"]`);
+        const explanationText = currentStep.querySelector(`textarea[name="soal[${current}][explanation]"]`);
+        const qImg = currentStep.querySelector(`input[name="soal[${current}][q_img]"]`);
 
-        if (qText === "" || expText === "") {
-            alert("⚠️ Harap isi Teks Pertanyaan dan Pembahasan pada soal nomor " + (current + 1) + " terlebih dahulu.");
+        // 2. Validasi: Harus ada (Teks Soal ATAU Gambar) DAN wajib ada Pembahasan
+        if ((questionText.value.trim() === "" && qImg.files.length === 0)) {
+            alert("⚠️ Pertanyaan nomor " + (current + 1) + " (Teks atau Gambar) wajib diisi!");
             return;
         }
 
+        if (explanationText.value.trim() === "") {
+            alert("⚠️ Pembahasan untuk soal nomor " + (current + 1) + " wajib diisi!");
+            explanationText.focus();
+            return;
+        }
+
+        // 3. Jika valid, lanjut ke soal berikutnya
         if (current < 9) {
             current++;
-            // Tampilkan Step Berikutnya
             document.getElementById(`step-${current}`).classList.remove('hidden');
             document.getElementById('counter').innerText = current + 1;
 
-            // Logika Minimal 5 Soal untuk Submit
+            // Logika Aktifkan Tombol Submit jika sudah input minimal 5 soal
             if (current + 1 >= 5) {
                 const btn = document.getElementById('btn-submit');
                 btn.disabled = false;
                 btn.classList.replace('bg-gray-300', 'bg-green-600');
                 btn.classList.remove('cursor-not-allowed');
-                btn.classList.add('hover:bg-green-700', 'shadow-green-100');
 
-                const label = document.getElementById('min-status');
-                label.classList.replace('text-red-600', 'text-green-600');
-                label.classList.replace('bg-red-50', 'bg-green-50');
-                label.innerText = "Syarat Minimal Terpenuhi ✅";
+                const statusLabel = document.getElementById('min-status');
+                statusLabel.classList.replace('text-red-600', 'text-green-600');
+                statusLabel.innerText = "Syarat 5 Soal Terpenuhi ✅";
             }
 
-            if (current === 9) {
-                document.getElementById('btn-tambah').classList.add('hidden');
-            }
+            if (current === 9) document.getElementById('btn-tambah').classList.add('hidden');
 
-            // Scroll Halus
+            // Scroll otomatis ke nomor baru
             window.scrollTo({
                 top: document.getElementById(`step-${current}`).offsetTop - 100,
                 behavior: 'smooth'

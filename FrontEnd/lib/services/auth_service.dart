@@ -86,7 +86,7 @@ class AuthService {
     return await http.post(
       Uri.parse('$baseUrl/class/content'),
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'application/json', 
         'Authorization': 'Bearer $token'
       },
       body: {'class_id': classId.toString()},
@@ -103,31 +103,35 @@ class AuthService {
     );
   }
 
-  // ✨ MODIFIKASI: FUNGSI PENDAFTARAN MANUAL (UPLOAD GAMBAR)
   static Future<http.StreamedResponse> joinClass(int classId, String filePath, String token) async {
     var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/class/join'));
     request.headers.addAll({
       'Accept': 'application/json',
       'Authorization': 'Bearer $token',
     });
-    
-    // Kirim ID Kelas
     request.fields['class_id'] = classId.toString();
-    
-    // Tambahkan File Bukti Bayar
     request.files.add(await http.MultipartFile.fromPath('payment_proof', filePath));
-    
     return await request.send();
   }
 
   // ============================
-  // 🏷️ 4. PROMO MANAGEMENT
+  // 🏷️ 4. PROMO & ANNOUNCEMENTS
   // ============================
 
   static Future<http.Response> getActivePromos() async {
     return await http.get(
       Uri.parse('$baseUrl/promos'),
       headers: {'Accept': 'application/json'},
+    );
+  }
+
+  static Future<http.Response> getAnnouncements(String token) async {
+    return await http.get(
+      Uri.parse('$baseUrl/announcements'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
     );
   }
 
@@ -164,7 +168,7 @@ class AuthService {
   }
 
   // ============================
-  // 💳 5. PAYMENT (MIDTRANS)
+  // 💳 5. PAYMENT & REPORTS
   // ============================
 
   static Future<http.Response> getSnapToken({
@@ -189,8 +193,18 @@ class AuthService {
     );
   }
 
+  static Future<http.Response> getLearningReport(String token) async {
+    return await http.get(
+      Uri.parse('$baseUrl/learning-report'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+  }
+
   // ============================
-  // 📝 6. TRYOUT & SCHEDULES
+  // 📝 6. TRYOUT & TUTOR
   // ============================
 
   static Future<http.Response> getSiswaSchedule(String token) async {
@@ -203,6 +217,7 @@ class AuthService {
     );
   }
 
+  // ✨ MODIFIKASI: Ambil Soal Tryout (Pastikan Body & Header Sinkron)
   static Future<http.Response> getQuestions(int tryoutId, String token) async {
     return await http.post(
       Uri.parse('$baseUrl/tryout/questions'),
@@ -210,7 +225,7 @@ class AuthService {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token'
       },
-      body: {'tryout_id': tryoutId.toString()},
+      body: {'tryout_id': tryoutId.toString()}, // Key harus sinkron dengan Laravel
     );
   }
 
@@ -228,6 +243,29 @@ class AuthService {
         'Authorization': 'Bearer $token'
       },
       body: jsonEncode({'tryout_id': tryoutId, 'answers': stringAnswers}),
+    );
+  }
+
+  // ✨ MODIFIKASI: DEDICATED TUTOR (Sesuai Rute API Baru)
+  static Future<http.Response> getTutorData(String token) async {
+    return await http.get(
+      Uri.parse('$baseUrl/tutor/form-data'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+  }
+
+  static Future<http.Response> getTutorHistory(String token) async {
+    return await http.get(
+      Uri.parse('$baseUrl/tutor/history'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+  }
+
+  static Future<http.Response> submitTutor(Map data, String token) async {
+    return await http.post(
+      Uri.parse('$baseUrl/tutor/submit'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      body: data.map((key, value) => MapEntry(key, value.toString())),
     );
   }
 
@@ -250,28 +288,4 @@ class AuthService {
       body: data.map((key, value) => MapEntry(key, value.toString())),
     );
   }
-
-  // Di dalam class AuthService
-static Future<http.Response> getAnnouncements(String token) async {
-  return await http.get(
-    Uri.parse('$baseUrl/announcements'), // Pastikan endpoint ini ada di api.php Laravel
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-  );
-}
-
-// Tambahkan fungsi ini di dalam class AuthService
-static Future<http.Response> getLearningReport(String token) async {
-  return await http.get(
-    Uri.parse('$baseUrl/learning-report'), // Endpoint yang kita buat di api.php
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-  );
-}
-
-
 }

@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Models\Announcement;
 use App\Models\Material;
 use App\Models\ClassModel;
-use App\Models\TryoutResult; // Tambahkan ini jika ingin menampilkan statistik nilai
+use App\Models\TryoutResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BannerController;
@@ -19,12 +19,9 @@ use App\Http\Controllers\Api\BannerController;
 |--------------------------------------------------------------------------
 */
 
-// --- 0. SDK HANDSHAKE ---
+// --- 0. HANDSHAKE ---
 Route::get('/', function () {
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Specta Academy API is Ready'
-    ]);
+    return response()->json(['status' => 'success', 'message' => 'Specta Academy API is Ready']);
 });
 
 // --- 1. PUBLIC ROUTES (Tanpa Login) ---
@@ -35,32 +32,28 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// ✅ WEBHOOK MIDTRANS
+// ✅ WEBHOOK MIDTRANS (Harus Publik)
 Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification']);
 Route::post('/payment/callback', [PaymentController::class, 'handleNotification']);
 
-// --- 2. PROTECTED ROUTES (Wajib Login / Pakai Token) ---
+// --- 2. PROTECTED ROUTES (Wajib Bearer Token) ---
 Route::middleware('auth:sanctum')->group(function () {
 
-    // ✅ INFO AKADEMIK & PENGUMUMAN (Dinamis untuk Report Page)
+    // ✅ PENGUMUMAN & BANNER DINAMIS
     Route::get('/announcements', function() {
         return response()->json([
             'status' => 'success',
-            'data' => Announcement::latest()->get() // Mengambil data terbaru dari Admin
+            'data' => Announcement::latest()->get()
         ]);
     });
 
     Route::get('/banners', [BannerController::class, 'index']);
     Route::get('/promos', [PromoController::class, 'apiIndex']);
 
-    // ✅ PROMO & PAYMENT
-    Route::post('/promo/check', [PromoController::class, 'checkPromo']);
-    Route::post('/payment/snap-token', [PaymentController::class, 'getSnapToken']);
-
+    // ✅ PROFILE & CLASSES
     Route::get('/user', function (Request $request) {
         return $request->user()->load(['role', 'student.class']);
     });
-
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -74,10 +67,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- KHUSUS SISWA ---
     Route::middleware('role:siswa')->group(function () {
 
-        // ✅ STATISTIK BELAJAR (Untuk Grafik di Report Page)
+        // ✅ DATA UNTUK DIAGRAM GARIS (DINAMIS)
         Route::get('/learning-report', function(Request $request) {
             $user = $request->user();
-            // Mengambil 7 hasil tryout/latihan terakhir untuk grafik
             $stats = TryoutResult::where('user_id', $user->usersID)
                         ->latest()
                         ->take(7)
@@ -85,36 +77,41 @@ Route::middleware('auth:sanctum')->group(function () {
                         ->reverse()
                         ->values();
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $stats
-            ]);
+            return response()->json(['status' => 'success', 'data' => $stats]);
         });
 
-        // CLASS & CONTENT
-        Route::post('/class/content', [AuthController::class, 'getClassContent']);
-        Route::post('/class/check-status', [AuthController::class, 'checkClassStatus']);
+        // ✅ KONTEN KELAS
+    Route::post('/class/content', [AuthController::class, 'getClassContent']);
         Route::post('/class/join', [AuthController::class, 'joinClass']);
         Route::get('/schedules', [AuthController::class, 'getSiswaSchedule']);
 
-        // TRYOUT & LATIHAN
-        Route::post('/tryout/questions', [AuthController::class, 'getQuestions']);
-        Route::post('/tryout/submit', [AuthController::class, 'submitTryout']);
-        Route::get('/tryout/download/{id}', [AuthController::class, 'downloadPembahasan']);
-
-        // MATERI
+        // ✅ MATERI
         Route::get('/materials', function (Request $request) {
-            $classId = $request->query('class_id');
+            $classId = $request->class_id;
             if (!$classId) {
                 return response()->json(['status' => 'error', 'message' => 'class_id diperlukan'], 400);
             }
             return response()->json([
                 'status' => 'success',
-                'data' => Material::where('class_id', $classId)->get()
+                'data' => Material::where('class_id', $classId)->orderBy('week', 'asc')->get()
             ]);
         });
 
+        // ✅ TRYOUT & LATIHAN
+        Route::post('/tryout/questions', [AuthController::class, 'getQuestions']);
+        Route::post('/tryout/submit', [AuthController::class, 'submitTryout']);
+
+        // ✨ MODIFIKASI: DEDICATED TUTOR (Sinkron dengan Flutter)
+        Route::get('/tutor/form-data', [DedicatedTutorController::class, 'getTutorFormData']);
+        Route::get('/tutor/history', [DedicatedTutorController::class, 'index']);
+        Route::post('/tutor/submit', [DedicatedTutorController::class, 'store']);
+
+        // Tetap pertahankan rute lama jika masih dipakai
         Route::get('/dedicated-tutors', [DedicatedTutorController::class, 'index']);
         Route::post('/dedicated-tutors', [DedicatedTutorController::class, 'store']);
     });
+
+    // PROMO & PAYMENT
+    Route::post('/promo/check', [PromoController::class, 'checkPromo']);
+    Route::post('/payment/snap-token', [PaymentController::class, 'getSnapToken']);
 });

@@ -13,7 +13,11 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  http: ^1.1.0   
+  http: ^1.1.0  
+
+
+  syncfusion_flutter_pdfviewer: ^25.1.37  # ✨ Gunakan versi terbaru ini
+ 
   
   # Kunci di versi 1.1.0 (Tanpa tanda ^) agar startPaymentUi berfungsi kembali
   midtrans_sdk: 1.1.0             

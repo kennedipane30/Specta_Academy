@@ -1,103 +1,106 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'pdf_viewer_page.dart'; 
 
 class ModuleWeekListPage extends StatelessWidget {
   final String subjectName;
-  final List allMaterials; 
   final String token;
+  final List allMaterials;
 
   const ModuleWeekListPage({
     super.key,
     required this.subjectName,
-    required this.allMaterials,
     required this.token,
+    required this.allMaterials,
   });
 
   @override
   Widget build(BuildContext context) {
-    const Color spektaRed = Color(0xFF990000);
-
-    List filteredMateri = allMaterials.where((m) => m['title'] == subjectName).toList();
+    final Color spektaRed = const Color(0xFF990000);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text(subjectName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        title: Text(subjectName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: spektaRed,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: 20, 
         itemBuilder: (context, index) {
           int weekNumber = index + 1;
-          
-          // MODIFIKASI: Menggunakan key 'week' sesuai database baru
-          var moduleData = filteredMateri.firstWhere(
-            (m) => m['week'].toString() == weekNumber.toString(),
-            orElse: () => null,
+
+          // Mencari data materi yang memiliki file_path (Prioritas data yang sudah diupload)
+          var materialData = allMaterials.firstWhere(
+            (m) => 
+                (m['week'].toString() == weekNumber.toString()) && 
+                (m['material_name'].toString().trim().toLowerCase() == subjectName.trim().toLowerCase()) &&
+                (m['file_path'] != null),
+            orElse: () => allMaterials.firstWhere(
+              (m) => 
+                  (m['week'].toString() == weekNumber.toString()) && 
+                  (m['material_name'].toString().trim().toLowerCase() == subjectName.trim().toLowerCase()),
+              orElse: () => null,
+            ),
           );
 
-          bool isAvailable = moduleData != null;
+          bool isUploaded = materialData != null && materialData['file_path'] != null;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 15),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-              border: Border.all(color: isAvailable ? spektaRed.withOpacity(0.1) : Colors.grey.shade200),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+              border: Border.all(color: isUploaded ? spektaRed.withOpacity(0.2) : Colors.transparent, width: 1.5)
             ),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               leading: Container(
-                padding: const EdgeInsets.all(12),
+                width: 50, height: 50,
                 decoration: BoxDecoration(
-                  color: isAvailable ? spektaRed.withOpacity(0.1) : Colors.grey.shade100,
+                  color: isUploaded ? spektaRed.withOpacity(0.1) : Colors.grey[100],
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(
-                  isAvailable ? Icons.description_rounded : Icons.lock_clock_outlined,
-                  color: isAvailable ? spektaRed : Colors.grey,
+                  isUploaded ? Icons.picture_as_pdf_rounded : Icons.lock_clock_rounded,
+                  color: isUploaded ? spektaRed : Colors.grey[400],
                 ),
               ),
               title: Text(
                 "Week $weekNumber",
                 style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 15,
-                  color: isAvailable ? Colors.black87 : Colors.grey.shade400,
+                  fontWeight: FontWeight.bold,
+                  color: isUploaded ? Colors.black : Colors.grey[400],
                 ),
               ),
               subtitle: Text(
-                // MODIFIKASI: Menggunakan key 'material_name'
-                isAvailable ? (moduleData['material_name'] ?? "Tap to download PDF") : "Material not yet uploaded",
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                isUploaded ? (materialData['title'] ?? "Materi Tersedia") : "Material not yet uploaded",
+                style: TextStyle(fontSize: 12, color: isUploaded ? Colors.grey[600] : Colors.grey[300]),
               ),
-              trailing: isAvailable
-                  ? ElevatedButton(
-                      onPressed: () => _downloadFile(moduleData['file_path']),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: spektaRed,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                      child: const Text("PDF", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    )
-                  : const Icon(Icons.chevron_right, color: Colors.grey),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isUploaded ? spektaRed : Colors.grey[300]),
+              onTap: () {
+                if (isUploaded) {
+                  // ✨ KUNCI PREVIEW: Mengarahkan ke halaman viewer, bukan mendownload
+                  String pdfUrl = "http://10.0.2.2:8000/storage/${materialData['file_path']}";
+                  
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) => PdfViewerPage(
+                      pdfUrl: pdfUrl, 
+                      title: "Materi Week $weekNumber - $subjectName",
+                    ),
+                  ));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Materi belum diunggah untuk minggu ini."))
+                  );
+                }
+              },
             ),
           );
         },
       ),
     );
-  }
-
-  Future<void> _downloadFile(String? filePath) async {
-    if (filePath == null || filePath == "") return;
-    String fileName = filePath.split('/').last;
-    final Uri url = Uri.parse("http://10.0.2.2:8000/view-galeri/$fileName");
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
   }
 }
