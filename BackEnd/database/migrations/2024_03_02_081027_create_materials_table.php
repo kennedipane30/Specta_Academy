@@ -10,22 +10,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('materials', function (Blueprint $table) {
-            // MODIFIKASI: Primary Key bahasa Inggris
+            // Primary Key
             $table->id('material_id');
 
-            // MODIFIKASI: Merujuk ke tabel 'classes' dan 'class_id' yang baru
+            // Foreign Key ke Tabel Classes
             $table->foreignId('class_id')
                   ->constrained('classes', 'class_id')
                   ->onDelete('cascade');
 
+            // ✨ TAMBAHKAN KOLOM INI: Untuk mencatat pengajar mana yang upload
+            // Gunakan nullable() agar data seeder di bawah tidak error
+            $table->unsignedBigInteger('user_id')->nullable();
+
             $table->string('title');
-
-            // MODIFIKASI: Menambahkan kolom yang sebelumnya ada di migrasi terpisah
-            $table->string('material_name')->nullable(); // Sebelumnya: nama_materi
-            $table->integer('week')->nullable();         // Sebelumnya: minggu
-
+            $table->string('material_name')->nullable();
+            $table->integer('week')->nullable();
             $table->string('file_path')->nullable();
             $table->timestamps();
+
+            // ✨ TAMBAHKAN RELASI KE TABEL USERS (PK: usersID)
+            $table->foreign('user_id')->references('usersID')->on('users')->onDelete('set null');
         });
 
         // DATA MATERI SESUAI SEEDER (Diterjemahkan ke Bahasa Inggris)
@@ -40,9 +44,10 @@ return new class extends Migration
             foreach ($subjects as $s) {
                 DB::table('materials')->insert([
                     'class_id'      => $classId,
-                    'title'         => $s . ' Material', // Contoh: TIU Material
+                    'user_id'       => null, // Default null untuk data awal seeder
+                    'title'         => $s . ' Material',
                     'material_name' => $s,
-                    'week'          => 1, // Default week 1
+                    'week'          => 1,
                     'created_at'    => now(),
                     'updated_at'    => now()
                 ]);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
-import 'jadwal_page.dart';
+import 'report_page.dart'; // Pastikan import ini benar
 import 'kelas_page.dart';
 import 'akun_page.dart';
 
@@ -24,7 +24,6 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final Color spektaRed = const Color(0xFF990000);
 
-  // Fungsi untuk berpindah tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -33,7 +32,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Kita pindahkan list halaman ke sini agar bisa mengirim callback _onItemTapped
     final List<Widget> pages = [
       HomePage(
         userName: widget.userName,
@@ -43,10 +41,13 @@ class _MainScreenState extends State<MainScreen> {
       KelasPage(
         token: widget.token, 
         userData: widget.userProfileData,
-        // Fungsi ini akan dijalankan saat tombol "COMPLETE NOW" diklik
         onGoToProfile: () => _onItemTapped(3), 
       ),
-      JadwalPage(token: widget.token),
+      // PERBAIKAN: Ganti JadwalPage menjadi ReportPage
+      ReportPage(
+        token: widget.token,
+        userData: widget.userProfileData,
+      ),
       AkunPage(
         token: widget.token, 
         userData: widget.userProfileData
@@ -57,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: const Color(0xFFF8F9FA),
       body: IndexedStack(
         index: _selectedIndex,
-        children: pages, // Menggunakan list pages yang didefinisikan di atas
+        children: pages,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -67,11 +68,7 @@ class _MainScreenState extends State<MainScreen> {
             topRight: Radius.circular(25),
           ),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -5)),
           ],
         ),
         child: SafeArea(
@@ -83,7 +80,7 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 _buildNavItem(0, Icons.grid_view_rounded, "Home"),
                 _buildNavItem(1, Icons.auto_stories_rounded, "Classes"),
-                _buildNavItem(2, Icons.calendar_month_rounded, "Schedule"),
+                _buildNavItem(2, Icons.analytics_rounded, "Report"), // Icon diganti agar sesuai
                 _buildNavItem(3, Icons.person_rounded, "Profile"),
               ],
             ),
@@ -98,39 +95,12 @@ class _MainScreenState extends State<MainScreen> {
     return Expanded(
       child: InkWell(
         onTap: () => _onItemTapped(index),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                icon,
-                size: isSelected ? 28 : 24,
-                color: isSelected ? spektaRed : Colors.grey.shade400,
-              ),
-            ),
+            Icon(icon, size: isSelected ? 28 : 24, color: isSelected ? spektaRed : Colors.grey.shade400),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? spektaRed : Colors.grey.shade400,
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 3,
-              width: isSelected ? 20 : 0,
-              decoration: BoxDecoration(
-                color: spektaRed,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            Text(label, style: TextStyle(color: isSelected ? spektaRed : Colors.grey.shade400, fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
           ],
         ),
       ),

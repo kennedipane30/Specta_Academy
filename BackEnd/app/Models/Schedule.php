@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
-    // MODIFIKASI: Menggunakan Primary Key bahasa Inggris sesuai migrasi
+    use HasFactory;
+
+    protected $table = 'schedules';
     protected $primaryKey = 'schedule_id';
 
-    // Kolom yang dapat diisi (fillable)
     protected $fillable = [
         'class_id',
         'teacher_id',
@@ -17,26 +19,24 @@ class Schedule extends Model
         'date',
         'start_time',
         'end_time'
+        // 'location' sudah dihapus sesuai permintaan sebelumnya
     ];
 
     /**
-     * RELATIONS
+     * Relasi ke ClassModel
+     * Nama fungsi 'class' harus sama dengan yang dipanggil di Controller with(['class'])
      */
-
-    // Relasi ke Program/Kelas
     public function class()
     {
-        // 'class_id' di tabel schedules merujuk ke 'class_id' di tabel classes
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 
-    // Relasi ke Pengajar/User
+    /**
+     * Relasi ke User (Pengajar)
+     * teacher_id merujuk ke usersID di tabel users
+     */
     public function teacher()
     {
-        /**
-         * 'teacher_id' di tabel schedules merujuk ke 'usersID' di tabel users
-         * (Disesuaikan karena migrasi user tidak diubah)
-         */
         return $this->belongsTo(User::class, 'teacher_id', 'usersID');
     }
 }

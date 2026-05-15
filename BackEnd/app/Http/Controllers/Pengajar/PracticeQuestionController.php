@@ -8,6 +8,7 @@ use App\Models\PracticeQuestion;
 use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PracticeQuestionController extends Controller
 {
@@ -30,8 +31,12 @@ class PracticeQuestionController extends Controller
         if (!$access) abort(403);
 
         $class = ClassModel::findOrFail($class_id);
+
         $practices = PracticeQuestion::where('class_id', $class_id)
                         ->where('subject', $subject_name)
+                        ->select('week', DB::raw('count(*) as total_soal'))
+                        ->groupBy('week')
+                        ->orderBy('week', 'asc')
                         ->get();
 
         return view('pengajar.Latihan.pilih', compact('class', 'subject_name', 'practices'));
@@ -47,7 +52,7 @@ class PracticeQuestionController extends Controller
 
         $file = $request->file('file_csv');
         $handle = fopen($file->getRealPath(), "r");
-        fgetcsv($handle, 2000, ";"); // Skip header
+        fgetcsv($handle, 2000, ";");
 
         while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
             if (!isset($row[0]) || empty(trim($row[0]))) continue;
@@ -69,4 +74,17 @@ class PracticeQuestionController extends Controller
         fclose($handle);
         return back()->with('success', 'Latihan soal berhasil diimport!');
     }
-}
+
+    /**
+     * ✨ FUNGSI HAPUS PER MINGGU
+     */
+    public function destroyByWeek($class_id, $subject, $week)
+    {
+        PracticeQuestion::where('class_id', $class_id)
+            ->where('subject', $subject)
+            ->where('week', $week)
+            ->delete();
+
+        return back()->with('success', "Semua soal minggu ke-$week berhasil dihapus!");
+    }
+} // Pastikan kurung tutup class ada

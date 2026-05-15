@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'class_detail_page.dart'; // Import halaman detail yang sudah kita buat sebelumnya
+import 'screens/class_detail_page.dart'; 
 
 class SelectClassPage extends StatefulWidget {
   final String token;
@@ -15,21 +15,45 @@ class SelectClassPage extends StatefulWidget {
 
 class _SelectClassPageState extends State<SelectClassPage> {
   
+  // 1. FUNGSI MAPPING (Memetakan ID Database ke File Lokal)
+  String _getProgramImage(dynamic id) {
+    // Konversi dynamic ke int agar switch-case bekerja akurat
+    int classId = int.tryParse(id.toString()) ?? 0;
+    
+    switch (classId) {
+      case 1:
+        return 'assets/images/abdi_negara.png';
+      case 2:
+        return 'assets/images/ptn_unhan.png';
+      case 3:
+        return 'assets/images/reguler.png';
+      case 4:
+        return 'assets/images/favorit.png';
+      default:
+        // Jika ID tidak dikenal (misal ID = 10), munculkan gambar pertama sebagai default
+        return 'assets/images/abdi_negara.png'; 
+    }
+  }
+
   // Fungsi mengambil data dari API Laravel
   Future<List<dynamic>> fetchClasses() async {
-    final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/api/classes'), // 10.0.2.2 untuk emulator
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Accept': 'application/json',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/classes'), 
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      var result = json.decode(response.body);
-      return result['data']; // Mengambil array 'data' dari JSON
-    } else {
-      throw Exception('Gagal memuat katalog kelas');
+      if (response.statusCode == 200) {
+        var result = json.decode(response.body);
+        return result['data']; 
+      } else {
+        throw Exception('Gagal memuat katalog kelas');
+      }
+    } catch (e) {
+      throw Exception('Kesalahan Koneksi: $e');
     }
   }
 
@@ -38,9 +62,11 @@ class _SelectClassPageState extends State<SelectClassPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text("Select Class Program", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("Study Program", 
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: const Color(0xFF990000),
         elevation: 0,
+        centerTitle: true,
       ),
       body: FutureBuilder<List<dynamic>>(
         future: fetchClasses(),
@@ -56,12 +82,9 @@ class _SelectClassPageState extends State<SelectClassPage> {
           final classes = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(18),
             itemCount: classes.length,
-            itemBuilder: (context, index) {
-              final item = classes[index];
-              return _buildClassCard(item);
-            },
+            itemBuilder: (context, index) => _buildClassCard(classes[index]),
           );
         },
       ),
@@ -69,30 +92,39 @@ class _SelectClassPageState extends State<SelectClassPage> {
   }
 
   Widget _buildClassCard(Map item) {
-    // Memperbaiki URL agar terbaca di emulator (127.0.0.1 -> 10.0.2.2)
-    String imageUrl = (item['image_url'] ?? '').replaceAll('127.0.0.1', '10.0.2.2');
+    // Mendeteksi ID dari API (antisipasi jika namanya 'id' atau 'class_id')
+    final dynamic rawId = item['class_id'] ?? item['id'];
+    int id = int.tryParse(rawId.toString()) ?? 0;
 
     return Container(
-      margin: const EdgeInsets.bottom(20),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06), 
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BANNER GAMBAR DARI ADMIN
+          // MENAMPILKAN GAMBAR ASSET LOKAL (BUKAN NETWORK)
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-            child: Image.network(
-              imageUrl,
+            child: Image.asset(
+              _getProgramImage(id), 
               height: 200,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(
-                height: 200, color: Colors.grey[200], 
-                child: const Icon(Icons.broken_image, color: Colors.grey)
+              // Error handling jika file fisik di folder assets hilang
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 200,
+                color: Colors.grey[200],
+                child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
               ),
             ),
           ),
@@ -102,28 +134,33 @@ class _SelectClassPageState extends State<SelectClassPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['program_name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text("OFFICIAL ACADEMY PROGRAM", 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.1)),
+                const SizedBox(height: 5),
+                Text(
+                  item['program_name'] ?? "No Name", 
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+                ),
                 const SizedBox(height: 8),
                 Text(
-                  item['description'] ?? 'Deskripsi program...',
+                  item['description'] ?? "Segera bergabung dan raih impianmu.", 
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Rp ${item['price']}",
+                      "Rp ${item['price']}", 
                       style: const TextStyle(color: Color(0xFF990000), fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // PINDAH KE HALAMAN DETAIL YANG DINAMIS
                         Navigator.push(context, MaterialPageRoute(builder: (_) => ClassDetailPage(
-                          classId: item['class_id'],
-                          className: item['program_name'],
+                          classId: id,
+                          className: item['program_name'] ?? "",
                           token: widget.token,
                           userData: widget.userData,
                         )));
@@ -131,8 +168,10 @@ class _SelectClassPageState extends State<SelectClassPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF1B401),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        elevation: 0,
                       ),
-                      child: const Text("View Details", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                      child: const Text("VIEW DETAILS", 
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                     )
                   ],
                 )

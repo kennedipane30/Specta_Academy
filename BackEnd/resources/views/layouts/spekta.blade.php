@@ -110,12 +110,6 @@
                     <a href="{{ route('pengajar.absensi.index') }}" class="nav-link {{ request()->routeIs('pengajar.absensi.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📝</span> Absensi Siswa
                     </a>
-                    <a href="{{ route('pengajar.jadwal.index') }}" class="nav-link {{ request()->routeIs('pengajar.jadwal.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">📅</span> Jadwal Mengajar
-                    </a>
-                    <a href="{{ route('pengajar.tutor.index') }}" class="nav-link {{ request()->routeIs('pengajar.tutor.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">🗓️</span> Jadwal Tutor
-                    </a>
                     <a href="{{ route('pengajar.materi.index') }}" class="nav-link {{ request()->routeIs('pengajar.materi.*') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">📚</span> Upload Materi
                     </a>
@@ -124,9 +118,6 @@
                     </a>
                     <a href="{{ route('pengajar.tryout.index') }}" class="nav-link {{ request()->routeIs('pengajar.tryout.index') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
                         <span class="mr-3 text-lg">⏱️</span> Input Soal TO
-                    </a>
-                    <a href="{{ route('pengajar.tryout.nilai') }}" class="nav-link {{ request()->routeIs('pengajar.tryout.nilai') ? 'active' : '' }} flex items-center py-3 px-4 rounded-xl mb-1">
-                        <span class="mr-3 text-lg">📊</span> Lihat Nilai
                     </a>
                 @endif
             </nav>

@@ -9,33 +9,25 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('schedules', function (Blueprint $table) {
-            // MODIFIKASI: Primary Key bahasa Inggris
-            $table->id('schedule_id');
+   public function up(): void
+{
+    Schema::create('schedules', function (Blueprint $table) {
+        $table->id('schedule_id');
 
-            // MODIFIKASI: Merujuk ke tabel 'classes' dan kolom 'class_id'
-            $table->foreignId('class_id')
-                  ->constrained('classes', 'class_id')
-                  ->onDelete('cascade');
+        // Relasi ke Kelas
+        $table->foreignId('class_id')->constrained('classes', 'class_id')->onDelete('cascade');
 
-            /**
-             * MODIFIKASI:
-             * Merujuk ke tabel 'users' dan kolom 'usersID'
-             * (Sesuai permintaan Anda untuk tidak mengubah migrasi user)
-             */
-            $table->foreignId('teacher_id')
-                  ->constrained('users', 'usersID')
-                  ->onDelete('cascade');
+        // Relasi ke Pengajar (Sesuaikan dengan usersID)
+        $table->unsignedBigInteger('teacher_id');
+        $table->foreign('teacher_id')->references('usersID')->on('users')->onDelete('cascade');
 
-            $table->string('title'); // Contoh: Psychology / English
-            $table->date('date');
-            $table->time('start_time');
-            $table->time('end_time');
-            $table->timestamps();
-        });
-    }
+        $table->string('title'); // Contoh: "Materi Bahasa Inggris"
+        $table->date('date');
+        $table->time('start_time');
+        $table->time('end_time');
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
