@@ -94,12 +94,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Bagian fungsi fetchBanners yang diperbaiki:
+
   Future<void> fetchBanners() async {
     try {
       setState(() => isLoadingBanner = true);
 
+      // ✨ MODIFIKASI: Tambahkan header Authorization agar tidak ditolak Laravel
       final response = await http.get(
         Uri.parse('$baseUrl/api/banners'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.token}', // Token sangat penting di sini
+        },
       );
 
       if (!mounted) return;
@@ -108,11 +115,14 @@ class _HomePageState extends State<HomePage> {
         final decoded = jsonDecode(response.body);
 
         setState(() {
+          // Sesuaikan dengan struktur JSON dari Laravel Anda
           bannerData = decoded['data'] ?? decoded['banners'] ?? [];
           activeBannerIndex = 0;
         });
 
         _startBannerAutoSlide();
+      } else {
+        debugPrint('BANNER API ERROR: Status ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('BANNER ERROR: $e');

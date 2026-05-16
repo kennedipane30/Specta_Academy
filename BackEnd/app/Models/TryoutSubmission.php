@@ -8,6 +8,9 @@ class TryoutSubmission extends Model
 {
     protected $table = 'tryout_submissions';
 
+    protected $connection = 'pgsql_tryout';
+
+
     protected $fillable = [
         'user_id', 'class_id', 'subject_name',
         'question', 'question_image',

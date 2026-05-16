@@ -30,71 +30,28 @@ class ModuleWeekListPage extends StatelessWidget {
         itemCount: 20, 
         itemBuilder: (context, index) {
           int weekNumber = index + 1;
-
-          // Mencari data materi yang memiliki file_path (Prioritas data yang sudah diupload)
           var materialData = allMaterials.firstWhere(
-            (m) => 
-                (m['week'].toString() == weekNumber.toString()) && 
-                (m['material_name'].toString().trim().toLowerCase() == subjectName.trim().toLowerCase()) &&
-                (m['file_path'] != null),
-            orElse: () => allMaterials.firstWhere(
-              (m) => 
-                  (m['week'].toString() == weekNumber.toString()) && 
-                  (m['material_name'].toString().trim().toLowerCase() == subjectName.trim().toLowerCase()),
-              orElse: () => null,
-            ),
+            (m) => (m['week'].toString() == weekNumber.toString()) && 
+                  (m['material_name']?.toString().toLowerCase().trim() == subjectName.toLowerCase().trim()),
+            orElse: () => null,
           );
 
-          bool isUploaded = materialData != null && materialData['file_path'] != null;
+          bool isUploaded = materialData != null;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-              border: Border.all(color: isUploaded ? spektaRed.withOpacity(0.2) : Colors.transparent, width: 1.5)
-            ),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)], border: Border.all(color: isUploaded ? spektaRed.withOpacity(0.2) : Colors.transparent, width: 1.5)),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              leading: Container(
-                width: 50, height: 50,
-                decoration: BoxDecoration(
-                  color: isUploaded ? spektaRed.withOpacity(0.1) : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(
-                  isUploaded ? Icons.picture_as_pdf_rounded : Icons.lock_clock_rounded,
-                  color: isUploaded ? spektaRed : Colors.grey[400],
-                ),
-              ),
-              title: Text(
-                "Week $weekNumber",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isUploaded ? Colors.black : Colors.grey[400],
-                ),
-              ),
-              subtitle: Text(
-                isUploaded ? (materialData['title'] ?? "Materi Tersedia") : "Material not yet uploaded",
-                style: TextStyle(fontSize: 12, color: isUploaded ? Colors.grey[600] : Colors.grey[300]),
-              ),
+              leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: isUploaded ? spektaRed.withOpacity(0.1) : Colors.grey[100], borderRadius: BorderRadius.circular(15)), child: Icon(isUploaded ? Icons.picture_as_pdf_rounded : Icons.lock_clock_rounded, color: isUploaded ? spektaRed : Colors.grey[400])),
+              title: Text("Week $weekNumber", style: TextStyle(fontWeight: FontWeight.bold, color: isUploaded ? Colors.black : Colors.grey[400])),
+              subtitle: Text(isUploaded ? (materialData['title'] ?? "Materi Tersedia") : "Material not yet uploaded", style: TextStyle(fontSize: 12, color: isUploaded ? Colors.grey[600] : Colors.grey[300])),
               trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isUploaded ? spektaRed : Colors.grey[300]),
               onTap: () {
                 if (isUploaded) {
-                  // ✨ KUNCI PREVIEW: Mengarahkan ke halaman viewer, bukan mendownload
+                  // File tetap di Laravel Port 8000
                   String pdfUrl = "http://10.0.2.2:8000/storage/${materialData['file_path']}";
-                  
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) => PdfViewerPage(
-                      pdfUrl: pdfUrl, 
-                      title: "Materi Week $weekNumber - $subjectName",
-                    ),
-                  ));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Materi belum diunggah untuk minggu ini."))
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PdfViewerPage(pdfUrl: pdfUrl, title: "Materi Week $weekNumber - $subjectName")));
                 }
               },
             ),

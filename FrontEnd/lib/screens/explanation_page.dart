@@ -17,9 +17,11 @@ class ExplanationPage extends StatelessWidget {
         backgroundColor: spektaRed,
         foregroundColor: Colors.white,
         elevation: 0,
+        // Menghilangkan tombol back agar user wajib menekan tombol "Selesai"
+        automaticallyImplyLeading: false, 
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Padding bawah ekstra agar tidak tertutup button
         itemCount: questions.length,
         itemBuilder: (context, index) {
           final q = questions[index];
@@ -74,8 +76,7 @@ class ExplanationPage extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(8)),
-                      // ✨ PERBAIKAN: Menggunakan FontWeight.w900
-                      child: Text(q['correct_answer'], 
+                      child: Text(q['correct_answer'] ?? '-', 
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
                     ),
                   ],
@@ -109,6 +110,35 @@ class ExplanationPage extends StatelessWidget {
             ),
           );
         },
+      ),
+      
+      // ✨ TAMBAHAN: Button Selesai di bagian bawah
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
+          ]
+        ),
+        child: SafeArea(
+          child: ElevatedButton(
+            onPressed: () {
+              // Kembali ke halaman Home/Dashboard dan hapus semua tumpukan navigasi ujian
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: spektaRed,
+              minimumSize: const Size(double.infinity, 55),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              elevation: 0
+            ),
+            child: const Text(
+              "SELESAI & KEMBALI KE HOME", 
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -16,7 +16,11 @@ class PracticeSubjectListPage extends StatelessWidget {
     const Color spektaRed = Color(0xFF990000);
 
     // Mengambil daftar subjek unik dari data latihan yang diterima
-    final subjects = allExercises.map((e) => e['subject']).toSet().toList();
+// Ubah baris ini agar lebih aman:
+    final subjects = allExercises
+        .map((e) => (e['subject'] ?? e['Subject'] ?? 'Unknown').toString())
+        .toSet()
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
