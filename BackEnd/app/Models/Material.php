@@ -6,24 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Material extends Model
 {
-    // Nama tabel di database
+protected $connection = 'pgsql_materi';
     protected $table = 'materials';
-
-    // Primary key diubah ke bahasa Inggris (sebelumnya: materialsID)
     protected $primaryKey = 'material_id';
 
-    // Atribut fillable diubah ke bahasa Inggris
     protected $fillable = [
-        'class_id',
-        'title',
-        'material_name', // Sebelumnya: nama_materi
-        'file_path',
-        'week'           // Sebelumnya: minggu
+        'class_id', 'user_id', 'title', 'material_name', 'file_path', 'week'
     ];
 
-    public function class()
-    {
-        return $this->belongsTo(\App\Models\ClassModel::class, 'class_id');
+    public function class() {
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 }
-

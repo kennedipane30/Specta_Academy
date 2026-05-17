@@ -81,7 +81,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // ✅ KONTEN KELAS
-    Route::post('/class/content', [AuthController::class, 'getClassContent']);
         Route::post('/class/join', [AuthController::class, 'joinClass']);
         Route::get('/schedules', [AuthController::class, 'getSiswaSchedule']);
 
@@ -115,3 +114,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/promo/check', [PromoController::class, 'checkPromo']);
     Route::post('/payment/snap-token', [PaymentController::class, 'getSnapToken']);
 });
+
+
+Route::match(['get', 'post'], '/class/content', [AuthController::class, 'getClassContent']);

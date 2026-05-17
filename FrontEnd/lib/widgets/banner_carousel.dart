@@ -7,7 +7,9 @@ import '../models/banner_model.dart';
 import '../services/banner_service.dart';
 
 class BannerCarousel extends StatefulWidget {
-  const BannerCarousel({super.key});
+  // ✨ MODIFIKASI: Tambahkan parameter token
+  final String token; 
+  const BannerCarousel({super.key, required this.token});
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
@@ -19,13 +21,15 @@ class _BannerCarouselState extends State<BannerCarousel> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<BannerModel>>(
-      future: BannerService.getBanners(),
+      // ✨ MODIFIKASI: Kirim token ke service
+      future: BannerService.getBanners(widget.token), 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _loadingBanner();
         }
 
         if (snapshot.hasError) {
+          debugPrint("Error Banner: ${snapshot.error}");
           return _errorBanner();
         }
 
@@ -95,6 +99,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(18),
       ),
+      child: const Center(child: CircularProgressIndicator(color: Color(0xFFB00000))),
     );
   }
 

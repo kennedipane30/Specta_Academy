@@ -8,6 +8,8 @@ use App\Models\TeacherAssignment;
 use App\Models\ClassModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http; // ✨ Tambahkan ini
+use Illuminate\Support\Facades\Log;  // ✨ Tambahkan ini
 
 class TryoutController extends Controller
 {
@@ -23,6 +25,7 @@ class TryoutController extends Controller
         $class = ClassModel::findOrFail($class_id);
 
         // Ambil data riwayat khusus pengajar ini untuk subjek ini
+        // Laravel akan mencari di koneksi 'pgsql_tryout' (specta_tryout)
         $existingSoal = TryoutSubmission::where('user_id', Auth::user()->usersID)
                         ->where('class_id', $class_id)
                         ->where('subject_name', $subject_name)
@@ -34,7 +37,6 @@ class TryoutController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Identifikasi index mana saja yang ada isinya (Teks Pertanyaan ATAU Gambar Pertanyaan)
         $validIndices = [];
         if ($request->has('soal')) {
             foreach ($request->soal as $index => $data) {
@@ -44,12 +46,10 @@ class TryoutController extends Controller
             }
         }
 
-        // 2. Cek apakah jumlah soal yang valid minimal 5
         if (count($validIndices) < 5) {
             return back()->with('error', 'Gagal menyimpan! Anda wajib mengisi minimal 5 soal secara lengkap.')->withInput();
         }
 
-        // 3. Buat aturan validasi dinamis hanya untuk index yang diisi saja
         $rules = [
             'class_id' => 'required',
             'subject_name' => 'required',
@@ -58,18 +58,17 @@ class TryoutController extends Controller
         foreach ($validIndices as $index) {
             $rules["soal.$index.explanation"] = ['required', 'regex:/^[a-zA-Z0-9\s.,?!-]+$/'];
             $rules["soal.$index.correct_answer"] = 'required';
-            // Pastikan minimal ada teks opsi A atau gambar opsi A
             $rules["soal.$index.option_a"] = 'required_without:soal.' . $index . '.a_img';
         }
 
         $request->validate($rules, [
             'soal.*.explanation.required' => 'Pembahasan wajib diisi untuk semua soal yang dibuat.',
-            'soal.*.explanation.regex' => 'Pembahasan hanya boleh berisi huruf, angka, dan tanda baca dasar.',
             'soal.*.option_a.required_without' => 'Setiap soal minimal harus memiliki Pilihan A.',
         ]);
 
         try {
-            // 4. Proses Simpan hanya untuk index yang valid
+            $syncData = []; // ✨ Tampung data untuk sinkronisasi ke Go
+
             foreach ($validIndices as $index) {
                 $data = $request->soal[$index];
 
@@ -86,7 +85,6 @@ class TryoutController extends Controller
                     'explanation'    => $data['explanation'],
                 ];
 
-                // --- PROSES UPLOAD GAMBAR ---
                 $imageMap = [
                     'question_image' => 'q_img',
                     'option_a_image' => 'a_img',
@@ -101,13 +99,27 @@ class TryoutController extends Controller
                         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                         $file->storeAs('public/tryout/images', $filename);
                         $input[$dbCol] = $filename;
+                    } else {
+                        $input[$dbCol] = null;
                     }
                 }
 
-                TryoutSubmission::create($input);
+                $submission = TryoutSubmission::create($input);
+                $input['id'] = $submission->id; // Ambil ID hasil simpan
+                $syncData[] = $input; // Masukkan ke array sync
             }
 
-            return redirect()->route('pengajar.tryout.index')->with('success', 'Paket soal berhasil diterbitkan ke Admin!');
+            // ✨ PROSES SYNC: Kirim ke Go Tryout Service
+            try {
+                $response = Http::post(env('GO_TRYOUT_URL') . '/tryouts/submissions/sync', $syncData);
+                if (!$response->successful()) {
+                    Log::error("Go Tryout Service Sync Error: " . $response->body());
+                }
+            } catch (\Exception $e) {
+                Log::error("Koneksi ke Go Tryout Service terputus saat sync submission.");
+            }
+
+            return redirect()->route('pengajar.tryout.index')->with('success', 'Paket soal berhasil diterbitkan ke Admin dan disinkronkan!');
 
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage())->withInput();
