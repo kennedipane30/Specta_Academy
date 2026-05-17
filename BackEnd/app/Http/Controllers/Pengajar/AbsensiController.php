@@ -11,119 +11,171 @@ use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class AbsensiController extends Controller {
-
+class AbsensiController extends Controller
+{
     /**
-     * 1. Menampilkan daftar Kelas + Subjek yang ditugaskan ke Pengajar
+     * 1. Menampilkan daftar kelas + subjek yang ditugaskan ke pengajar.
      */
-    public function index() {
+    public function index()
+    {
         $teacherId = Auth::user()->usersID;
-        $today = date('Y-m-d');
+        $today = now()->toDateString();
 
-        // Ambil data penugasan materi (Master Key)
         $assignments = TeacherAssignment::with('classModel')
-                        ->where('user_id', $teacherId)
-                        ->get();
+            ->where('user_id', $teacherId)
+            ->orderBy('class_id')
+            ->orderBy('subject_name')
+            ->get();
 
-        // Ambil ID kelas yang ada jadwal mengajarnya HARI INI untuk indikator "Jadwal Aktif"
         $jadwalHariIni = Schedule::where('teacher_id', $teacherId)
-                            ->whereDate('date', $today)
-                            ->pluck('class_id')
-                            ->toArray();
+            ->whereDate('date', $today)
+            ->pluck('class_id')
+            ->toArray();
 
-        return view('pengajar.absensi.index', compact('assignments', 'jadwalHariIni'));
+        return view('pengajar.absensi.index', compact(
+            'assignments',
+            'jadwalHariIni'
+        ));
     }
 
     /**
-     * 2. Menampilkan Grid 20 Minggu untuk subjek terpilih
+     * 2. Menampilkan daftar 20 minggu untuk kelas + subjek tertentu.
      */
-    public function listWeeks($class_id, $subject) {
-        $assignments = TeacherAssignment::with('classModel')
-                        ->where('class_id', $class_id)
-                        ->where('subject_name', $subject)
-                        ->firstOrFail();
+    public function listWeeks($class_id, $subject)
+    {
+        $teacherId = Auth::user()->usersID;
 
-        // Cari tahu minggu mana saja yang sudah pernah diabsen
-        $doneWeeks = Attendance::where('class_id', $class_id)
-                    ->where('subject_name', $subject)
-                    ->pluck('week')
-                    ->unique()
-                    ->toArray();
+        $assignment = TeacherAssignment::with('classModel')
+            ->where('user_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->firstOrFail();
+
+        $doneWeeks = Attendance::where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->pluck('week')
+            ->unique()
+            ->values()
+            ->toArray();
 
         return view('pengajar.absensi.weeks', [
-            'class' => $assignments->classModel,
+            'class' => $assignment->classModel,
             'subject' => $subject,
-            'doneWeeks' => $doneWeeks
+            'doneWeeks' => $doneWeeks,
         ]);
     }
 
     /**
-     * 3. Menampilkan Form Absensi (Fungsi yang tadi Error/Hilang)
+     * 3. Menampilkan form input absensi.
      */
-    public function create($class_id, $subject, $week) {
+    public function create($class_id, $subject, $week)
+    {
+        $teacherId = Auth::user()->usersID;
+
+        TeacherAssignment::where('user_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->firstOrFail();
+
         $class = ClassModel::findOrFail($class_id);
 
-        // Ambil daftar siswa yang status pendaftarannya 'active' di kelas ini
         $siswas = Enrollment::where('class_id', $class_id)
-                    ->where('status', 'active')
-                    ->with('user.student')
-                    ->get();
+            ->where('status', 'active')
+            ->with('user.student')
+            ->orderBy('user_id')
+            ->get();
 
-        // Cek apakah data absen untuk minggu ini sudah ada (untuk keperluan edit jika perlu)
-        $existingAttendance = Attendance::where('class_id', $class_id)
-                                ->where('subject_name', $subject)
-                                ->where('week', $week)
-                                ->pluck('status', 'user_id')
-                                ->toArray();
+        $existingAttendance = Attendance::where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->pluck('status', 'user_id')
+            ->toArray();
 
-        return view('pengajar.absensi.show', compact('class', 'subject', 'week', 'siswas', 'existingAttendance'));
+        return view('pengajar.absensi.show', compact(
+            'class',
+            'subject',
+            'week',
+            'siswas',
+            'existingAttendance'
+        ));
     }
 
     /**
-     * 4. Menyimpan data absensi secara massal (Bulk Store)
+     * 4. Menyimpan data absensi secara massal.
      */
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         $request->validate([
             'status' => 'required|array',
-            'class_id' => 'required',
-            'subject_name' => 'required',
-            'week' => 'required'
+            'class_id' => 'required|integer',
+            'subject_name' => 'required|string',
+            'week' => 'required|integer|min:1|max:20',
         ]);
 
         $teacherId = Auth::user()->usersID;
 
+        TeacherAssignment::where('user_id', $teacherId)
+            ->where('class_id', $request->class_id)
+            ->where('subject_name', $request->subject_name)
+            ->firstOrFail();
+
         foreach ($request->status as $siswaID => $statusValue) {
+            if (!in_array($statusValue, ['h', 'i', 'a'])) {
+                continue;
+            }
+
             Attendance::updateOrCreate(
                 [
-                    'user_id'      => $siswaID,
-                    'class_id'     => $request->class_id,
+                    'user_id' => $siswaID,
+                    'class_id' => $request->class_id,
                     'subject_name' => $request->subject_name,
-                    'week'         => $request->week,
+                    'week' => $request->week,
                 ],
                 [
-                    'teacher_id'   => $teacherId,
-                    'status'       => $statusValue,
-                    'date'         => now()->toDateString()
+                    'teacher_id' => $teacherId,
+                    'status' => $statusValue,
+                    'date' => now()->toDateString(),
                 ]
             );
         }
 
-        return redirect()->route('pengajar.absensi.weeks', [$request->class_id, $request->subject_name])
-                         ->with('success', "Absensi Minggu ke-{$request->week} berhasil disimpan!");
+        return redirect()
+            ->route('pengajar.absensi.weeks', [
+                $request->class_id,
+                $request->subject_name,
+            ])
+            ->with('success', "Absensi Minggu ke-{$request->week} berhasil disimpan!");
     }
 
     /**
-     * 5. Menampilkan Rekapitulasi hasil absen yang sudah diisi
+     * 5. Menampilkan rekapitulasi absensi.
      */
-    public function showRecap($class_id, $subject, $week) {
+    public function showRecap($class_id, $subject, $week)
+    {
+        $teacherId = Auth::user()->usersID;
+
+        TeacherAssignment::where('user_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->firstOrFail();
+
         $class = ClassModel::findOrFail($class_id);
 
         $data = Attendance::with('user')
-                ->where('class_id', $class_id)
-                ->where('subject_name', $subject)
-                ->where('week', $week)
-                ->get();
+            ->where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->orderBy('user_id')
+            ->get();
 
-        return view('pengajar.absensi.recap', compact('class', 'subject', 'week', 'data'));
+        return view('pengajar.absensi.recap', compact(
+            'class',
+            'subject',
+            'week',
+            'data'
+        ));
     }
 }

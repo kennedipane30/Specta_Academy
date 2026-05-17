@@ -1,58 +1,357 @@
 @extends('layouts.spekta')
+
 @section('title', 'Rekap Absensi')
 
 @section('content')
-<div class="mb-8 flex items-center justify-between">
-    <div>
-        <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tighter">📊 Rekap Absensi</h2>
-        <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">{{ $subject }} - Minggu {{ $week }}</p>
-    </div>
-    <a href="{{ route('pengajar.absensi.weeks', [$class->class_id, $subject]) }}" class="bg-gray-100 text-gray-500 px-6 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-gray-200 transition">
-        &larr; Kembali
-    </a>
+@php
+    $totalData = $data->count();
+    $hadir = $data->where('status', 'h')->count();
+    $izin = $data->where('status', 'i')->count();
+    $alpa = $data->where('status', 'a')->count();
+@endphp
+
+<div class="abs-page">
+
+    <section class="abs-recap-header">
+        <div>
+            <a href="{{ route('pengajar.absensi.weeks', [$class->class_id, $subject]) }}" class="abs-back">
+                <i class="fa-solid fa-arrow-left"></i>
+                Kembali
+            </a>
+
+            <span>Attendance Recap</span>
+            <h1>Rekap Absensi</h1>
+            <p>{{ $class->program_name }} • {{ $subject }} • Minggu {{ $week }}</p>
+        </div>
+
+        <div class="abs-recap-summary">
+            <div>
+                <strong>{{ $hadir }}</strong>
+                <span>Hadir</span>
+            </div>
+
+            <div>
+                <strong>{{ $izin }}</strong>
+                <span>Izin</span>
+            </div>
+
+            <div>
+                <strong>{{ $alpa }}</strong>
+                <span>Alpa</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="abs-panel">
+        <div class="abs-panel-head">
+            <div>
+                <span>Student Attendance</span>
+                <h2>Daftar Kehadiran Siswa</h2>
+                <p>Total data absensi: {{ $totalData }} siswa.</p>
+            </div>
+        </div>
+
+        <div class="abs-table-wrap">
+            <table class="abs-table">
+                <thead>
+                    <tr>
+                        <th>Nama Siswa</th>
+                        <th>Status Kehadiran</th>
+                        <th>Tanggal Input</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @forelse($data as $row)
+                        <tr>
+                            <td>
+                                <div class="abs-student-name">
+                                    <strong>{{ $row->user->name ?? 'N/A' }}</strong>
+                                    <span>Siswa</span>
+                                </div>
+                            </td>
+
+                            <td>
+                                @if($row->status == 'h')
+                                    <span class="abs-badge hadir">Hadir</span>
+                                @elseif($row->status == 'i')
+                                    <span class="abs-badge izin">Izin</span>
+                                @else
+                                    <span class="abs-badge alpa">Alpa</span>
+                                @endif
+                            </td>
+
+                            <td>
+                                <span class="abs-date-text">
+                                    {{ $row->date ? date('d M Y', strtotime($row->date)) : '-' }}
+                                </span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3">
+                                <div class="abs-empty">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <strong>Data absensi tidak ditemukan.</strong>
+                                    <span>Belum ada data absensi untuk minggu ini.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
 </div>
 
-<div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden">
-    <div class="p-8 border-b border-gray-50 bg-gray-50/50">
-        <h3 class="text-lg font-black text-gray-800 uppercase">{{ $class->program_name }}</h3>
-    </div>
+<style>
+    .abs-page {
+        width: 100%;
+    }
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead>
-                <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b">
-                    <th class="p-6">Nama Siswa</th>
-                    <th class="p-6 text-center">Status Kehadiran</th>
-                    <th class="p-6 text-right">Tanggal Input</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @forelse($data as $row)
-                <tr class="hover:bg-gray-50/50 transition">
-                    <td class="p-6">
-                        <p class="font-black text-gray-800 text-sm uppercase">{{ $row->user->name ?? 'N/A' }}</p>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">Siswa</p>
-                    </td>
-                    <td class="p-6 text-center">
-                        @if($row->status == 'h')
-                            <span class="bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-[9px] font-black uppercase">Hadir</span>
-                        @elseif($row->status == 'i')
-                            <span class="bg-yellow-100 text-yellow-700 px-4 py-1.5 rounded-full text-[9px] font-black uppercase">Izin</span>
-                        @else
-                            <span class="bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-[9px] font-black uppercase">Alpa</span>
-                        @endif
-                    </td>
-                    <td class="p-6 text-right">
-                        <p class="text-xs font-bold text-gray-500">{{ date('d M Y', strtotime($row->date)) }}</p>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="3" class="p-20 text-center text-gray-400 font-bold uppercase text-xs">Data absensi tidak ditemukan.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
+    .abs-recap-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 24px;
+        margin-bottom: 22px;
+        padding: 28px 30px;
+        border-radius: 24px;
+        color: #fff;
+        background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%);
+        box-shadow: 0 18px 38px rgba(134, 0, 24, .18);
+    }
+
+    .abs-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.13);
+        border: 1px solid rgba(255,255,255,.17);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        margin-bottom: 18px;
+    }
+
+    .abs-recap-header span {
+        display: block;
+        color: rgba(255,255,255,.78);
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        margin-bottom: 9px;
+    }
+
+    .abs-recap-header h1 {
+        margin: 0 0 8px;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+    }
+
+    .abs-recap-header p {
+        margin: 0;
+        color: rgba(255,255,255,.86);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .abs-recap-summary {
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .abs-recap-summary div {
+        min-width: 92px;
+        padding: 15px;
+        border-radius: 18px;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.17);
+        text-align: center;
+    }
+
+    .abs-recap-summary strong {
+        display: block;
+        color: #fff;
+        font-size: 25px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .abs-recap-summary span {
+        margin: 8px 0 0;
+        color: rgba(255,255,255,.76);
+        letter-spacing: 0;
+    }
+
+    .abs-panel {
+        background: #fff;
+        border: 1px solid #edf0f4;
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: 0 14px 35px rgba(15,23,42,.05);
+    }
+
+    .abs-panel-head {
+        margin-bottom: 18px;
+    }
+
+    .abs-panel-head span {
+        display: block;
+        color: #d90429;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        margin-bottom: 8px;
+    }
+
+    .abs-panel-head h2 {
+        margin: 0;
+        color: #111827;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .abs-panel-head p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .abs-table-wrap {
+        overflow-x: auto;
+    }
+
+    .abs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .abs-table th {
+        text-align: left;
+        padding: 14px 12px;
+        border-bottom: 1px solid #edf0f4;
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        white-space: nowrap;
+    }
+
+    .abs-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid #edf0f4;
+        vertical-align: middle;
+    }
+
+    .abs-table tbody tr:hover {
+        background: #fff7f9;
+    }
+
+    .abs-student-name strong {
+        display: block;
+        color: #111827;
+        font-size: 13px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .abs-student-name span {
+        display: block;
+        margin-top: 4px;
+        color: #9ca3af;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .abs-badge {
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .abs-badge.hadir {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .abs-badge.izin {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .abs-badge.alpa {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .abs-date-text {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .abs-empty {
+        padding: 42px;
+        text-align: center;
+        background: #f8fafc;
+        border-radius: 18px;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .abs-empty i {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 14px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #ffe8ee;
+        color: #d90429;
+        font-size: 22px;
+    }
+
+    .abs-empty strong {
+        display: block;
+        color: #111827;
+        font-size: 15px;
+        font-weight: 900;
+        margin-bottom: 5px;
+    }
+
+    @media (max-width: 850px) {
+        .abs-recap-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .abs-recap-summary {
+            width: 100%;
+        }
+
+        .abs-recap-summary div {
+            flex: 1;
+        }
+    }
+</style>
 @endsection
