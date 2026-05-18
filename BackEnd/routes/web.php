@@ -42,16 +42,17 @@ Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 // ============================
 // ============================
 // 🔥 1. GROUP ADMIN (Role: Admin)
-// ============================
+// --- GRUP UTAMA ADMIN ---
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
+    // Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Monitoring Nilai
+    // ✨ FITUR REKAP NILAI (Disederhanakan agar menjadi admin.scores.index)
     Route::prefix('scores')->name('scores.')->group(function() {
-        Route::get('/', [TryoutController::class, 'lihatNilai'])->name('index');
-        Route::get('/detail/{class_id}', [TryoutController::class, 'detailNilai'])->name('detail');
-        Route::post('/export-selected', [TryoutController::class, 'exportPdfSelected'])->name('pdf_selected');
+        Route::get('/', [AdminTryoutController::class, 'pilihKelas'])->name('index');
+        Route::get('/class/{class_id}', [AdminTryoutController::class, 'pilihTryout'])->name('pilih_tryout');
+        Route::get('/result/{tryout_id}', [AdminTryoutController::class, 'lihatNilai'])->name('result');
     });
 
     // Manajemen Jadwal & Akun Pengajar
@@ -86,7 +87,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/penugasan-materi', [TeacherAssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('/penugasan-materi/{id}', [TeacherAssignmentController::class, 'destroy'])->name('assignments.destroy');
 
-    // ✨ FITUR MASTER TRYOUT (Grup yang diperbaiki)
+    // FITUR MASTER TRYOUT
     Route::prefix('tryout-master')->name('tryout.')->group(function() {
         Route::get('/', [AdminTryoutController::class, 'index'])->name('index');
         Route::get('/export/{class_id}', [AdminTryoutController::class, 'exportCsv'])->name('export');
@@ -94,13 +95,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::delete('/tryout-destroy/{class_id}', [AdminTryoutController::class, 'destroyPackage'])->name('destroy_package');
     });
 
-    // Manajemen Kelas (Posisinya harus di luar prefix tryout-master)
+    // Manajemen Kelas
     Route::resource('classes', ClassManagementController::class)->only(['index', 'edit', 'update','create','store', 'destroy']);
 
-    // Banner (Posisinya harus di luar prefix tryout-master)
+    // Banner
     Route::resource('banners', BannerController::class)->except(['show']);
 
-}); // Penutup Group Admin yang Benar
+});
 
 // ============================
 // 🔥 2. GROUP PENGAJAR (Role: Pengajar)
