@@ -9,6 +9,7 @@ use App\Models\PracticeQuestion;
 use App\Models\Schedule;
 use App\Models\TeacherAssignment;
 use App\Models\TryoutSubmission;
+use App\Models\ClassModel; // ✨ Pastikan ClassModel diimport
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -58,25 +59,36 @@ class PengajarDashboardController extends Controller
         $materiTerbaru = collect();
         $totalMateri = 0;
 
-        if (Schema::hasTable('materials') && Schema::hasColumn('materials', 'user_id')) {
+        // ✨ MODIFIKASI: Cek tabel pada koneksi yang benar (pgsql_materi)
+        if (Schema::connection('pgsql_materi')->hasTable('materials')) {
             $totalMateri = Material::where('user_id', $teacherId)->count();
 
+            // Ambil data tanpa 'with' karena beda database
             $materiTerbaru = Material::where('user_id', $teacherId)
-                ->with('class')
                 ->latest()
                 ->take(5)
                 ->get();
+
+            // ✨ MANUAL HYDRATION: Ambil data kelas dari database utama
+            $classIds = $materiTerbaru->pluck('class_id')->unique();
+            $classes = ClassModel::whereIn('class_id', $classIds)->get()->keyBy('class_id');
+
+            foreach ($materiTerbaru as $materi) {
+                $materi->setRelation('class', $classes->get($materi->class_id));
+            }
         }
 
         $totalLatihan = $this->safeTeacherCount(
             PracticeQuestion::class,
             'practice_questions',
+            'pgsql_practice', // ✨ Tambahkan koneksi
             $teacherId
         );
 
         $totalTryout = $this->safeTeacherCount(
             TryoutSubmission::class,
             'tryout_submissions',
+            'pgsql_tryout', // ✨ Tambahkan koneksi
             $teacherId
         );
 
@@ -136,17 +148,19 @@ class PengajarDashboardController extends Controller
         ));
     }
 
-    private function safeTeacherCount(string $modelClass, string $tableName, int $teacherId): int
+    // ✨ MODIFIKASI: Mendukung pengecekan lintas koneksi database
+    private function safeTeacherCount(string $modelClass, string $tableName, string $connection, int $teacherId): int
     {
-        if (!class_exists($modelClass) || !Schema::hasTable($tableName)) {
+        if (!class_exists($modelClass) || !Schema::connection($connection)->hasTable($tableName)) {
             return 0;
         }
 
-        if (Schema::hasColumn($tableName, 'user_id')) {
+        // Cek kolom pada koneksi yang spesifik
+        if (Schema::connection($connection)->hasColumn($tableName, 'user_id')) {
             return $modelClass::where('user_id', $teacherId)->count();
         }
 
-        if (Schema::hasColumn($tableName, 'teacher_id')) {
+        if (Schema::connection($connection)->hasColumn($tableName, 'teacher_id')) {
             return $modelClass::where('teacher_id', $teacherId)->count();
         }
 
