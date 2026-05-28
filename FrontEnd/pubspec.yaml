@@ -14,9 +14,11 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   http: ^1.1.0  
+  dio: ^5.4.1
 
   # ✨ MODIFIKASI: Update versi untuk fix error Registrar & Tambah Core agar tidak konflik
   pdfrx: ^1.0.67
+  path_provider: ^2.1.1
 
   # ✨ MODIFIKASI: Pindahkan fl_chart ke sini agar grafik laporan bisa jalan
   fl_chart: ^0.66.0

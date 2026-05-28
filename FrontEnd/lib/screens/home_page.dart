@@ -13,6 +13,7 @@ import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
 
 import 'class_detail_page.dart';
+import 'subject_list_page.dart'; // ✨ MODIFIKASI: Menambahkan import ini
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -94,18 +95,15 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Bagian fungsi fetchBanners yang diperbaiki:
-
   Future<void> fetchBanners() async {
     try {
       setState(() => isLoadingBanner = true);
 
-      // ✨ MODIFIKASI: Tambahkan header Authorization agar tidak ditolak Laravel
       final response = await http.get(
         Uri.parse('$baseUrl/api/banners'),
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer ${widget.token}', // Token sangat penting di sini
+          'Authorization': 'Bearer ${widget.token}',
         },
       );
 
@@ -115,7 +113,6 @@ class _HomePageState extends State<HomePage> {
         final decoded = jsonDecode(response.body);
 
         setState(() {
-          // Sesuaikan dengan struktur JSON dari Laravel Anda
           bannerData = decoded['data'] ?? decoded['banners'] ?? [];
           activeBannerIndex = 0;
         });
@@ -218,6 +215,65 @@ class _HomePageState extends State<HomePage> {
     }
 
     return null;
+  }
+
+  // ✨ MODIFIKASI: FUNGSI LOGIKA BARU UNTUK HANDLE MATERI
+  Future<void> _handleLearningMaterials() async {
+    final student = currentData?['student'];
+    
+    if (student == null || student['class_id'] == null) {
+      _showWarning('Kamu belum terdaftar di kelas mana pun. Daftar kelas dulu ya!');
+      return;
+    }
+
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: primaryRed))
+    );
+
+    try {
+      final classId = int.parse(student['class_id'].toString());
+      final response = await AuthService.getClassContent(classId, widget.token);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup loading
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final String enrollStatus = decoded['enroll_status'] ?? "none";
+
+        if (enrollStatus == 'active') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SubjectListPage(
+                classId: classId,
+                className: decoded['program_name'] ?? "Spekta Class",
+                token: widget.token,
+                subjects: decoded['subjects'] ?? [],
+                materi: decoded['materi'] ?? [],
+              ),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ClassDetailPage(
+                classId: classId,
+                className: decoded['program_name'] ?? "Spekta Class",
+                token: widget.token,
+                userData: currentData!,
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _showWarning("Gagal memuat materi kelas.");
+    }
   }
 
   @override
@@ -862,7 +918,7 @@ class _HomePageState extends State<HomePage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: InkWell(
-                    onTap: _openClassIfEnrolled,
+                    onTap: _openClassIfEnrolled, // ✨ MODIFIKASI: Menggunakan logika baru
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -1247,32 +1303,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openClassIfEnrolled() {
-    if (isEnrolled && currentData?['student'] != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClassDetailPage(
-            classId: int.parse(
-              currentData!['student']['class_id'].toString(),
-            ),
-            className: currentData!['student']['class']?['program_name'] ??
-                'Spekta Class',
-            token: widget.token,
-            userData: currentData!,
-          ),
-        ),
-      );
-    } else {
-      _showWarning(
-        'Kamu belum terdaftar di kelas mana pun. Daftar kelas dulu ya!',
-      );
-    }
+    _handleLearningMaterials(); // 🔥 MODIFIKASI: Langsung arahkan ke fungsi baru
   }
 
   void _handleMenuTap(String title) {
     switch (title) {
       case 'Learning Materials':
-        _openClassIfEnrolled();
+        _handleLearningMaterials(); // 🔥 MODIFIKASI: Gunakan fungsi baru
         break;
 
       case 'Dedicated Tutor':
