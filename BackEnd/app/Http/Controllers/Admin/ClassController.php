@@ -3,73 +3,130 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Kelas;
+use App\Models\ClassModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ClassController extends Controller
 {
     /**
-     * Menampilkan daftar semua kelas (4 kelas Spekta).
+     * --- BAGIAN WEB ADMIN ---
      */
-    public function index() 
+
+    public function index()
     {
-        $classes = Kelas::all(); 
+        $classes = ClassModel::paginate(10);
         return view('admin.classes.index', compact('classes'));
     }
 
-    /**
-     * Membuka halaman edit untuk kelas tertentu.
-     */
-    public function edit($id) 
+    public function create()
     {
-        $class = Kelas::findOrFail($id);
+        return view('admin.classes.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'program_name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'description' => 'required',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $path = $request->file('image')->store('classes', 'public');
+
+        ClassModel::create([
+            'program_name' => $request->program_name,
+            'price'        => (int) $request->price, // Pastikan tersimpan sebagai integer
+            'description'  => $request->description,
+            'image'        => $path,
+            'image_url'    => asset('storage/' . $path),
+        ]);
+
+        return redirect()->route('admin.classes.index')->with('success', 'Program baru berhasil dipublikasikan.');
+    }
+
+    public function edit($id)
+    {
+        $class = ClassModel::findOrFail($id);
         return view('admin.classes.edit', compact('class'));
     }
 
-    /**
-     * Memproses pembaruan data Harga, Deskripsi, dan Banner Gambar.
-     */
-    public function update(Request $request, $id) 
+    public function update(Request $request, $id)
     {
-        // 1. Validasi Input
+        $class = ClassModel::findOrFail($id);
+
         $request->validate([
-            'price' => 'required|numeric|min:0',
-            'description' => 'required|string',
-            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Max 2MB
+            'program_name' => 'required|string|max:255',
+            'price'        => 'required|numeric|min:0',
+            'description'  => 'required',
+            'image'        => 'nullable|image|max:2048',
         ]);
 
-        $class = Kelas::findOrFail($id);
-        
-        // Simpan data teks ke array
-        $updateData = [
-            'price' => $request->price,
-            'description' => $request->description,
-        ];
+        $data = $request->only(['program_name', 'price', 'description']);
+        $data['price'] = (int) $request->price; // Paksa jadi integer
 
-        // 2. Logika Upload Gambar (Jika Admin mengupload file baru)
-        if ($request->hasFile('banner_image')) {
-            
-            // Hapus gambar lama dari folder storage jika ada (agar hemat ruang)
-            if ($class->image_url) {
-                // Mengambil nama file dari URL lama
-                $oldPath = str_replace(asset('storage/'), 'public/', $class->image_url);
-                Storage::delete($oldPath);
+        if ($request->hasFile('image')) {
+            if ($class->image) {
+                Storage::disk('public')->delete($class->image);
             }
-
-            // Simpan gambar baru ke folder: storage/app/public/class_banners
-            $path = $request->file('banner_image')->store('public/class_banners');
             
-            // Dapatkan URL publik lengkap (Contoh: http://domain.com/storage/class_banners/namafile.jpg)
-            // asset() memastikan Flutter bisa langsung menampilkan gambar tersebut
-            $updateData['image_url'] = asset(Storage::url($path));
+            $path = $request->file('image')->store('classes', 'public');
+            $data['image'] = $path;
+            $data['image_url'] = asset('storage/' . $path);
         }
 
-        // 3. Eksekusi Update ke Database
-        $class->update($updateData);
+        $class->update($data);
 
-        // Kembali ke daftar kelas dengan pesan sukses
-        return redirect()->route('admin.classes.index')
-                         ->with('success', 'Konten Kelas ' . $class->name . ' Berhasil Diperbarui!');
+        return redirect()->route('admin.classes.index')->with('success', 'Konfigurasi program berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $class = ClassModel::findOrFail($id);
+        if ($class->image) {
+            Storage::disk('public')->delete($class->image);
+        }
+        $class->delete();
+
+        return back()->with('success', 'Program telah dihapus dari katalog.');
+    }
+
+
+    /**
+     * --- BAGIAN API UNTUK FLUTTER ---
+     * Tambahkan fungsi ini agar Flutter mendapatkan data yang benar
+     */
+
+    // API Untuk Daftar Kelas di Home Flutter
+    public function apiIndex()
+    {
+        $classes = ClassModel::all();
+        return response()->json([
+            'status' => 'success',
+            'data' => $classes
+        ]);
+    }
+
+    // API Untuk Detail Kelas di Flutter (Mencegah Rp 0)
+    public function apiShow($id)
+    {
+        $class = ClassModel::find($id);
+
+        if (!$class) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'class_id'     => $class->class_id,
+                'program_name' => $class->program_name,
+                'price'        => (int) $class->price, // Kirim sebagai integer agar tidak 0
+                'description'  => $class->description,
+                'image_url'    => $class->image_url,
+            ]
+        ]);
     }
 }

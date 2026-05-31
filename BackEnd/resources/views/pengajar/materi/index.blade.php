@@ -1,476 +1,561 @@
 @extends('layouts.spekta')
 
-@section('title', 'Materi Saya')
-@section('subtitle', 'Kelola materi pembelajaran Spekta Academy')
+@section('title', 'Materi Saya - Spekta Academy')
 
 @section('content')
-@php
-    $assignmentCollection = collect($assignments);
-    $totalAssignment = $assignmentCollection->count();
-    $totalProgram = $assignmentCollection->pluck('class_id')->unique()->count();
-    $totalSubject = $assignmentCollection->pluck('subject_name')->unique()->count();
-@endphp
-
-<div class="tm-page">
+<div class="tm-container">
 
     {{-- HERO --}}
-    <section class="tm-hero">
-        <div>
-            <span>Teacher Material Center</span>
-            <h1>Materi Pembelajaran</h1>
-            <p>Pilih program dan mata pelajaran yang Anda ampu untuk mengelola modul materi selama 20 minggu pembelajaran.</p>
+    <section class="tm-hero-header">
+        <div class="tm-hero-content">
+
+            <span class="tm-pre-title">
+                TEACHER PORTAL
+            </span>
+
+            <h1 class="tm-main-title">
+                Materi Pembelajaran
+            </h1>
+
+            <p class="tm-sub-title">
+                Pilih kelas yang Anda ampu untuk mengelola modul materi mingguan.
+            </p>
+
         </div>
 
-        <div class="tm-hero-summary">
-            <div>
-                <strong>{{ $totalProgram }}</strong>
-                <span>Program</span>
+        <div class="tm-stat-box">
+            <div class="tm-stat-value">
+                {{ count($assignments) }}
             </div>
 
-            <div>
-                <strong>{{ $totalSubject }}</strong>
-                <span>Mapel</span>
-            </div>
-
-            <div>
-                <strong>{{ $totalAssignment }}</strong>
-                <span>Penugasan</span>
+            <div class="tm-stat-label">
+                Total Penugasan
             </div>
         </div>
     </section>
 
-    @if(session('success'))
-        <div class="tm-alert success">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
 
-    @if($errors->any())
-        <div class="tm-alert error">
-            <i class="fa-solid fa-circle-exclamation"></i>
+
+    {{-- CARD --}}
+    <section class="tm-card">
+
+        <div class="tm-card-head">
+
             <div>
-                <strong>Data belum valid.</strong>
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    @endif
+                <h2>
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    Daftar Bidang Ajar
+                </h2>
 
-    {{-- MAIN PANEL --}}
-    <section class="tm-panel">
-        <div class="tm-panel-head">
-            <div>
-                <span>Teaching Assignment</span>
-                <h2>Daftar Materi yang Dapat Dikelola</h2>
-                <p>Setiap baris mewakili program kelas dan bidang ajar yang menjadi tanggung jawab Anda.</p>
+                <small>
+                    Semua kelas yang sedang Anda ampu
+                </small>
             </div>
+
         </div>
 
-        @if($assignments->isEmpty())
-            <div class="tm-empty">
-                <i class="fa-solid fa-book-open"></i>
-                <strong>Belum ada penugasan materi.</strong>
-                <span>Admin perlu menugaskan Anda pada program dan mata pelajaran tertentu terlebih dahulu.</span>
-            </div>
-        @else
-            <div class="tm-table-wrap">
-                <table class="tm-table">
-                    <thead>
-                        <tr>
-                            <th>Program Kelas</th>
-                            <th>Bidang Ajar</th>
-                            <th>Struktur Materi</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
 
-                    <tbody>
-                        @foreach($assignments as $assign)
-                            <tr>
-                                <td>
-                                    <div class="tm-program">
-                                        <div>
-                                            {{ strtoupper(substr($assign->classModel->program_name ?? 'P', 0, 1)) }}
-                                        </div>
+        <div class="tm-table-responsive">
 
-                                        <section>
-                                            <strong>{{ $assign->classModel->program_name ?? 'Program Kelas' }}</strong>
-                                            <span>ID Kelas: {{ $assign->class_id }}</span>
-                                        </section>
-                                    </div>
-                                </td>
+            <table class="tm-table">
 
-                                <td>
-                                    <span class="tm-subject">
-                                        {{ $assign->subject_name }}
-                                    </span>
-                                </td>
+                <thead>
 
-                                <td>
-                                    <div class="tm-structure">
-                                        <strong>20 Minggu</strong>
-                                        <span>Modul pembelajaran bertahap</span>
-                                    </div>
-                                </td>
+                <tr>
+                    <th>Program Kelas</th>
+                    <th>Mata Pelajaran</th>
+                    <th>Durasi</th>
+                    <th class="text-end">Aksi</th>
+                </tr>
 
-                                <td>
-                                    <span class="tm-status">
-                                        <i class="fa-solid fa-circle"></i>
-                                        Aktif
-                                    </span>
-                                </td>
+                </thead>
 
-                                <td>
-                                    <a href="{{ route('pengajar.materi.pilih', [$assign->class_id, $assign->subject_name]) }}" class="tm-action">
-                                        Kelola Materi
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+
+                <tbody>
+
+                @forelse($assignments as $assign)
+
+                    <tr>
+
+                        <td>
+
+                            <div class="tm-class-info">
+
+                                <strong>
+                                    {{ $assign->classModel->program_name ?? 'Kelas' }}
+                                </strong>
+
+                                <small>
+                                    ID #{{ $assign->class_id }}
+                                </small>
+
+                            </div>
+
+                        </td>
+
+
+
+                        <td>
+
+                            <span class="tm-subject-pill">
+
+                                {{ $assign->subject_name }}
+
+                            </span>
+
+                        </td>
+
+
+
+                        <td>
+
+                            <span class="tm-muted">
+
+                                20 Minggu
+
+                            </span>
+
+                        </td>
+
+
+
+                        <td class="text-end">
+
+                            <a
+                                href="{{ route('pengajar.materi.pilih', [$assign->class_id, $assign->subject_name]) }}"
+                                class="tm-btn-manage"
+                            >
+
+                                Kelola Materi
+
+                                <i class="fa-solid fa-arrow-right"></i>
+
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                @empty
+
+                    <tr>
+
+                        <td colspan="4">
+
+                            <div class="tm-empty">
+
+                                Belum ada penugasan mengajar.
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
     </section>
 
 </div>
 
+
+
+
 <style>
-    .tm-page {
-        width: 100%;
-    }
 
-    .tm-hero {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%);
-        border-radius: 24px;
-        padding: 30px 34px;
-        color: #fff;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 24px;
-        margin-bottom: 22px;
-        box-shadow: 0 18px 38px rgba(134, 0, 24, .20);
-    }
+:root{
 
-    .tm-hero::after {
-        content: "";
-        width: 280px;
-        height: 280px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.09);
-        position: absolute;
-        right: -95px;
-        top: -130px;
-    }
+--red:#d90429;
+--dark:#0f172a;
+--gray:#64748b;
+--light:#f8fafc;
 
-    .tm-hero > div {
-        position: relative;
-        z-index: 2;
-    }
+}
 
-    .tm-hero span,
-    .tm-panel-head span {
-        display: block;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .16em;
-        text-transform: uppercase;
-    }
 
-    .tm-hero > div:first-child > span {
-        color: rgba(255,255,255,.78);
-        margin-bottom: 10px;
-    }
+.tm-container{
 
-    .tm-hero h1 {
-        margin: 0 0 8px;
-        color: #fff;
-        font-size: 31px;
-        font-weight: 900;
-        letter-spacing: -0.04em;
-        text-transform: uppercase;
-    }
+padding:24px;
+font-family:'Plus Jakarta Sans',sans-serif;
 
-    .tm-hero p {
-        margin: 0;
-        color: rgba(255,255,255,.86);
-        font-size: 13px;
-        font-weight: 600;
-        line-height: 1.6;
-        max-width: 760px;
-    }
+}
 
-    .tm-hero-summary {
-        display: flex;
-        gap: 12px;
-        flex-shrink: 0;
-    }
 
-    .tm-hero-summary div {
-        min-width: 112px;
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.16);
-        backdrop-filter: blur(12px);
-        text-align: center;
-    }
 
-    .tm-hero-summary strong {
-        display: block;
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
-    }
+/* ======================
+HERO
+====================== */
 
-    .tm-hero-summary span {
-        margin-top: 7px;
-        color: rgba(255,255,255,.75);
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0;
-    }
+.tm-hero-header{
 
-    .tm-alert {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 14px 16px;
-        border-radius: 15px;
-        margin-bottom: 18px;
-        font-size: 12px;
-        font-weight: 800;
-    }
+background:
+linear-gradient(
+135deg,
+#b40018,
+#52040d
+);
 
-    .tm-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
+padding:40px;
 
-    .tm-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
+border-radius:24px;
 
-    .tm-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
+display:flex;
 
-    .tm-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
-        padding: 22px;
-        box-shadow: 0 14px 35px rgba(15,23,42,.05);
-    }
+justify-content:space-between;
 
-    .tm-panel-head {
-        margin-bottom: 18px;
-    }
+align-items:center;
 
-    .tm-panel-head span {
-        color: #d90429;
-        margin-bottom: 8px;
-    }
+margin-bottom:28px;
 
-    .tm-panel-head h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-    }
+color:white;
 
-    .tm-panel-head p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-    }
+gap:20px;
 
-    .tm-table-wrap {
-        overflow-x: auto;
-    }
+flex-wrap:wrap;
 
-    .tm-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+}
 
-    .tm-table th {
-        text-align: left;
-        padding: 14px 12px;
-        border-bottom: 1px solid #edf0f4;
-        color: #6b7280;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        white-space: nowrap;
-    }
 
-    .tm-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid #edf0f4;
-        vertical-align: middle;
-    }
+.tm-pre-title{
 
-    .tm-table tbody tr:hover {
-        background: #fff7f9;
-    }
+font-size:12px;
 
-    .tm-program {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+font-weight:800;
 
-    .tm-program > div {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 14px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 14px;
-        font-weight: 900;
-        flex-shrink: 0;
-    }
+letter-spacing:2px;
 
-    .tm-program strong {
-        display: block;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
+opacity:.8;
 
-    .tm-program span {
-        display: block;
-        margin-top: 4px;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 700;
-    }
+}
 
-    .tm-subject {
-        display: inline-flex;
-        align-items: center;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        background: #fff1f2;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
 
-    .tm-structure strong {
-        display: block;
-        color: #111827;
-        font-size: 12px;
-        font-weight: 900;
-    }
+.tm-main-title{
 
-    .tm-structure span {
-        display: block;
-        margin-top: 4px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
+font-size:34px;
 
-    .tm-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        background: #dcfce7;
-        color: #16a34a;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
+font-weight:900;
 
-    .tm-status i {
-        font-size: 7px;
-    }
+margin:10px 0;
 
-    .tm-action {
-        height: 38px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 0 14px;
-        border-radius: 12px;
-        background: #d90429;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
+}
 
-    .tm-empty {
-        padding: 42px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
-    }
 
-    .tm-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
-    }
+.tm-sub-title{
 
-    .tm-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
+opacity:.9;
 
-    @media (max-width: 900px) {
-        .tm-hero {
-            flex-direction: column;
-            align-items: flex-start;
-        }
+max-width:500px;
 
-        .tm-hero-summary {
-            width: 100%;
-        }
+}
 
-        .tm-hero-summary div {
-            flex: 1;
-        }
-    }
+
+
+.tm-stat-box{
+
+background:rgba(255,255,255,.15);
+
+padding:20px;
+
+border-radius:18px;
+
+min-width:120px;
+
+text-align:center;
+
+backdrop-filter:blur(10px);
+
+}
+
+
+.tm-stat-value{
+
+font-size:32px;
+
+font-weight:900;
+
+}
+
+
+.tm-stat-label{
+
+font-size:12px;
+
+opacity:.8;
+
+}
+
+
+
+/* ===================
+CARD
+=================== */
+
+.tm-card{
+
+background:white;
+
+padding:28px;
+
+border-radius:24px;
+
+box-shadow:
+0 10px 30px rgba(0,0,0,.05);
+
+}
+
+
+.tm-card-head{
+
+margin-bottom:20px;
+
+}
+
+
+.tm-card-head h2{
+
+margin:0;
+
+font-size:22px;
+
+font-weight:800;
+
+}
+
+
+.tm-card-head small{
+
+color:var(--gray);
+
+}
+
+
+
+/* ==================
+TABLE
+================== */
+
+.tm-table{
+
+width:100%;
+
+border-collapse:collapse;
+
+}
+
+
+.tm-table th{
+
+padding:18px;
+
+font-size:12px;
+
+font-weight:800;
+
+color:#94a3b8;
+
+text-transform:uppercase;
+
+border-bottom:
+2px solid #f1f5f9;
+
+}
+
+
+.tm-table td{
+
+padding:22px 18px;
+
+border-bottom:
+1px solid #f1f5f9;
+
+vertical-align:center;
+
+}
+
+
+.tm-table tr:hover{
+
+background:#fafafa;
+
+}
+
+
+
+/* ===================
+CLASS INFO
+=================== */
+
+.tm-class-info strong{
+
+display:block;
+
+font-size:15px;
+
+font-weight:800;
+
+}
+
+
+.tm-class-info small{
+
+color:#94a3b8;
+
+}
+
+
+
+/* ===================
+SUBJECT
+=================== */
+
+.tm-subject-pill{
+
+background:#fff1f2;
+
+padding:
+
+8px
+14px;
+
+border-radius:12px;
+
+color:var(--red);
+
+font-size:12px;
+
+font-weight:800;
+
+display:inline-block;
+
+}
+
+
+
+/* ===================
+BUTTON
+=================== */
+
+.tm-btn-manage{
+
+background:var(--dark);
+
+padding:
+
+12px
+20px;
+
+border-radius:14px;
+
+text-decoration:none;
+
+color:white;
+
+font-size:13px;
+
+font-weight:700;
+
+display:inline-flex;
+
+gap:8px;
+
+align-items:center;
+
+transition:.3s;
+
+white-space:nowrap;
+
+}
+
+
+.tm-btn-manage:hover{
+
+background:var(--red);
+
+transform:
+translateY(-2px);
+
+box-shadow:
+0 10px 20px rgba(
+217,
+4,
+41,
+.25
+);
+
+}
+
+
+
+.tm-muted{
+
+color:var(--gray);
+
+font-weight:600;
+
+}
+
+
+
+.text-end{
+
+text-align:right;
+
+}
+
+
+
+/* ==================
+EMPTY
+================== */
+
+.tm-empty{
+
+padding:30px;
+
+text-align:center;
+
+color:#94a3b8;
+
+}
+
+
+
+/* ==================
+RESPONSIVE
+================== */
+
+@media(max-width:768px){
+
+.tm-hero-header{
+
+flex-direction:column;
+
+align-items:flex-start;
+
+}
+
+
+.tm-table{
+
+min-width:700px;
+
+}
+
+
+.tm-table-responsive{
+
+overflow-x:auto;
+
+}
+
+}
+
 </style>
+
 @endsection

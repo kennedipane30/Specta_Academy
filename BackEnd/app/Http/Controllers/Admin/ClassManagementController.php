@@ -11,7 +11,8 @@ class ClassManagementController extends Controller
 {
     public function index()
     {
-        $classes = ClassModel::all();
+        // Menggunakan paginate agar sinkron dengan template Blade (.cp-pagination)
+        $classes = ClassModel::paginate(10);
         return view('admin.classes.index', compact('classes'));
     }
 
@@ -22,36 +23,25 @@ class ClassManagementController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi Ketat
         $request->validate([
             'program_name' => 'required|string|max:255',
-            'price'        => 'required|numeric',
-            'description'  => 'required|string',
-            'banner_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048'
+            'price' => 'required|numeric',
+            'description' => 'required',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // 2. Inisialisasi Model Baru
-        $class = new ClassModel();
-        $class->program_name = $request->program_name;
-        $class->price = $request->price;
-        $class->description = $request->description;
+        // Upload ke folder public/storage/classes
+        $path = $request->file('image')->store('classes', 'public');
 
-        // 3. Proses Gambar
-        if ($request->hasFile('banner_image')) {
-            // Simpan ke storage/app/public/class_banners
-            $path = $request->file('banner_image')->store('class_banners', 'public');
-            
-            // Hasilkan link: http://127.0.0.1:8000/storage/class_banners/xxx.jpg
-            $fullUrl = asset('storage/' . $path);
-            
-            $class->image_url = $fullUrl;
-            $class->image = $fullUrl; // Mengisi kolom wajib agar tidak error NULL
-        }
+        ClassModel::create([
+            'program_name' => $request->program_name,
+            'price' => $request->price,
+            'description' => $request->description,
+            'image' => $path,
+            'image_url' => asset('storage/' . $path), // Untuk kebutuhan Flutter
+        ]);
 
-        // 4. Eksekusi Simpan
-        $class->save();
-
-        return redirect()->route('admin.classes.index')->with('success', 'Program Baru Berhasil Dipublikasikan!');
+        return redirect()->route('admin.classes.index')->with('success', 'Program kelas berhasil ditambahkan ke katalog.');
     }
 
     public function edit($id)
@@ -66,45 +56,37 @@ class ClassManagementController extends Controller
 
         $request->validate([
             'program_name' => 'required|string|max:255',
-            'price'        => 'required|numeric',
-            'description'  => 'required|string',
-            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048'
+            'price' => 'required|numeric',
+            'description' => 'required',
+            'image' => 'nullable|image|max:2048',
         ]);
 
-        $class->program_name = $request->program_name;
-        $class->price = $request->price;
-        $class->description = $request->description;
+        $data = $request->only(['program_name', 'price', 'description']);
 
-        if ($request->hasFile('banner_image')) {
-            // Hapus file lama jika ada agar tidak penuh
-            if ($class->image_url) {
-                $oldFile = basename($class->image_url);
-                Storage::disk('public')->delete('class_banners/' . $oldFile);
+        if ($request->hasFile('image')) {
+            // Hapus gambar lama
+            if ($class->image) {
+                Storage::disk('public')->delete($class->image);
             }
-
-            $path = $request->file('banner_image')->store('class_banners', 'public');
-            $fullUrl = asset('storage/' . $path);
             
-            $class->image_url = $fullUrl;
-            $class->image = $fullUrl; 
+            $path = $request->file('image')->store('classes', 'public');
+            $data['image'] = $path;
+            $data['image_url'] = asset('storage/' . $path);
         }
 
-        $class->save();
+        $class->update($data);
 
-        return redirect()->route('admin.classes.index')->with('success', 'Data Program Berhasil Diperbarui!');
+        return redirect()->route('admin.classes.index')->with('success', 'Informasi program berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
         $class = ClassModel::findOrFail($id);
-
-        if ($class->image_url) {
-            $file = basename($class->image_url);
-            Storage::disk('public')->delete('class_banners/' . $file);
+        if ($class->image) {
+            Storage::disk('public')->delete($class->image);
         }
-
         $class->delete();
 
-        return redirect()->route('admin.classes.index')->with('success', 'Program Berhasil Dihapus!');
+        return back()->with('success', 'Program berhasil dihapus.');
     }
 }

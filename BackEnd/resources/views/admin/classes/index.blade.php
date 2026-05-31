@@ -1,13 +1,11 @@
 @extends('layouts.spekta')
 
-@section('title', 'Manajemen Program - Spekta Academy')
-@section('subtitle', 'Katalog program kelas Spekta Academy')
+@section('title', 'Katalog Program - Spekta Academy')
 
 @section('content')
 @php
     $classCollection = method_exists($classes, 'getCollection') ? $classes->getCollection() : collect($classes);
     $totalProgram = method_exists($classes, 'total') ? $classes->total() : $classCollection->count();
-    $totalInvestasi = $classCollection->sum('price');
     $avgPrice = $classCollection->count() > 0 ? round($classCollection->avg('price')) : 0;
 @endphp
 
@@ -15,657 +13,188 @@
 
     <section class="cp-header">
         <div>
-            <span>Spekta Control Center</span>
-            <h1>Katalog Program</h1>
-            <p>
-                Manajemen pusat untuk konten aplikasi mobile. Perubahan harga, deskripsi, dan visual akan disinkronkan ke aplikasi siswa.
-            </p>
+            <span class="cp-tagline">SPEKTA CONTROL CENTER</span>
+            <h1 class="cp-title">Katalog Program</h1>
+            <p class="cp-subtitle">Manajemen pusat konten. Monitor harga, deskripsi, dan penugasan pengajar dalam satu dashboard.</p>
         </div>
-
         <a href="{{ route('admin.classes.create') }}" class="cp-primary-btn">
             <i class="fa-solid fa-plus"></i>
-            Tambah Program Baru
+            <span>Tambah Program</span>
         </a>
     </section>
 
-    @if(session('success'))
-        <div class="cp-alert success">
-            <i class="fa-solid fa-circle-check"></i>
-            <div>
-                <strong>Berhasil!</strong>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
-    @endif
-
+    <!-- Stats Section -->
     <section class="cp-stats">
-        <div class="cp-stat-card">
-            <div class="cp-stat-icon">
-                <i class="fa-solid fa-layer-group"></i>
+        <div class="cp-stat-card border-red">
+            <div class="cp-stat-content">
+                <p>Total Program</p>
+                <h2>{{ number_format($totalProgram) }}</h2>
             </div>
-            <p>Total Program</p>
-            <h2>{{ number_format($totalProgram) }}</h2>
-            <div class="cp-stat-meta">
-                <span class="info">Live</span>
-                <small>di aplikasi</small>
-            </div>
+            <div class="cp-stat-icon"><i class="fa-solid fa-layer-group"></i></div>
         </div>
-
-        <div class="cp-stat-card">
-            <div class="cp-stat-icon">
-                <i class="fa-solid fa-money-bill-wave"></i>
+        <div class="cp-stat-card border-green">
+            <div class="cp-stat-content">
+                <p>Rata-rata Harga</p>
+                <h2>Rp {{ number_format($avgPrice, 0, ',', '.') }}</h2>
             </div>
-            <p>Rata-rata Harga</p>
-            <h2>Rp {{ number_format($avgPrice, 0, ',', '.') }}</h2>
-            <div class="cp-stat-meta">
-                <span class="success">Investasi</span>
-                <small>per program</small>
-            </div>
+            <div class="cp-stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
         </div>
-
-        <div class="cp-stat-card">
-            <div class="cp-stat-icon">
-                <i class="fa-solid fa-image"></i>
+        <div class="cp-stat-card border-blue">
+            <div class="cp-stat-content">
+                <p>Pengajar Aktif</p>
+                <h2>{{ \App\Models\User::where('role_id', 2)->count() }}</h2>
             </div>
-            <p>Visual Program</p>
-            <h2>{{ number_format($classCollection->filter(fn($item) => !empty($item->image_url) || !empty($item->image))->count()) }}</h2>
-            <div class="cp-stat-meta">
-                <span class="info">Banner</span>
-                <small>tersedia</small>
-            </div>
+            <div class="cp-stat-icon"><i class="fa-solid fa-user-tie"></i></div>
         </div>
-
-        <div class="cp-stat-card">
-            <div class="cp-stat-icon">
-                <i class="fa-solid fa-signal"></i>
+        <div class="cp-stat-card border-purple">
+            <div class="cp-stat-content">
+                <p>Status Sinkron</p>
+                <h2>Terhubung</h2>
             </div>
-            <p>Status Sinkron</p>
-            <h2>Aktif</h2>
-            <div class="cp-stat-meta">
-                <span class="success">Realtime</span>
-                <small>mobile app</small>
-            </div>
+            <div class="cp-stat-icon"><i class="fa-solid fa-signal"></i></div>
         </div>
     </section>
 
     <section class="cp-main-panel">
         <div class="cp-panel-heading">
-            <div>
-                <h2>Daftar Program Kelas</h2>
-                <p>Kelola nama program, harga, deskripsi, dan visual yang tampil di aplikasi.</p>
-            </div>
-
-            <a href="{{ route('admin.classes.create') }}" class="cp-small-btn">
-                <i class="fa-solid fa-plus"></i>
-                Tambah
-            </a>
+            <h2>Daftar Program & Penugasan</h2>
+            <p>Klik ikon buku untuk mengatur mata pelajaran dan menunjuk guru pengajar.</p>
         </div>
 
-        <div class="cp-program-grid">
+        <div class="cp-program-list">
             @forelse($classes as $item)
                 @php
-                    $imageUrl = $item->image_url ?? null;
-
-                    if (!$imageUrl && !empty($item->image)) {
-                        if (\Illuminate\Support\Str::startsWith($item->image, ['http://', 'https://'])) {
-                            $imageUrl = $item->image;
-                        } elseif (\Illuminate\Support\Str::startsWith($item->image, ['storage/'])) {
-                            $imageUrl = asset($item->image);
-                        } else {
-                            $imageUrl = asset('storage/' . ltrim($item->image, '/'));
-                        }
-                    } elseif ($imageUrl && !\Illuminate\Support\Str::startsWith($imageUrl, ['http://', 'https://'])) {
-                        $imageUrl = asset($imageUrl);
-                    }
+                    $imageUrl = $item->image_url ?? asset('storage/' . $item->image);
+                    $assignments = \DB::table('teacher_assignments')
+                        ->join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
+                        ->where('class_id', $item->class_id)
+                        ->select('subject_name', 'users.name as teacher_name')
+                        ->get();
                 @endphp
 
-                <article class="cp-program-card">
-                    <div class="cp-program-image">
-                        @if($imageUrl)
-                            <img src="{{ $imageUrl }}" alt="{{ $item->program_name }}">
-                        @else
-                            <div class="cp-no-image">
-                                <i class="fa-solid fa-image"></i>
-                                <span>No Image</span>
-                            </div>
-                        @endif
-
-                        <div class="cp-price-badge">
-                            <span>Investasi</span>
-                            <strong>Rp {{ number_format($item->price ?? 0, 0, ',', '.') }}</strong>
-                        </div>
-
-                        <div class="cp-live-badge">
-                            <i class="fa-solid fa-signal"></i>
-                            Live on App
-                        </div>
+                <div class="cp-card">
+                    <div class="cp-card-img">
+                        <img src="{{ $imageUrl }}" alt="">
+                        <div class="cp-badge-price">Rp {{ number_format($item->price, 0, ',', '.') }}</div>
                     </div>
+                    
+                    <div class="cp-card-content">
+                        <div class="cp-card-header">
+                            <span class="cp-id">ID: #{{ $item->class_id }}</span>
+                            <h3 class="cp-class-name">{{ $item->program_name }}</h3>
+                            <p class="cp-class-desc">{{ $item->description }}</p>
+                        </div>
 
-                    <div class="cp-program-body">
-                        <div class="cp-title-row">
-                            <div>
-                                <span>ID: {{ $item->class_id }}</span>
-                                <h3>{{ $item->program_name }}</h3>
+                        <div class="cp-curriculum-section">
+                            <div class="cp-section-label">
+                                <i class="fa-solid fa-book-bookmark"></i> KURIKULUM & PENGAJAR
+                            </div>
+                            <div class="cp-subject-grid">
+                                @forelse($assignments as $assign)
+                                    <div class="cp-subject-item">
+                                        <div class="cp-subject-name">{{ $assign->subject_name }}</div>
+                                        <div class="cp-teacher-name">
+                                            <i class="fa-solid fa-chalkboard-user"></i> {{ $assign->teacher_name }}
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="cp-empty-subject">Belum ada mata pelajaran & pengajar.</div>
+                                @endforelse
                             </div>
                         </div>
 
-                        <div class="cp-info-box">
-                            <span>Informasi Program</span>
-                            <p>
-                                {{ $item->description
-                                    ? \Illuminate\Support\Str::limit($item->description, 150)
-                                    : 'Deskripsi program belum dikonfigurasi. Harap lengkapi detail untuk menarik minat siswa mendaftar.'
-                                }}
-                            </p>
-                        </div>
-
-                        <div class="cp-actions">
-                            <a href="{{ route('admin.classes.edit', $item->class_id) }}" class="edit">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                Konfigurasi
+                        <div class="cp-card-actions">
+                            <a href="{{ route('admin.classes.edit', $item->class_id) }}" class="btn-main dark">
+                                <i class="fa-solid fa-sliders"></i> Konfigurasi
                             </a>
-
-                            <form action="{{ route('admin.classes.destroy', $item->class_id) }}" method="POST" onsubmit="return confirm('Hapus program ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="delete">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </form>
+                            <div class="btn-group">
+                                <a href="{{ route('admin.assignments.index', ['class_id' => $item->class_id]) }}" class="btn-icon blue" title="Atur Kurikulum">
+                                    <i class="fa-solid fa-book"></i>
+                                </a>
+                                <form action="{{ route('admin.classes.destroy', $item->class_id) }}" method="POST" class="d-inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn-icon red" onclick="return confirm('Hapus program?')">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </article>
-            @empty
-                <div class="cp-empty">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <strong>Belum ada program kelas.</strong>
-                    <span>Tambahkan program pertama agar tampil pada aplikasi mobile siswa.</span>
-                    <a href="{{ route('admin.classes.create') }}">Tambah Program</a>
                 </div>
+            @empty
+                <div class="cp-empty-state">Belum ada program kelas yang dibuat.</div>
             @endforelse
         </div>
-
-        @if(method_exists($classes, 'hasPages') && $classes->hasPages())
-            <div class="cp-pagination">
-                {{ $classes->links() }}
-            </div>
-        @endif
     </section>
-
 </div>
 
 <style>
-    .cp-page { width: 100%; }
+    /* Global Reset & Page */
+    .cp-page { padding: 10px; font-family: 'Plus Jakarta Sans', sans-serif; }
+    
+    /* Header */
+    .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .cp-tagline { color: #d90429; font-weight: 800; font-size: 11px; letter-spacing: 1.5px; }
+    .cp-title { font-size: 32px; font-weight: 900; color: #111827; margin: 5px 0; }
+    .cp-subtitle { color: #6b7280; font-size: 14px; font-weight: 500; }
+    .cp-primary-btn { background: #d90429; color: white; padding: 12px 24px; border-radius: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(217, 4, 41, 0.2); transition: 0.3s; }
+    .cp-primary-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(217, 4, 41, 0.3); }
 
-    .cp-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 22px;
-        margin-bottom: 22px;
-    }
+    /* Stats Section */
+    .cp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 35px; }
+    .cp-stat-card { background: white; padding: 25px; border-radius: 22px; border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
+    .cp-stat-card.border-red { border-bottom: 4px solid #d90429; }
+    .cp-stat-card.border-green { border-bottom: 4px solid #10b981; }
+    .cp-stat-card.border-blue { border-bottom: 4px solid #3b82f6; }
+    .cp-stat-card.border-purple { border-bottom: 4px solid #8b5cf6; }
+    .cp-stat-content p { color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+    .cp-stat-content h2 { font-size: 24px; font-weight: 800; color: #1e293b; margin: 0; }
+    .cp-stat-icon { font-size: 24px; color: #cbd5e1; }
 
-    .cp-header span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
+    /* Main Panel & Class Card */
+    .cp-main-panel { background: white; padding: 30px; border-radius: 30px; border: 1px solid #f1f5f9; }
+    .cp-panel-heading h2 { font-size: 20px; font-weight: 800; color: #111827; margin: 0; }
+    .cp-panel-heading p { color: #64748b; font-size: 14px; margin: 5px 0 25px; }
 
-    .cp-header h1 {
-        margin: 0 0 8px;
-        color: #111827;
-        font-size: 30px;
-        font-weight: 900;
-        letter-spacing: -0.04em;
-        text-transform: uppercase;
-    }
+    .cp-card { display: flex; background: #fff; border-radius: 28px; border: 1px solid #f1f5f9; padding: 18px; gap: 25px; margin-bottom: 25px; transition: 0.3s; }
+    .cp-card:hover { border-color: #d9042940; box-shadow: 0 20px 40px rgba(0,0,0,0.03); }
 
-    .cp-header p {
-        max-width: 850px;
-        margin: 0;
-        color: #6b7280;
-        font-size: 13px;
-        font-weight: 600;
-        line-height: 1.6;
-    }
+    .cp-card-img { width: 300px; height: 200px; border-radius: 22px; overflow: hidden; position: relative; flex-shrink: 0; }
+    .cp-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cp-badge-price { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 12px; font-weight: 800; color: #d90429; font-size: 13px; backdrop-filter: blur(5px); }
 
-    .cp-primary-btn {
-        min-height: 46px;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: #d90429;
-        color: #fff;
-        border-radius: 12px;
-        padding: 0 18px;
-        font-size: 12px;
-        font-weight: 900;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .22);
-        white-space: nowrap;
-    }
+    .cp-card-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .cp-id { font-size: 11px; font-weight: 800; color: #94a3b8; }
+    .cp-class-name { font-size: 24px; font-weight: 900; color: #111827; margin: 2px 0 8px; }
+    .cp-class-desc { font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 15px; }
 
-    .cp-alert {
-        border-radius: 16px;
-        padding: 15px 17px;
-        margin-bottom: 18px;
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        font-size: 13px;
-        font-weight: 800;
-    }
+    /* Curriculum Section */
+    .cp-curriculum-section { background: #f8fafc; border-radius: 20px; padding: 15px 20px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
+    .cp-section-label { font-size: 11px; font-weight: 800; color: #d90429; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .cp-subject-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .cp-subject-item { background: white; padding: 10px 15px; border-radius: 14px; border: 1px solid #edf2f7; }
+    .cp-subject-name { font-size: 13px; font-weight: 800; color: #1e293b; }
+    .cp-teacher-name { font-size: 11px; color: #64748b; font-weight: 600; margin-top: 3px; }
+    .cp-teacher-name i { color: #d90429; margin-right: 4px; }
+    .cp-empty-subject { font-size: 12px; color: #94a3b8; font-style: italic; }
 
-    .cp-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
+    /* Actions */
+    .cp-card-actions { display: flex; gap: 10px; align-items: center; }
+    .btn-main { flex-grow: 1; height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 15px; font-weight: 700; font-size: 13px; text-decoration: none; transition: 0.3s; }
+    .btn-main.dark { background: #111827; color: white; }
+    .btn-main:hover { opacity: 0.9; transform: translateY(-2px); }
 
-    .cp-alert strong {
-        display: block;
-        margin-bottom: 3px;
-    }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; font-size: 16px; border: none; cursor: pointer; transition: 0.3s; }
+    .btn-icon.blue { background: #eff6ff; color: #3b82f6; }
+    .btn-icon.red { background: #fef2f2; color: #ef4444; }
+    .btn-icon:hover { transform: translateY(-2px); filter: brightness(0.95); }
 
-    .cp-stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: 22px;
-    }
-
-    .cp-stat-card,
-    .cp-main-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        box-shadow: 0 14px 35px rgba(15, 23, 42, .05);
-    }
-
-    .cp-stat-card {
-        border-radius: 20px;
-        padding: 22px;
-        min-height: 150px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .cp-stat-icon {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        background: #ffe8ee;
-        color: #d90429;
-        border-radius: 15px;
-        margin-bottom: 16px;
-    }
-
-    .cp-stat-card p {
-        margin: 0 0 8px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
-
-    .cp-stat-card h2 {
-        margin: 0 0 14px;
-        color: #0f172a;
-        font-size: 25px;
-        font-weight: 900;
-        line-height: 1;
-        letter-spacing: -0.04em;
-    }
-
-    .cp-stat-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .cp-stat-meta span {
-        height: 23px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 8px;
-        padding: 0 9px;
-        font-size: 10px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .cp-stat-meta .success {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .cp-stat-meta .info {
-        background: #dbeafe;
-        color: #2563eb;
-    }
-
-    .cp-stat-meta small {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .cp-main-panel {
-        border-radius: 22px;
-        padding: 22px;
-    }
-
-    .cp-panel-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        margin-bottom: 20px;
-    }
-
-    .cp-panel-heading h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-    }
-
-    .cp-panel-heading p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .cp-small-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 38px;
-        padding: 0 13px;
-        border-radius: 11px;
-        background: #fff1f2;
-        color: #d90429;
-        font-size: 11px;
-        font-weight: 900;
-    }
-
-    .cp-program-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 22px;
-    }
-
-    .cp-program-card {
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        gap: 18px;
-        padding: 14px;
-        border: 1px solid #edf0f4;
-        border-radius: 24px;
-        background: #fff;
-        transition: .2s ease;
-    }
-
-    .cp-program-card:hover {
-        border-color: #fecdd3;
-        box-shadow: 0 16px 35px rgba(15, 23, 42, .07);
-        transform: translateY(-2px);
-    }
-
-    .cp-program-image {
-        height: 255px;
-        border-radius: 20px;
-        overflow: hidden;
-        position: relative;
-        background: #f8fafc;
-    }
-
-    .cp-program-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        transition: .45s ease;
-    }
-
-    .cp-program-card:hover .cp-program-image img {
-        transform: scale(1.06);
-    }
-
-    .cp-no-image {
-        width: 100%;
-        height: 100%;
-        display: grid;
-        place-items: center;
-        color: #9ca3af;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .cp-no-image i {
-        display: block;
-        color: #d90429;
-        font-size: 30px;
-        margin-bottom: 8px;
-    }
-
-    .cp-price-badge {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        padding: 10px 13px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, .92);
-        backdrop-filter: blur(8px);
-        box-shadow: 0 12px 22px rgba(15, 23, 42, .12);
-    }
-
-    .cp-price-badge span {
-        display: block;
-        color: #6b7280;
-        font-size: 8px;
-        font-weight: 900;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        margin-bottom: 3px;
-    }
-
-    .cp-price-badge strong {
-        color: #111827;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .cp-live-badge {
-        position: absolute;
-        left: 16px;
-        bottom: 16px;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        height: 30px;
-        padding: 0 12px;
-        border-radius: 999px;
-        background: rgba(217, 4, 41, .92);
-        color: #fff;
-        font-size: 9px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-    }
-
-    .cp-program-body {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-width: 0;
-        padding: 10px 6px;
-    }
-
-    .cp-title-row span {
-        display: block;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 900;
-        margin-bottom: 8px;
-    }
-
-    .cp-title-row h3 {
-        margin: 0;
-        color: #111827;
-        font-size: 20px;
-        font-weight: 900;
-        text-transform: uppercase;
-        line-height: 1.2;
-        letter-spacing: -0.03em;
-    }
-
-    .cp-info-box {
-        margin: 18px 0;
-        padding: 16px;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid #edf0f4;
-    }
-
-    .cp-info-box span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        margin-bottom: 8px;
-    }
-
-    .cp-info-box p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.55;
-    }
-
-    .cp-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .cp-actions form {
-        margin: 0;
-    }
-
-    .cp-actions a,
-    .cp-actions button {
-        height: 40px;
-        border: none;
-        border-radius: 13px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 0 14px;
-        font-size: 11px;
-        font-weight: 900;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    .cp-actions .edit {
-        flex: 1;
-        background: #111827;
-        color: #fff;
-    }
-
-    .cp-actions .delete {
-        width: 42px;
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .cp-empty {
-        grid-column: 1 / -1;
-        padding: 45px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .cp-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
-    }
-
-    .cp-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
-
-    .cp-empty span {
-        display: block;
-        margin-bottom: 16px;
-    }
-
-    .cp-empty a {
-        display: inline-flex;
-        align-items: center;
-        height: 40px;
-        padding: 0 15px;
-        border-radius: 12px;
-        background: #d90429;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-    }
-
-    .cp-pagination {
-        margin-top: 18px;
-    }
-
-    @media (max-width: 1450px) {
-        .cp-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .cp-program-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @media (max-width: 900px) {
-        .cp-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .cp-stats {
-            grid-template-columns: 1fr;
-        }
-
-        .cp-program-card {
-            grid-template-columns: 1fr;
-        }
+    @media (max-width: 1024px) {
+        .cp-stats { grid-template-columns: repeat(2, 1fr); }
+        .cp-card { flex-direction: column; }
+        .cp-card-img { width: 100%; height: 220px; }
+        .cp-subject-grid { grid-template-columns: 1fr; }
     }
 </style>
 @endsection

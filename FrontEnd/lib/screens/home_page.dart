@@ -12,8 +12,11 @@ import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
 
+// ✨ TAMBAHAN: Import halaman tryout
+import 'fitur/tryout_page.dart';
+
 import 'class_detail_page.dart';
-import 'subject_list_page.dart'; // ✨ MODIFIKASI: Menambahkan import ini
+import 'subject_list_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -44,6 +47,9 @@ class _HomePageState extends State<HomePage> {
   Map? currentData;
 
   List bannerData = [];
+  // ✨ TAMBAHAN: State untuk data tryout
+  List tryoutData = [];
+  bool isLoadingTryout = false;
 
   bool isEnrolled = false;
   bool isLoadingBanner = false;
@@ -75,6 +81,7 @@ class _HomePageState extends State<HomePage> {
     await Future.wait([
       refreshUserData(),
       fetchBanners(),
+      fetchTryouts(), // ✨ TAMBAHAN
     ]);
   }
 
@@ -126,6 +133,38 @@ class _HomePageState extends State<HomePage> {
     } finally {
       if (mounted) {
         setState(() => isLoadingBanner = false);
+      }
+    }
+  }
+
+  // ✨ TAMBAHAN: Fetch data tryout dari API
+  Future<void> fetchTryouts() async {
+    try {
+      setState(() => isLoadingTryout = true);
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/tryouts'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          tryoutData = decoded['data'] ?? decoded['tryouts'] ?? [];
+        });
+      } else {
+        debugPrint('TRYOUT API ERROR: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('TRYOUT ERROR: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoadingTryout = false);
       }
     }
   }
@@ -217,19 +256,20 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
-  // ✨ MODIFIKASI: FUNGSI LOGIKA BARU UNTUK HANDLE MATERI
   Future<void> _handleLearningMaterials() async {
     final student = currentData?['student'];
-    
+
     if (student == null || student['class_id'] == null) {
       _showWarning('Kamu belum terdaftar di kelas mana pun. Daftar kelas dulu ya!');
       return;
     }
 
     showDialog(
-      context: context, 
-      barrierDismissible: false, 
-      builder: (_) => const Center(child: CircularProgressIndicator(color: primaryRed))
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: primaryRed),
+      ),
     );
 
     try {
@@ -237,7 +277,7 @@ class _HomePageState extends State<HomePage> {
       final response = await AuthService.getClassContent(classId, widget.token);
 
       if (!mounted) return;
-      Navigator.pop(context); // Tutup loading
+      Navigator.pop(context);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -276,6 +316,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // ✨ TAMBAHAN: Handler navigasi ke halaman Tryout
+  void _handleTryout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (c) => TryoutPage(
+          token: widget.token,
+          userData: currentData ?? widget.userData,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -305,11 +358,25 @@ class _HomePageState extends State<HomePage> {
                     _sectionTitle(
                       title: 'Lanjutkan Belajar',
                       action: 'Lihat Semua',
+                      onTap: _handleLearningMaterials,
                     ),
 
                     const SizedBox(height: 14),
 
                     _buildContinueLearningCard(),
+
+                    const SizedBox(height: 28),
+
+                    // ✨ TAMBAHAN: Seksi Tryout
+                    _sectionTitle(
+                      title: 'Tryout',
+                      action: 'Lihat Semua',
+                      onTap: _handleTryout,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    _buildTryoutSection(),
 
                     const SizedBox(height: 28),
 
@@ -689,6 +756,7 @@ class _HomePageState extends State<HomePage> {
   Widget _sectionTitle({
     required String title,
     required String action,
+    VoidCallback? onTap,
   }) {
     return Row(
       children: [
@@ -704,21 +772,28 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
 
-        Text(
-          action,
-          style: const TextStyle(
-            color: primaryRed,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
+        GestureDetector(
+          onTap: onTap,
+          child: Row(
+            children: [
+              Text(
+                action,
+                style: const TextStyle(
+                  color: primaryRed,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(width: 5),
+
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: primaryRed,
+                size: 13,
+              ),
+            ],
           ),
-        ),
-
-        const SizedBox(width: 5),
-
-        const Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: primaryRed,
-          size: 13,
         ),
       ],
     );
@@ -918,7 +993,7 @@ class _HomePageState extends State<HomePage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: InkWell(
-                    onTap: _openClassIfEnrolled, // ✨ MODIFIKASI: Menggunakan logika baru
+                    onTap: _openClassIfEnrolled,
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -948,6 +1023,264 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ✨ TAMBAHAN: Widget seksi Tryout di Home
+  Widget _buildTryoutSection() {
+    // Loading state
+    if (isLoadingTryout) {
+      return Container(
+        height: 130,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(23),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: primaryRed),
+        ),
+      );
+    }
+
+    // Jika tidak ada data tryout, tampilkan card kosong yang tetap bisa diklik
+    if (tryoutData.isEmpty) {
+      return _buildTryoutEmptyCard();
+    }
+
+    // Tampilkan tryout pertama yang tersedia sebagai highlight
+    final firstTryout = tryoutData.first as Map;
+    return _buildTryoutHighlightCard(firstTryout);
+  }
+
+  Widget _buildTryoutEmptyCard() {
+    return GestureDetector(
+      onTap: _handleTryout,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(23),
+          border: Border.all(color: const Color(0xFFFFE0E3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 54,
+              width: 54,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEEE),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.assignment_outlined,
+                color: primaryRed,
+                size: 28,
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tryout Belum Tersedia',
+                    style: TextStyle(
+                      color: textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pantau terus untuk jadwal tryout berikutnya',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: primaryRed,
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTryoutHighlightCard(Map tryout) {
+    final title = tryout['title'] ?? tryout['name'] ?? 'Tryout UTBK';
+    final description = tryout['description'] ?? tryout['subtitle'] ?? 'Simulasi ujian lengkap';
+    final totalSoal = tryout['total_questions'] ?? tryout['soal_count'] ?? '-';
+    final duration = tryout['duration'] ?? tryout['waktu'] ?? '-';
+    final isFree = (tryout['is_free'] == true || tryout['price'] == 0);
+    final status = tryout['status'] ?? 'open';
+
+    return GestureDetector(
+      onTap: _handleTryout,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(23),
+          border: Border.all(color: const Color(0xFFFFCDD2), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: primaryRed.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                // Badge label
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: primaryRed,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 12),
+                      SizedBox(width: 4),
+                      Text(
+                        'Mulai Sekarang',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Spacer(),
+
+                // Badge gratis / berbayar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isFree
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    isFree ? 'Gratis' : 'Berbayar',
+                    style: TextStyle(
+                      color: isFree
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFF57C00),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: textDark,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              description,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                _tryoutMetaChip(Icons.quiz_outlined, '$totalSoal soal'),
+                const SizedBox(width: 8),
+                _tryoutMetaChip(Icons.timer_outlined, '$duration menit'),
+                const Spacer(),
+                // Tombol mulai
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: primaryRed,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const Text(
+                    'Mulai',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tryoutMetaChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.grey.shade700),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMainMenuGrid() {
     final menus = [
       {
@@ -955,8 +1288,8 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Materi lengkap',
         'icon': Icons.menu_book_rounded,
         'gradient': [
-          Color(0xFFFF512F),
-          Color(0xFFFF8A65),
+          const Color(0xFFFF512F),
+          const Color(0xFFFF8A65),
         ],
       },
       {
@@ -964,8 +1297,17 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Tutor pilihan',
         'icon': Icons.person_rounded,
         'gradient': [
-          Color(0xFF5B45F1),
-          Color(0xFF8B7CF6),
+          const Color(0xFF5B45F1),
+          const Color(0xFF8B7CF6),
+        ],
+      },
+      {
+        'title': 'Tryout',
+        'subtitle': 'Simulasi ujian',
+        'icon': Icons.assignment_outlined,
+        'gradient': [
+          const Color(0xFFD32F2F),
+          const Color(0xFFEF9A9A),
         ],
       },
       {
@@ -973,8 +1315,8 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Bank soal',
         'icon': Icons.history_edu_rounded,
         'gradient': [
-          Color(0xFF00A873),
-          Color(0xFF4ADE80),
+          const Color(0xFF00A873),
+          const Color(0xFF4ADE80),
         ],
       },
       {
@@ -982,8 +1324,8 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Tentang kami',
         'icon': Icons.info_outline_rounded,
         'gradient': [
-          Color(0xFF1769E8),
-          Color(0xFF60A5FA),
+          const Color(0xFF1769E8),
+          const Color(0xFF60A5FA),
         ],
       },
       {
@@ -991,8 +1333,8 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Konsultasi',
         'icon': Icons.chat_rounded,
         'gradient': [
-          Color(0xFFE0003D),
-          Color(0xFFFF4D6D),
+          const Color(0xFFE0003D),
+          const Color(0xFFFF4D6D),
         ],
       },
       {
@@ -1000,8 +1342,8 @@ class _HomePageState extends State<HomePage> {
         'subtitle': 'Pusat bantuan',
         'icon': Icons.support_agent_rounded,
         'gradient': [
-          Color(0xFF475569),
-          Color(0xFF94A3B8),
+          const Color(0xFF475569),
+          const Color(0xFF94A3B8),
         ],
       },
     ];
@@ -1303,13 +1645,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openClassIfEnrolled() {
-    _handleLearningMaterials(); // 🔥 MODIFIKASI: Langsung arahkan ke fungsi baru
+    _handleLearningMaterials();
   }
 
   void _handleMenuTap(String title) {
     switch (title) {
       case 'Learning Materials':
-        _handleLearningMaterials(); // 🔥 MODIFIKASI: Gunakan fungsi baru
+        _handleLearningMaterials();
         break;
 
       case 'Dedicated Tutor':
@@ -1322,6 +1664,11 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         );
+        break;
+
+      // ✨ TAMBAHAN: Case Tryout di switch
+      case 'Tryout':
+        _handleTryout();
         break;
 
       case 'Question Bank':

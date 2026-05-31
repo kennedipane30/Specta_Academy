@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Pengajar;
 
 use App\Http\Controllers\Controller;
@@ -9,73 +10,154 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
-class MateriController extends Controller {
-
+class MateriController extends Controller
+{
+    /**
+     * Tampilkan daftar kelas yang ditugaskan ke pengajar
+     */
     public function index()
     {
         $assignments = TeacherAssignment::with('classModel')
-                        ->where('user_id', Auth::user()->usersID)
-                        ->get();
+            ->where('user_id', Auth::user()->usersID)
+            ->get();
 
         return view('pengajar.materi.index', compact('assignments'));
     }
 
-    public function pilihMateri($class_id, $subject_name) {
+    /**
+     * Tampilkan materi mingguan untuk mapel tertentu
+     */
+    public function pilihMateri($class_id, $subject_name)
+    {
         $access = TeacherAssignment::where('user_id', Auth::user()->usersID)
-                    ->where('class_id', $class_id)
-                    ->where('subject_name', $subject_name)
-                    ->first();
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject_name)
+            ->first();
 
         if (!$access) abort(403, 'Akses Ditolak!');
 
         $class = ClassModel::findOrFail($class_id);
 
         $materis = Material::where('class_id', $class_id)
-                    ->where('material_name', $subject_name)
-                    ->orderBy('week', 'asc')->get();
+            ->where('material_name', $subject_name)
+            ->orderBy('week', 'asc')->get();
 
         return view('pengajar.materi.pilih', compact('class', 'materis', 'subject_name'));
     }
 
-    public function store(Request $request, $class_id) {
+    /**
+     * Simpan atau Perbarui materi (Otomatis sinkron ke Go Service)
+     */
+    public function store(Request $request, $class_id)
+    {
         $request->validate([
-            'title'         => 'required',
-            'material_name' => 'required',
-            'file_pdf'      => 'required|mimes:pdf|max:10240',
+            'title'         => 'required|string|max:255',
+            'material_name' => 'required|string',
+            'file_pdf'      => 'nullable|mimes:pdf|max:10240',
             'week'          => 'required|integer|min:1|max:20',
         ]);
 
-        $path = $request->file('file_pdf')->store('materi', 'public');
+        $existingMaterial = Material::where('class_id', $class_id)
+            ->where('material_name', $request->material_name)
+            ->where('week', $request->week)
+            ->first();
 
-        $material = Material::create([
-            'class_id'      => $class_id,
+        $dataLocal = [
+            'class_id'      => (int)$class_id,
             'user_id'       => Auth::user()->usersID,
             'title'         => $request->title,
             'material_name' => $request->material_name,
-            'week'          => $request->week,
-            'file_path'     => $path,
-        ]);
+            'week'          => (int)$request->week,
+        ];
 
-        // ✨ MODIFIKASI: Kirim ke Port 9001 (Materi Service)
-        try {
-            $response = Http::post(env('GO_MATERI_URL') . '/materials/sync', [
-                'material_id'   => $material->material_id,
-                'class_id'      => (int)$class_id,
-                'user_id'       => (int)Auth::user()->usersID,
-                'title'         => $request->title,
-                'material_name' => $request->material_name,
-                'week'          => (int)$request->week,
-                'file_path'     => $path,
-            ]);
-
-            if (!$response->successful()) {
-                Log::error("Materi Service (9001) gagal merespon: " . $response->body());
+        if ($request->hasFile('file_pdf')) {
+            if ($existingMaterial && $existingMaterial->file_path) {
+                Storage::disk('public')->delete($existingMaterial->file_path);
             }
-        } catch (\Exception $e) {
-            Log::error("Koneksi ke Materi Service (9001) terputus.");
+            $path = $request->file('file_pdf')->store('materi', 'public');
+            $dataLocal['file_path'] = $path;
         }
 
-        return back()->with('success', 'Materi berhasil diunggah dan disinkronkan ke Service Materi!');
+        try {
+            if ($existingMaterial) {
+                $existingMaterial->update($dataLocal);
+                $this->syncToGo($existingMaterial, 'PUT');
+                return back()->with('success', 'Materi Minggu ' . $request->week . ' berhasil diperbarui!');
+            } else {
+                if (!$request->hasFile('file_pdf')) {
+                    return back()->with('error', 'File PDF wajib diunggah untuk materi baru.');
+                }
+
+                $newMaterial = Material::create($dataLocal);
+                $response = $this->syncToGo($newMaterial, 'POST');
+
+                // Jika gagal karena ID sudah ada di Go, paksa timpa dengan PUT
+                if (!$response->successful()) {
+                    Log::warning("Go POST duplicate, fallback to PUT for ID: " . $newMaterial->material_id);
+                    $this->syncToGo($newMaterial, 'PUT');
+                }
+
+                return back()->with('success', 'Materi baru berhasil ditambahkan!');
+            }
+        } catch (\Exception $e) {
+            Log::error("Sync Error: " . $e->getMessage());
+            return back()->with('success', 'Tersimpan lokal (Server Go Offline).');
+        }
+    }
+
+    /**
+     * Helper untuk sinkronisasi ke Microservice Go
+     */
+    private function syncToGo($material, $method)
+    {
+        $url = env('GO_MATERI_URL') . '/api/materials';
+        
+        $payload = [
+            'material_id'   => (int) $material->material_id,
+            'class_id'      => (int) $material->class_id,
+            'subject_name'  => $material->material_name, 
+            'title'         => $material->title,
+            'week'          => (int) $material->week,
+            'file_path'     => $material->file_path,
+        ];
+
+        if ($method === 'PUT') {
+            return Http::put($url . '/' . $material->material_id, $payload);
+        }
+
+        return Http::post($url, $payload);
+    }
+
+    /**
+     * Hapus Materi secara permanen
+     */
+    public function destroy($id)
+    {
+        $material = Material::find($id);
+
+        if (!$material) {
+            return back()->with('error', 'Materi tidak ditemukan.');
+        }
+
+        try {
+            if ($material->file_path) {
+                Storage::disk('public')->delete($material->file_path);
+            }
+
+            $response = Http::delete(env('GO_MATERI_URL') . "/api/materials/" . $id);
+
+            if (!$response->successful()) {
+                Log::error("Go Delete Error: " . $response->body());
+            }
+
+            $material->delete();
+            return back()->with('success', 'Materi telah dihapus secara permanen.');
+        } catch (\Exception $e) {
+            Log::error("Koneksi Go Gagal saat hapus: " . $e->getMessage());
+            $material->delete();
+            return back()->with('success', 'Materi dihapus (Server Go Offline).');
+        }
     }
 }

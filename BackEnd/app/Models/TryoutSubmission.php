@@ -6,28 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class TryoutSubmission extends Model
 {
+    protected $primaryKey = 'submission_id';
     protected $table = 'tryout_submissions';
-
-    protected $connection = 'pgsql_tryout';
-
-
+    
     protected $fillable = [
-        'user_id', 'class_id', 'subject_name',
-        'question', 'question_image',
-        'option_a', 'option_a_image',
-        'option_b', 'option_b_image',
-        'option_c', 'option_c_image',
-        'option_d', 'option_d_image',
-        'correct_answer', 'explanation'
+        'tryout_id', 'user_id', 'answers', 'score', 'duration_seconds', 'submitted_at'
     ];
-
-    // Relasi ke User (Pengajar) menggunakan usersID
-    public function user() {
-        return $this->belongsTo(User::class, 'user_id', 'usersID');
+    
+    protected $casts = [
+        'answers' => 'array',
+        'submitted_at' => 'datetime'
+    ];
+    
+    public function tryout()
+    {
+        return $this->belongsTo(Tryout::class, 'tryout_id', 'tryout_id');
     }
-
-    // Relasi ke Kelas
-    public function classModel() {
-        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'usersID');
     }
 }

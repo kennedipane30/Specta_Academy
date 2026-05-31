@@ -8,7 +8,14 @@ import 'announcement_detail_page.dart';
 class ReportPage extends StatefulWidget {
   final String token;
   final Map userData;
-  const ReportPage({super.key, required this.token, required this.userData});
+  final VoidCallback onGoToHome; // ✨ Tambahkan callback untuk balik ke Home
+
+  const ReportPage({
+    super.key, 
+    required this.token, 
+    required this.userData,
+    required this.onGoToHome, // ✨ Wajib diisi
+  });
 
   @override
   State<ReportPage> createState() => _ReportPageState();
@@ -73,10 +80,17 @@ class _ReportPageState extends State<ReportPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFBFBFB),
       appBar: AppBar(
-        title: const Text("Learning Report", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 18)),
+        // ✨ TAMPILAN HEADER YANG LEBIH PENDEK & RAPI
+        title: const Text("Learning Report", 
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 18)),
         backgroundColor: spektaRed,
         elevation: 0,
         centerTitle: true,
+        // ✨ TAMBAHKAN IKON PANAH KEMBALI
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+          onPressed: widget.onGoToHome, // Balik ke Tab Home
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _loadAllData,
@@ -173,11 +187,9 @@ class _ReportPageState extends State<ReportPage> {
             ),
           ),
           borderData: FlBorderData(show: false),
-          // Sumbu X dinamis mengikuti panjang data (max 7)
           minX: 0, maxX: (dynamicScores.length - 1).toDouble(), minY: 0, maxY: 100,
           lineBarsData: [
             LineChartBarData(
-              // KONVERSI LIST NILAI KE TITIK GRAFIK (SPOT)
               spots: dynamicScores.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
               isCurved: true, color: spektaRed, barWidth: 5, isStrokeCapRound: true,
               dotData: const FlDotData(show: true),

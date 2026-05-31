@@ -31,6 +31,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   int basePrice = 0;
   String description = "";
   List materi = [];
+  List subjects = []; 
   List tryouts = [];
   List practiceQuestions = [];
   bool isLoading = true;
@@ -56,22 +57,22 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   }
 
   Future<void> _fetchDetail() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+    
     try {
-      // ✨ MEMANGGIL GATEWAY LARAVEL (PORT 8000)
       final response = await AuthService.getClassContent(widget.classId, widget.token);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            // ✨ SINKRONISASI KEY SESUAI AUTHCONTROLLER LARAVEL
             status = decoded['enroll_status'] ?? "none";
             materi = decoded['materi'] ?? [];
+            subjects = decoded['subjects'] ?? []; 
             tryouts = decoded['tryouts'] ?? [];
             practiceQuestions = decoded['practice_questions'] ?? [];
-            description = decoded['description'] ?? "Materi belajar tersedia untuk kelas ini.";
-            
-            // Mengambil harga dari database utama (via gateway)
+            description = decoded['description'] ?? "Materi belajar lengkap tersedia untuk membantu kelulusanmu.";
             basePrice = int.tryParse(decoded['price']?.toString() ?? "0") ?? 0;
             isLoading = false;
           });
@@ -80,9 +81,38 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
         if (mounted) setState(() => isLoading = false);
       }
     } catch (e) {
-      debugPrint("Error Fetching Content: $e");
+      debugPrint("Error Fetching Detail: $e");
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  // --- FUNGSI ALERT MAAF (JIKA SUDAH PUNYA KELAS LAIN) ---
+  void _showAlreadyEnrolledDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        title: const Text("Pendaftaran Gagal", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.red, size: 64),
+            const SizedBox(height: 20),
+            Text(
+              "Maaf, Anda sudah terdaftar dalam program kelas lain. Setiap siswa hanya diperbolehkan memiliki 1 program aktif di Spekta Academy.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("MENGERTI", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+          )
+        ],
+      ),
+    );
   }
 
   void _navigateToMaterials() {
@@ -90,6 +120,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       classId: widget.classId,
       className: widget.className,
       token: widget.token,
+      subjects: subjects, 
       materi: materi,
     )));
   }
@@ -109,7 +140,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     if (tryouts.isEmpty) {
       _showWarningSnack("Tryout belum tersedia.");
     } else {
-       // Mengambil paket tryout pertama jika ada
        Navigator.push(context, MaterialPageRoute(builder: (context) => TryoutDetailPage(
          tryoutData: tryouts[0], 
          token: widget.token
@@ -126,63 +156,71 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   @override
   Widget build(BuildContext context) {
     bool isActive = status == 'active';
-    dynamic enrolledId = widget.userData['student']?['class_id'];
-    bool isAnotherClassActive = enrolledId != null && enrolledId.toString() != widget.classId.toString();
+    
+    // Logika deteksi kelas lain
+    dynamic enrolledClassId = widget.userData['active_class_id'] ?? widget.userData['student']?['class_id'];
+    bool hasOtherClassActive = enrolledClassId != null && enrolledClassId.toString() != widget.classId.toString();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: spektaRed))
-          : CustomScrollView(
-              slivers: [
-                _buildSliverAppBar(),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatusBadge(isAnotherClassActive),
-                        const SizedBox(height: 12),
-                        Text(widget.className, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 24),
-                        const Text("Tentang Kelas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Text(description, style: TextStyle(fontSize: 15, color: Colors.grey[700], height: 1.5)),
-                        const SizedBox(height: 30),
-                        const Text("Kurikulum & Fitur Belajar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 15),
-                        _buildFeatureButton(
-                          icon: Icons.menu_book_rounded,
-                          title: "Materi Video & PDF",
-                          subtitle: "${materi.length} Modul tersedia",
-                          onTap: _navigateToMaterials,
-                          isLocked: !isActive,
-                        ),
-                        _buildFeatureButton(
-                          icon: Icons.quiz_rounded,
-                          title: "Latihan Soal Mingguan",
-                          subtitle: practiceQuestions.isEmpty ? "Belum tersedia" : "Asah kemampuanmu setiap minggu",
-                          onTap: _navigateToPractice,
-                          isLocked: !isActive,
-                          color: Colors.blue,
-                        ),
-                        _buildFeatureButton(
-                          icon: Icons.assignment_rounded,
-                          title: "Simulasi Tryout",
-                          subtitle: tryouts.isEmpty ? "Belum tersedia" : "${tryouts.length} Paket Tryout",
-                          onTap: _navigateToTryouts,
-                          isLocked: !isActive,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(height: 100),
-                      ],
+          : RefreshIndicator(
+              onRefresh: _fetchDetail,
+              child: CustomScrollView(
+                slivers: [
+                  _buildSliverAppBar(),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStatusBadge(hasOtherClassActive),
+                          const SizedBox(height: 12),
+                          Text(widget.className, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 24),
+                          const Text("Tentang Kelas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text(description, style: TextStyle(fontSize: 15, color: Colors.grey[700], height: 1.5)),
+                          const SizedBox(height: 30),
+                          const Text("Kurikulum & Fitur Belajar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 15),
+                          _buildFeatureButton(
+                            icon: Icons.menu_book_rounded,
+                            title: "Materi Video & PDF",
+                            subtitle: subjects.isEmpty ? "Materi segera hadir" : "${subjects.length} Mata Pelajaran tersedia",
+                            onTap: _navigateToMaterials,
+                            isLocked: !isActive,
+                          ),
+                          _buildFeatureButton(
+                            icon: Icons.quiz_rounded,
+                            title: "Latihan Soal Mingguan",
+                            subtitle: practiceQuestions.isEmpty ? "Belum tersedia" : "Asah kemampuanmu setiap minggu",
+                            onTap: _navigateToPractice,
+                            isLocked: !isActive,
+                            color: Colors.blue,
+                          ),
+                          _buildFeatureButton(
+                            icon: Icons.assignment_rounded,
+                            title: "Simulasi Tryout",
+                            subtitle: tryouts.isEmpty ? "Belum tersedia" : "${tryouts.length} Paket Tryout",
+                            onTap: _navigateToTryouts,
+                            isLocked: !isActive,
+                            color: Colors.orange,
+                          ),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-      bottomNavigationBar: (isActive || isAnotherClassActive) ? null : _buildPremiumBottomBar(),
+      // Tampilkan bottom bar hanya jika belum aktif (untuk daftar) atau sudah aktif (untuk tombol belajar)
+      bottomNavigationBar: isActive 
+          ? _buildSuccessBottomBar() 
+          : _buildPremiumBottomBar(hasOtherClassActive),
     );
   }
 
@@ -196,9 +234,9 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  Widget _buildStatusBadge(bool isLocked) {
-    String txt = status == 'active' ? "TERDAFTAR" : (isLocked ? "TERKUNCI" : "TERSEDIA");
-    Color col = status == 'active' ? Colors.green : (isLocked ? Colors.orange : Colors.blue);
+  Widget _buildStatusBadge(bool isOtherClassActive) {
+    String txt = status == 'active' ? "TERDAFTAR" : (isOtherClassActive ? "KELAS LAIN AKTIF" : "TERSEDIA");
+    Color col = status == 'active' ? Colors.green : (isOtherClassActive ? Colors.orange : Colors.blue);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: col)),
@@ -231,10 +269,58 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  Widget _buildPremiumBottomBar() {
+  Widget _buildSuccessBottomBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
-      child: SafeArea(child: Row(children: [Expanded(child: Text(currency.format(basePrice), style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))), ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentConfirmationPage(classId: widget.classId, className: widget.className, basePrice: basePrice, token: widget.token, userData: widget.userData))), style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))])));
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: _navigateToMaterials, 
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green, 
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size(double.infinity, 50)
+          ), 
+          child: const Text("MULAI BELAJAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumBottomBar(bool isOtherClassActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(child: Text(currency.format(basePrice), style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))),
+            ElevatedButton(
+              onPressed: () async {
+                // ✨ LOGIKA PENCEGATAN: Jika sudah punya kelas lain, tampilkan dialog penolakan
+                if (isOtherClassActive) {
+                  _showAlreadyEnrolledDialog();
+                } else {
+                  // Jika belum punya kelas, lanjut ke konfirmasi pembayaran
+                  final bool? success = await Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => PaymentConfirmationPage(
+                      classId: widget.classId, 
+                      className: widget.className, 
+                      basePrice: basePrice, 
+                      token: widget.token, 
+                      userData: widget.userData
+                    ))
+                  );
+                  if (success == true) _fetchDetail();
+                }
+              }, 
+              style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), 
+              child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+            )
+          ]
+        )
+      )
+    );
   }
 }

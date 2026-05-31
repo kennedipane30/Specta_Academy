@@ -1,13 +1,30 @@
 @extends('layouts.spekta')
+
+@section('title', 'Rekap Nilai - Pilih Kelas')
+
 @section('content')
-<div class="p-6">
-    <h1 class="text-2xl font-black text-gray-800 uppercase mb-8">Pilih Program Kelas</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        @foreach($classes as $c)
-        <a href="{{ route('admin.scores.pilih_tryout', $c->class_id) }}" class="group bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 hover:border-[#990000] transition-all">
-            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Program</p>
-            <h3 class="text-lg font-black text-gray-800 group-hover:text-[#990000] uppercase leading-tight">{{ $c->program_name }}</h3>
-        </a>
+<div class="cp-page">
+    <section class="tm-hero-header" style="background: linear-gradient(135deg, #111827 0%, #1e293b 100%);">
+        <div class="tm-hero-text">
+            <span class="tm-pre-title">STUDENT SCORE CENTER</span>
+            <h1 class="tm-main-title">Rekap Nilai Tryout</h1>
+            <p class="tm-sub-title">Pilih program kelas untuk melihat daftar paket tryout dan hasil ujian siswa.</p>
+        </div>
+    </section>
+
+    <div class="cp-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        @foreach($classes as $class)
+        <div class="cp-main-card" style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #f1f5f9; text-align: center;">
+            <div style="width: 60px; height: 60px; background: #ffe8ee; color: #d90429; border-radius: 15px; display: grid; place-items: center; margin: 0 auto 15px; font-size: 24px;">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 900; color: #111827; margin-bottom: 5px;">{{ $class->program_name }}</h3>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">ID Kelas: #{{ $class->class_id }}</p>
+            
+            <a href="{{ route('admin.scores.pilih_tryout', $class->class_id) }}" class="cp-primary-btn" style="background: #111827; display: block; text-decoration: none; color: white; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 12px;">
+                LIHAT DAFTAR PAKET
+            </a>
+        </div>
         @endforeach
     </div>
 </div>

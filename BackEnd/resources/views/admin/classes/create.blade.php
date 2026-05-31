@@ -1,480 +1,169 @@
 @extends('layouts.spekta')
 
-@section('title', 'Tambah Program Baru')
-@section('subtitle', 'Publikasikan program kelas baru ke aplikasi siswa')
+@section('title', 'Tambah Program - Spekta Academy')
 
 @section('content')
-<div class="cpf-page">
-
-    <section class="cpf-hero">
+<div class="cp-page">
+    <!-- Header Section -->
+    <section class="cp-header">
         <div>
-            <span>Program Builder</span>
+            <span>Spekta Control Center</span>
             <h1>Tambah Program Baru</h1>
-            <p>Data ini akan otomatis muncul di aplikasi mobile siswa setelah disimpan.</p>
+            <p>Konfigurasi detail program, harga, dan visual untuk sinkronisasi otomatis ke aplikasi mobile siswa.</p>
         </div>
-
-        <a href="{{ route('admin.classes.index') }}">
+        <a href="{{ route('admin.classes.index') }}" class="cp-back-btn">
             <i class="fa-solid fa-arrow-left"></i>
-            Kembali
+            Kembali ke Katalog
         </a>
     </section>
 
-    @if ($errors->any())
-        <div class="cpf-alert error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <div>
-                <strong>Terjadi Kesalahan Input</strong>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    @endif
-
-    <section class="cpf-grid">
-        <form action="{{ route('admin.classes.store') }}" method="POST" enctype="multipart/form-data" class="cpf-form-card">
+    <!-- Main Form Panel -->
+    <section class="cp-main-panel">
+        <form action="{{ route('admin.classes.store') }}" method="POST" enctype="multipart/form-data" class="cp-form">
             @csrf
-
-            <div class="cpf-card-heading">
-                <div>
-                    <h2>Informasi Program</h2>
-                    <p>Lengkapi nama program, harga, deskripsi, dan visual banner.</p>
+            
+            <div class="cp-form-section">
+                <div class="section-title">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Informasi Utama Program
                 </div>
+                
+                <div class="cp-form-grid">
+                    <div class="cp-input-group">
+                        <label>Nama Program Kelas</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-tag"></i>
+                            <input type="text" name="program_name" placeholder="Misal: Kedinasan Intensif 2024" required>
+                        </div>
+                    </div>
 
-                <div class="cpf-heading-icon">
-                    <i class="fa-solid fa-layer-group"></i>
-                </div>
-            </div>
+                    <div class="cp-input-group">
+                        <label>Harga Investasi (IDR)</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                            <input type="number" name="price" placeholder="Misal: 1500000" required>
+                        </div>
+                    </div>
 
-            <div class="cpf-input-group">
-                <label>Nama Program</label>
-                <div>
-                    <i class="fa-solid fa-graduation-cap"></i>
-                    <input type="text" name="program_name" value="{{ old('program_name') }}" placeholder="Contoh: PTN & UNHAN" required>
-                </div>
-            </div>
-
-            <div class="cpf-input-group">
-                <label>Harga Investasi</label>
-                <div>
-                    <i class="fa-solid fa-rupiah-sign"></i>
-                    <input type="number" name="price" value="{{ old('price') }}" placeholder="900000" required>
-                </div>
-            </div>
-
-            <div class="cpf-input-group full">
-                <label>Deskripsi Aplikasi</label>
-                <textarea name="description" rows="6" placeholder="Tuliskan deskripsi lengkap program..." required>{{ old('description') }}</textarea>
-            </div>
-
-            <div class="cpf-input-group">
-                <label>Visual Banner</label>
-                <div>
-                    <i class="fa-solid fa-upload"></i>
-                    <input type="file" name="banner_image" id="bannerInput" accept="image/*" required>
+                    <div class="cp-input-group full-width">
+                        <label>Deskripsi Program</label>
+                        <textarea name="description" rows="5" placeholder="Tuliskan detail program, keunggulan, dan apa saja yang didapat siswa..."></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="cpf-info-box">
-                <i class="fa-solid fa-circle-info"></i>
-                <span>Gunakan gambar rasio lebar agar terlihat rapi pada halaman katalog dan aplikasi mobile.</span>
+            <div class="cp-form-section mt-4">
+                <div class="section-title">
+                    <i class="fa-solid fa-image"></i>
+                    Media & Visual Banner
+                </div>
+                
+                <div class="upload-container">
+                    <div class="upload-box" id="uploadBox">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <div class="upload-text">
+                            <strong>Pilih banner program</strong>
+                            <span>Drag and drop atau klik untuk upload</span>
+                        </div>
+                        <input type="file" name="image" id="imageInput" accept="image/*" required>
+                    </div>
+
+                    <!-- Perbaikan Preview Gambar -->
+                    <div id="imagePreviewContainer" class="image-preview-wrapper" style="display: none;">
+                        <div class="preview-header">
+                            <span><i class="fa-solid fa-eye"></i> Preview Tampilan Banner</span>
+                            <button type="button" id="removeImage" class="remove-btn">Ganti Gambar</button>
+                        </div>
+                        <div class="image-preview-box">
+                            <img id="imagePreview" src="" alt="Preview">
+                        </div>
+                    </div>
+
+                    <small class="upload-hint">Format yang didukung: JPG, PNG, WEBP. Maksimal 2MB. Gunakan rasio landscape.</small>
+                </div>
             </div>
 
-            <div class="cpf-actions">
-                <a href="{{ route('admin.classes.index') }}" class="cpf-cancel">Batal</a>
-
-                <button type="submit" class="cpf-submit">
-                    <i class="fa-solid fa-rocket"></i>
+            <div class="cp-form-footer">
+                <p><i class="fa-solid fa-circle-exclamation"></i> Data akan langsung tampil di aplikasi mobile setelah disimpan.</p>
+                <button type="submit" class="cp-primary-btn">
+                    <i class="fa-solid fa-paper-plane"></i>
                     Publikasikan Program
                 </button>
             </div>
         </form>
-
-        <aside class="cpf-preview-card">
-            <div class="cpf-preview-heading">
-                <h3>Preview Tampilan</h3>
-                <p>Pratinjau visual banner program sebelum dipublikasikan.</p>
-            </div>
-
-            <div class="cpf-preview-image" id="previewBox">
-                <div>
-                    <i class="fa-solid fa-image"></i>
-                    <span>Preview gambar akan tampil di sini</span>
-                </div>
-            </div>
-
-            <div class="cpf-preview-note">
-                <i class="fa-solid fa-mobile-screen-button"></i>
-                <span>Perubahan program akan digunakan oleh aplikasi mobile siswa.</span>
-            </div>
-        </aside>
     </section>
-
 </div>
 
-<script>
-    const bannerInput = document.getElementById('bannerInput');
-    const previewBox = document.getElementById('previewBox');
-
-    if (bannerInput && previewBox) {
-        bannerInput.addEventListener('change', function () {
-            const file = this.files[0];
-
-            if (!file) return;
-
-            const reader = new FileReader();
-
-            reader.onload = function (event) {
-                previewBox.innerHTML = `<img src="${event.target.result}" alt="Preview Banner">`;
-            };
-
-            reader.readAsDataURL(file);
-        });
-    }
-</script>
-
 <style>
-    .cpf-page { width: 100%; }
+    .cp-page { width: 100%; animation: fadeIn 0.5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .cpf-hero {
-        background: linear-gradient(120deg, #c90025 0%, #7b001b 48%, #351225 100%);
-        color: #fff;
-        border-radius: 22px;
-        padding: 30px 34px;
-        margin-bottom: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        box-shadow: 0 18px 35px rgba(134, 0, 24, .22);
-    }
+    .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .cp-header span { color: #d90429; font-size: 10px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase; }
+    .cp-header h1 { font-size: 28px; font-weight: 900; color: #111827; margin: 5px 0; }
 
-    .cpf-hero span {
-        display: block;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-        opacity: .78;
-        margin-bottom: 8px;
-    }
+    .cp-back-btn { display: inline-flex; align-items: center; gap: 8px; background: #f3f4f6; color: #4b5563; padding: 10px 18px; border-radius: 12px; font-size: 12px; font-weight: 800; }
+    .cp-back-btn:hover { background: #e5e7eb; color: #111827; }
 
-    .cpf-hero h1 {
-        margin: 0 0 8px;
-        font-size: 25px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
+    .cp-main-panel { background: #fff; border-radius: 24px; padding: 30px; border: 1px solid #edf0f4; box-shadow: 0 20px 40px rgba(0,0,0,0.03); }
+    .cp-form-section { margin-bottom: 30px; }
+    .section-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 900; color: #111827; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f8fafc; }
+    .section-title i { color: #d90429; }
 
-    .cpf-hero p {
-        margin: 0;
-        font-size: 13px;
-        font-weight: 500;
-        opacity: .9;
-    }
+    .cp-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+    .cp-input-group.full-width { grid-column: span 2; }
+    .cp-input-group label { display: block; font-size: 11px; font-weight: 800; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; }
 
-    .cpf-hero a {
-        height: 42px;
-        padding: 0 15px;
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        border-radius: 12px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.22);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
+    .input-wrapper { position: relative; }
+    .input-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    .input-wrapper input, textarea { width: 100%; padding: 12px 15px 12px 45px; background: #f8fafc; border: 1px solid #edf2f7; border-radius: 14px; font-size: 14px; font-weight: 600; }
+    textarea { padding: 15px; }
+    .input-wrapper input:focus, textarea:focus { background: #fff; border-color: #d90429; outline: none; box-shadow: 0 0 0 4px rgba(217, 4, 41, 0.05); }
 
-    .cpf-alert {
-        border-radius: 16px;
-        padding: 15px 17px;
-        margin-bottom: 18px;
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        font-size: 13px;
-        font-weight: 700;
-    }
+    /* Perbaikan Upload & Preview */
+    .upload-box { border: 2px dashed #e5e7eb; background: #f9fafb; padding: 35px; text-align: center; border-radius: 18px; position: relative; cursor: pointer; transition: 0.3s; }
+    .upload-box:hover { border-color: #d90429; background: #fff1f2; }
+    .upload-box i { font-size: 32px; color: #d90429; margin-bottom: 12px; }
+    .upload-box input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-    .cpf-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
+    .image-preview-wrapper { margin-top: 20px; border: 1px solid #edf2f7; border-radius: 16px; overflow: hidden; background: #f8fafc; }
+    .preview-header { padding: 10px 15px; background: #111827; color: #fff; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .remove-btn { background: #ef4444; border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 10px; cursor: pointer; }
+    
+    .image-preview-box { width: 100%; padding: 10px; display: flex; justify-content: center; background: #f1f5f9; }
+    .image-preview-box img { max-width: 100%; height: auto; max-height: 350px; border-radius: 8px; object-fit: contain; }
 
-    .cpf-alert strong {
-        display: block;
-        margin-bottom: 4px;
-    }
+    .cp-form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 25px; border-top: 1px solid #f1f5f9; }
+    .cp-primary-btn { background: #d90429; color: #fff; padding: 0 25px; height: 48px; border-radius: 14px; font-size: 13px; font-weight: 800; border: none; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(217, 4, 41, 0.2); }
+    .cp-primary-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(217, 4, 41, 0.3); }
 
-    .cpf-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
-
-    .cpf-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 410px;
-        gap: 22px;
-        align-items: start;
-    }
-
-    .cpf-form-card,
-    .cpf-preview-card {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
-        box-shadow: 0 14px 35px rgba(15, 23, 42, .05);
-        padding: 24px;
-    }
-
-    .cpf-form-card {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-    }
-
-    .cpf-card-heading,
-    .cpf-input-group.full,
-    .cpf-info-box,
-    .cpf-actions {
-        grid-column: 1 / -1;
-    }
-
-    .cpf-card-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        margin-bottom: 6px;
-    }
-
-    .cpf-card-heading h2,
-    .cpf-preview-heading h3 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-    }
-
-    .cpf-card-heading p,
-    .cpf-preview-heading p {
-        margin: 7px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.5;
-    }
-
-    .cpf-heading-icon {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border-radius: 16px;
-        background: #ffe8ee;
-        color: #d90429;
-        flex-shrink: 0;
-    }
-
-    .cpf-input-group label {
-        display: block;
-        margin-bottom: 8px;
-        color: #374151;
-        font-size: 11px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-    }
-
-    .cpf-input-group div {
-        position: relative;
-    }
-
-    .cpf-input-group i {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 13px;
-    }
-
-    .cpf-input-group input,
-    .cpf-input-group textarea {
-        width: 100%;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        background: #f8fafc;
-        outline: none;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 700;
-        font-family: inherit;
-    }
-
-    .cpf-input-group input {
-        height: 48px;
-        padding: 0 15px 0 42px;
-    }
-
-    .cpf-input-group input[type="file"] {
-        padding-top: 13px;
-    }
-
-    .cpf-input-group textarea {
-        resize: vertical;
-        padding: 14px 15px;
-        line-height: 1.5;
-    }
-
-    .cpf-input-group input:focus,
-    .cpf-input-group textarea:focus {
-        background: #fff;
-        border-color: #fecdd3;
-        box-shadow: 0 0 0 4px rgba(217, 4, 41, .08);
-    }
-
-    .cpf-info-box {
-        display: flex;
-        gap: 10px;
-        padding: 14px;
-        border-radius: 14px;
-        background: #fff7f9;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        line-height: 1.5;
-    }
-
-    .cpf-info-box i {
-        color: #d90429;
-        margin-top: 2px;
-    }
-
-    .cpf-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 6px;
-    }
-
-    .cpf-cancel,
-    .cpf-submit {
-        height: 46px;
-        border-radius: 13px;
-        padding: 0 18px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 9px;
-        font-size: 12px;
-        font-weight: 900;
-        font-family: inherit;
-    }
-
-    .cpf-cancel {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
-    .cpf-submit {
-        border: none;
-        background: #d90429;
-        color: #fff;
-        cursor: pointer;
-        box-shadow: 0 13px 25px rgba(217, 4, 41, .18);
-        text-transform: uppercase;
-    }
-
-    .cpf-preview-card {
-        position: sticky;
-        top: 20px;
-    }
-
-    .cpf-preview-heading {
-        margin-bottom: 18px;
-    }
-
-    .cpf-preview-image {
-        width: 100%;
-        height: 260px;
-        border-radius: 18px;
-        border: 1px dashed #d1d5db;
-        background: #f8fafc;
-        overflow: hidden;
-        display: grid;
-        place-items: center;
-        text-align: center;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .cpf-preview-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .cpf-preview-image i {
-        display: block;
-        color: #d90429;
-        font-size: 30px;
-        margin-bottom: 8px;
-    }
-
-    .cpf-preview-note {
-        margin-top: 16px;
-        display: flex;
-        gap: 10px;
-        padding: 14px;
-        border-radius: 14px;
-        background: #f8fafc;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        line-height: 1.5;
-    }
-
-    .cpf-preview-note i {
-        color: #d90429;
-        margin-top: 2px;
-    }
-
-    @media (max-width: 1100px) {
-        .cpf-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .cpf-preview-card {
-            position: static;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .cpf-hero {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .cpf-form-card {
-            grid-template-columns: 1fr;
-        }
-
-        .cpf-actions {
-            flex-direction: column-reverse;
-        }
-
-        .cpf-cancel,
-        .cpf-submit {
-            width: 100%;
-        }
-    }
+    @media (max-width: 768px) { .cp-form-grid { grid-template-columns: 1fr; } }
 </style>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const uploadBox = document.getElementById('uploadBox');
+    const removeBtn = document.getElementById('removeImage');
+
+    imageInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                uploadBox.style.display = 'none'; // Sembunyikan dropzone saat ada gambar
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeBtn.addEventListener('click', function() {
+        imageInput.value = "";
+        previewContainer.style.display = 'none';
+        uploadBox.style.display = 'block';
+    });
+</script>
 @endsection

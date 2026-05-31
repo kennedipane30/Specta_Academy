@@ -1,136 +1,228 @@
 @extends('layouts.spekta')
-@section('title', 'Manajemen Master Tryout')
+
+@section('title', 'Master Tryout - Spekta Academy')
 
 @section('content')
-<div class="space-y-10">
+<div class="cp-page">
 
-    {{-- 1. HEADER STATISTIK --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-gradient-to-br from-[#990000] to-red-800 p-8 rounded-[40px] text-white shadow-xl">
-            <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60">Total Kiriman Soal</h4>
-            <p class="text-4xl font-black mt-2">{{ $submissions->count() }}</p>
-            <p class="text-[10px] font-bold mt-4 uppercase">Siap untuk dikurasi & dieksport</p>
+    {{-- 1. NOTIFIKASI SYSTEM --}}
+    @if(session('success'))
+        <div class="tm-alert-modern success">
+            <i class="fa-solid fa-circle-check"></i>
+            <div>
+                <strong>OPERASI BERHASIL</strong>
+                <p>{{ session('success') }}</p>
+            </div>
         </div>
+    @endif
 
-        {{-- 2. FORM MASTER UPLOAD --}}
-        <div class="md:col-span-2 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-green-100 text-green-600 p-3 rounded-2xl">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-black text-gray-800 uppercase leading-none">Publish ke Mobile</h3>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Upload CSV Master yang sudah Anda kurasi</p>
+    @if(session('error'))
+        <div class="tm-alert-modern error">
+            <i class="fa-solid fa-circle-xmark"></i>
+            <div>
+                <strong>OPERASI GAGAL</strong>
+                <p>{{ session('error') }}</p>
+            </div>
+        </div>
+    @endif
+
+    {{-- 2. PREMIUM HEADER HERO --}}
+    <section class="tm-hero-header">
+        <div class="tm-hero-content">
+            <div class="tm-hero-text">
+                <span class="tm-pre-title">ADMIN TRYOUT CENTER</span>
+                <h1 class="tm-main-title">Manajemen Paket TO</h1>
+                <p class="tm-sub-title">Kurasi setoran soal dari pengajar dan publikasikan menjadi paket Tryout resmi untuk aplikasi mobile siswa.</p>
+            </div>
+        </div>
+        
+        <div class="tm-hero-summary">
+            <div class="summary-card highlight">
+                <strong>{{ $activePackages->count() }}</strong>
+                <span>Paket Live</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="tm-grid-layout">
+        
+        {{-- 3. PANEL KIRI: MONITORING DRAF GURU --}}
+        <section class="cp-main-card">
+            <div class="card-header-flex">
+                <div class="title-with-icon">
+                    <div class="icon-box red"><i class="fa-solid fa-inbox"></i></div>
+                    <div>
+                        <h2>Setoran Soal Pengajar</h2>
+                        <p>Draf soal masuk yang menunggu antrean publikasi.</p>
+                    </div>
                 </div>
             </div>
 
-            {{-- ✨ PERBAIKAN: Tambahkan enctype="multipart/form-data" agar file terkirim ✨ --}}
-            <form action="{{ route('admin.tryout.upload') }}" method="POST" enctype="multipart/form-data" class="flex gap-4">
-                @csrf
-                <select name="class_id" class="bg-gray-50 border-none rounded-2xl px-4 text-xs font-bold focus:ring-2 focus:ring-[#990000]" required>
-                    <option value="">-- Pilih Kelas Tujuan --</option>
-                    @foreach($classes as $class)
-                        <option value="{{ $class->class_id }}">{{ $class->program_name }}</option>
-                    @endforeach
-                </select>
-                <input type="file" name="file_csv" class="flex-1 text-xs font-bold text-gray-400 file:bg-gray-100 file:border-none file:px-4 file:py-2 file:rounded-xl file:mr-4" required>
-                <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-green-700 transition">
-                    Publish Sekarang
-                </button>
-            </form>
-        </div>
-    </div>
+            <div class="table-responsive">
+                <table class="cp-table-modern">
+                    <thead>
+                        <tr>
+                            <th>PROGRAM KELAS</th>
+                            <th>STATUS DRAF</th>
+                            <th class="text-right">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($classes as $c)
+                            @php 
+                                $totalSoal = $draftStatus[$c->class_id]->total ?? 0;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="program-info">
+                                        <strong>{{ $c->program_name }}</strong>
+                                        <small>ID Kelas: #{{ $c->class_id }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if($totalSoal > 0)
+                                        <span class="badge-status success">
+                                            <i class="fa-solid fa-file-circle-check"></i> {{ $totalSoal }} Soal Baru
+                                        </span>
+                                    @else
+                                        <span class="badge-status empty">0 Soal Masuk</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    <div class="action-group-end">
+                                        {{-- Tombol Download CSV --}}
+                                        @if($totalSoal > 0)
+                                        <a href="{{ route('admin.tryout.export_draft', $c->class_id) }}" class="btn-icon-sm green-soft" title="Download CSV">
+                                            <i class="fa-solid fa-file-csv"></i>
+                                        </a>
+                                        @endif
 
-    {{-- Alert Berhasil --}}
-    @if(session('success'))
-        <div class="bg-green-600 text-white p-4 rounded-2xl mb-4 font-bold text-xs uppercase shadow-lg shadow-green-100">
-            <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
-        </div>
-    @endif
+                                        {{-- Tombol Review --}}
+                                        <a href="{{ route('admin.tryout.review', $c->class_id) }}" class="btn-review-main">
+                                            <span>Review</span>
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    {{-- Alert Gagal --}}
-    @if(session('error'))
-        <div class="bg-red-600 text-white p-4 rounded-2xl mb-4 font-bold text-xs uppercase shadow-lg">
-            <i class="fas fa-exclamation-triangle mr-2"></i> {{ session('error') }}
-        </div>
-    @endif
+        {{-- 4. PANEL KANAN: PAKET YANG SUDAH TERBIT --}}
+        <section class="cp-main-card">
+            <div class="card-header-flex">
+                <div class="title-with-icon">
+                    <div class="icon-box blue"><i class="fa-solid fa-paper-plane"></i></div>
+                    <div>
+                        <h2>Paket TO Terbit</h2>
+                        <p>Katalog paket yang sudah aktif di aplikasi siswa.</p>
+                    </div>
+                </div>
+            </div>
 
-    {{-- 3. TABEL REVIEW DRAFT (Penyedia soal dari pengajar) --}}
-    <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden mb-10">
-        <div class="p-8 border-b border-gray-50 flex justify-between items-center">
-            <h3 class="text-xl font-black text-gray-800 uppercase tracking-tighter">Review Kiriman Pengajar</h3>
-            <span class="text-[10px] font-bold text-gray-400 uppercase bg-gray-50 px-4 py-2 rounded-full">DRAFT</span>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50/50">
-                    <tr>
-                        <th class="p-6 text-[10px] font-black text-gray-400 uppercase">Kelas</th>
-                        <th class="p-6 text-[10px] font-black text-gray-400 uppercase">Status Pengajar</th>
-                        <th class="p-6 text-center text-[10px] font-black text-gray-400 uppercase">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @foreach($classes as $c)
-                    @php $count = $submissions->where('class_id', $c->class_id)->count(); @endphp
-                    <tr>
-                        <td class="p-6">
-                            <p class="font-black text-gray-800 text-sm uppercase">{{ $c->program_name }}</p>
-                            <span class="text-[10px] font-bold text-[#990000]">{{ $count }} Soal Terkirim</span>
-                        </td>
-                        <td class="p-6">
-                            @foreach($submissions->where('class_id', $c->class_id)->unique('subject_name') as $s)
-                                <span class="bg-gray-100 px-2 py-1 rounded text-[9px] font-black text-gray-500 uppercase mr-1">{{ $s->subject_name }}</span>
-                            @endforeach
-                        </td>
-                        <td class="p-6 text-center">
-                            @if($count > 0)
-                            <a href="{{ route('admin.tryout.export', $c->class_id) }}" class="bg-[#990000] text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg">Download CSV</a>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {{-- 4. TABEL PAKET TERBIT (MOBILE LIVE) --}}
-    <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden border-t-8 border-green-500">
-        <div class="p-8 border-b border-gray-50 flex justify-between items-center bg-green-50/30">
-            <h3 class="text-xl font-black text-gray-800 uppercase tracking-tighter">🚀 Paket Terbit (Live di Mobile)</h3>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50">
-                    <tr class="text-[10px] font-black text-gray-400 uppercase">
-                        <th class="p-6">Program Kelas</th>
-                        <th class="p-6">Total Soal Live</th>
-                        <th class="p-6 text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @forelse($activeTryouts as $live)
-                    <tr>
-                        <td class="p-6 font-black text-sm uppercase">{{ $live->classModel->program_name ?? 'N/A' }}</td>
-                        <td class="p-6"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black">{{ $live->total }} SOAL</span></td>
-                        <td class="p-6 text-center">
-                            <form action="{{ route('admin.tryout.destroy_package', $live->class_id) }}" method="POST" onsubmit="return confirm('Hapus seluruh soal paket ini dari Mobile?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="text-red-500 hover:text-red-700 transition font-black text-[10px] uppercase">
-                                    <i class="fas fa-trash mr-1"></i> Hapus Paket
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="3" class="p-10 text-center text-gray-300 uppercase font-black text-xs">Belum ada paket yang live di Mobile.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+            <div class="active-list">
+                @forelse($activePackages as $pkg)
+                    <div class="package-item-card">
+                        <div class="pkg-icon">
+                            <i class="fa-solid fa-stopwatch-20"></i>
+                        </div>
+                        <div class="pkg-info">
+                            <strong>{{ $pkg->title }}</strong>
+                            <span>{{ $pkg->classModel->program_name }} • {{ $pkg->questions_count }} Soal</span>
+                        </div>
+                        <form action="{{ route('admin.tryout.destroy_package', $pkg->tryout_id) }}" method="POST" onsubmit="return confirm('Hapus paket ini dari HP siswa?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn-del-pkg" title="Hapus Paket"><i class="fa-solid fa-trash-can"></i></button>
+                        </form>
+                    </div>
+                @empty
+                    <div class="empty-state-lite">
+                        <i class="fa-solid fa-ghost"></i>
+                        <p>Belum ada paket dipublikasikan.</p>
+                    </div>
+                @endforelse
+            </div>
+        </section>
     </div>
 </div>
+
+<style>
+    /* Global & Animations */
+    .cp-page { padding: 10px; font-family: 'Montserrat', sans-serif; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Alert Styling */
+    .tm-alert-modern { padding: 18px 24px; border-radius: 16px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; font-weight: 600; border-left: 6px solid; }
+    .tm-alert-modern.success { background: #dcfce7; color: #15803d; border-color: #22c55e; }
+    .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-color: #ef4444; }
+    .tm-alert-modern i { font-size: 24px; }
+    .tm-alert-modern p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
+
+    /* Hero Section */
+    .tm-hero-header {
+        background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+        border-radius: 28px; padding: 40px; color: white;
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .tm-main-title { font-size: 32px; font-weight: 900; margin: 8px 0; letter-spacing: -1px; }
+    .tm-pre-title { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: #d90429; text-transform: uppercase; }
+    .tm-sub-title { font-size: 14px; opacity: 0.7; max-width: 500px; line-height: 1.6; }
+    .summary-card { background: #d90429; padding: 20px; border-radius: 22px; text-align: center; min-width: 130px; }
+    .summary-card strong { display: block; font-size: 32px; font-weight: 900; }
+    .summary-card span { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.8; }
+
+    /* Grid & Cards */
+    .tm-grid-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; }
+    .cp-main-card { background: white; border-radius: 30px; padding: 30px; border: 1px solid #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
+    
+    .title-with-icon { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+    .icon-box { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; }
+    .icon-box.red { background: #fee2e2; color: #d90429; }
+    .icon-box.blue { background: #e0f2fe; color: #0369a1; }
+    
+    .card-header-flex h2 { font-size: 18px; font-weight: 900; color: #111827; margin: 0; }
+    .card-header-flex p { font-size: 13px; color: #94a3b8; margin: 4px 0 0; font-weight: 500; }
+
+    /* Table Design */
+    .cp-table-modern { width: 100%; border-collapse: collapse; }
+    .cp-table-modern th { text-align: left; padding: 12px; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+    .cp-table-modern td { padding: 18px 12px; border-bottom: 1px solid #f8fafc; }
+
+    .program-info strong { display: block; font-size: 14px; color: #111827; text-transform: uppercase; }
+    .program-info small { font-size: 11px; color: #94a3b8; font-weight: 600; }
+
+    .badge-status { padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+    .badge-status.success { background: #ecfdf5; color: #10b981; }
+    .badge-status.empty { background: #f8fafc; color: #cbd5e1; }
+
+    /* Actions */
+    .action-group-end { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+    .btn-icon-sm { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; transition: 0.2s; text-decoration: none; }
+    .btn-icon-sm.green-soft { background: #ecfdf5; color: #10b981; border: 1px solid #d1fae5; }
+    .btn-icon-sm:hover { transform: translateY(-2px); filter: brightness(0.95); }
+
+    .btn-review-main { 
+        background: #111827; color: white; padding: 8px 18px; border-radius: 12px; 
+        font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none;
+    }
+    .btn-review-main:hover { background: #d90429; box-shadow: 0 8px 15px rgba(217, 4, 41, 0.2); }
+
+    /* Right Panel List */
+    .package-item-card { display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 20px; margin-bottom: 12px; border: 1px solid #edf2f7; transition: 0.2s; }
+    .package-item-card:hover { border-color: #d1d5db; background: white; }
+    .pkg-icon { width: 40px; height: 40px; background: white; color: #0369a1; border-radius: 12px; display: grid; place-items: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    .pkg-info { flex: 1; }
+    .pkg-info strong { display: block; font-size: 13px; color: #111827; }
+    .pkg-info span { font-size: 11px; color: #64748b; font-weight: 600; }
+    .btn-del-pkg { background: transparent; border: none; color: #cbd5e1; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .btn-del-pkg:hover { color: #d90429; }
+
+    .empty-state-lite { text-align: center; padding: 40px; color: #cbd5e1; }
+    .empty-state-lite i { font-size: 32px; margin-bottom: 10px; display: block; }
+    .text-right { text-align: right; }
+</style>
 @endsection

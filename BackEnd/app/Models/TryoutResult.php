@@ -6,17 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class TryoutResult extends Model
 {
-    // Tetap gunakan database microservice
-    protected $connection = 'pgsql_tryout';
     protected $table = 'tryout_results';
-    protected $primaryKey = 'tryout_result_id';
+    protected $primaryKey = 'result_id'; // ✨ Sesuaikan dengan SQL di atas
 
     protected $fillable = [
-        'user_id',
-        'tryout_id',
-        'score',
+        'user_id', 
+        'tryout_id', 
+        'score', 
         'total_correct'
     ];
 
-    // ⚠️ JANGAN tambahkan relasi user() di sini karena akan menyebabkan error "table not exist"
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'usersID');
+    }
 }

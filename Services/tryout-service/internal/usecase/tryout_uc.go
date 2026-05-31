@@ -6,35 +6,33 @@ import (
 )
 
 type TryoutUsecase interface {
-	ProcessSync(tryout models.Tryout, questions []models.Question) error
-	ProcessSubmissionsSync(subs []models.TryoutSubmission) error
-	// ✨ PASTIKAN DUA BARIS DI BAWAH INI ADA DI DALAM INTERFACE
-	FetchTryoutsByClass(classID uint) ([]models.Tryout, error)
-	FetchQuestionsByTryout(tryoutID uint) ([]models.Question, error)
+	SyncTryout(t models.Tryout, qs []models.Question) error
+	SyncSubmissions(s models.TryoutSubmission) error
+	GetTryouts(classID string) ([]models.Tryout, error)
+	GetQuestions(tryoutID string) ([]models.Question, error)
 }
 
-type tryoutUC struct {
+type tryoutUsecase struct {
 	repo repository.TryoutRepository
 }
 
 func NewTryoutUsecase(repo repository.TryoutRepository) TryoutUsecase {
-	return &tryoutUC{repo}
+	return &tryoutUsecase{repo: repo}
 }
 
-func (uc *tryoutUC) ProcessSync(t models.Tryout, qs []models.Question) error {
-	return uc.repo.SyncFullPackage(t, qs)
+func (u *tryoutUsecase) SyncTryout(t models.Tryout, qs []models.Question) error {
+	return u.repo.SyncFullPackage(&t, qs)
 }
 
-func (uc *tryoutUC) ProcessSubmissionsSync(subs []models.TryoutSubmission) error {
-	return uc.repo.SyncSubmissions(subs)
+// ✨ Menghubungkan Handler ke Repository
+func (u *tryoutUsecase) SyncSubmissions(s models.TryoutSubmission) error {
+	return u.repo.SyncSubmissions(&s)
 }
 
-// ✨ Implementasi fungsi FetchTryoutsByClass
-func (uc *tryoutUC) FetchTryoutsByClass(classID uint) ([]models.Tryout, error) {
-	return uc.repo.GetByClass(classID)
+func (u *tryoutUsecase) GetTryouts(classID string) ([]models.Tryout, error) {
+	return u.repo.GetByClass(classID)
 }
 
-// ✨ Implementasi fungsi FetchQuestionsByTryout
-func (uc *tryoutUC) FetchQuestionsByTryout(tryoutID uint) ([]models.Question, error) {
-	return uc.repo.GetQuestions(tryoutID)
+func (u *tryoutUsecase) GetQuestions(tryoutID string) ([]models.Question, error) {
+	return u.repo.GetQuestions(tryoutID)
 }

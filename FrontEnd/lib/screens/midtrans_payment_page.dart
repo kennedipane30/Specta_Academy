@@ -20,32 +20,39 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
 
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-
-      /// 🔥 DETECT PERUBAHAN URL (INI KUNCI UTAMA)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
             debugPrint("➡️ Loading: $url");
+            setState(() => isLoading = true);
           },
           onPageFinished: (url) {
             debugPrint("✅ Loaded: $url");
             setState(() => isLoading = false);
+
+            // ✨ DETEKSI URL FINISH DARI MIDTRANS
+            // Biasanya Midtrans redirect ke URL yang mengandung 'finish' jika sukses
+            if (url.contains("finish") || url.contains("status_code=200") || url.contains("transaction_status=settlement")) {
+              _handleSuccess();
+            }
           },
           onNavigationRequest: (request) {
             final url = request.url;
             debugPrint("🌐 Redirect: $url");
 
-            /// ✅ DETEKSI SUCCESS
-            if (url.contains("success") ||
-                url.contains("settlement")) {
+            // ✅ DETEKSI SUCCESS (Redirect Request)
+            if (url.contains("success") || 
+                url.contains("settlement") || 
+                url.contains("finish")) {
               _handleSuccess();
               return NavigationDecision.prevent;
             }
 
-            /// ❌ DETEKSI GAGAL
+            // ❌ DETEKSI GAGAL
             if (url.contains("failed") ||
                 url.contains("error") ||
-                url.contains("cancel")) {
+                url.contains("cancel") ||
+                url.contains("status_code=202")) {
               _handleFailed();
               return NavigationDecision.prevent;
             }
@@ -54,25 +61,31 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
           },
         ),
       )
-
       ..loadRequest(Uri.parse(widget.url));
   }
 
   /// ✅ HANDLE SUCCESS
   void _handleSuccess() {
-    Navigator.pop(context); // kembali ke halaman sebelumnya
+    if (!mounted) return;
+
+    // ✨ PENTING: Mengirim 'true' agar halaman sebelumnya tahu pembayaran sukses
+    Navigator.pop(context, true); 
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Colors.green,
-        content: Text("✅ Pembayaran berhasil!"),
+        content: Text("✅ Pembayaran berhasil! Menyiapkan materi..."),
+        duration: Duration(seconds: 3),
       ),
     );
   }
 
   /// ❌ HANDLE FAILED
   void _handleFailed() {
-    Navigator.pop(context);
+    if (!mounted) return;
+
+    // Mengirim 'false' atau null
+    Navigator.pop(context, false);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -85,14 +98,20 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Pembayaran")),
+      appBar: AppBar(
+        title: const Text("Pembayaran Spekta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF990000),
+        foregroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           WebViewWidget(controller: controller),
 
-          /// 🔄 LOADING
+          /// 🔄 LOADING INDICATOR
           if (isLoading)
-            const Center(child: CircularProgressIndicator()),
+            const Center(
+              child: CircularProgressIndicator(color: Color(0xFF990000)),
+            ),
         ],
       ),
     );

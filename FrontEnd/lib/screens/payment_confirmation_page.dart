@@ -44,6 +44,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   // --- FUNGSI CEK PROMO ---
   Future<void> _checkPromo() async {
     if (_promoController.text.isEmpty) return;
+    FocusScope.of(context).unfocus();
     setState(() => isChecking = true);
 
     try {
@@ -59,17 +60,20 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         },
       );
 
-      print("Promo Status: ${response.statusCode}");
-      print("Promo Data: ${response.body}");
-
+      debugPrint("Promo Response: ${response.body}");
       var data = jsonDecode(response.body);
+
       if (response.statusCode == 200) {
         setState(() {
-          appliedPromoCode = _promoController.text.trim();
-          discountAmount = data['discount_amount'];
-          finalPrice = data['final_price'];
+          appliedPromoCode = _promoController.text.trim().toUpperCase();
+          // 🔥 SINKRON DENGAN LOG TERMINAL ANDA
+          discountAmount = int.tryParse(data['discount_amount'].toString()) ?? 0;
+          finalPrice = int.tryParse(data['final_price'].toString()) ?? widget.basePrice;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Promo Berhasil Dipasang")));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.green, content: Text("✅ Promo Berhasil Dipasang!"))
+        );
       } else {
         setState(() {
           appliedPromoCode = null;
@@ -79,7 +83,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         _showError(data['message'] ?? "Promo tidak valid");
       }
     } catch (e) {
-      _showError("Koneksi gagal");
+      _showError("Koneksi gagal ke server");
     } finally {
       setState(() => isChecking = false);
     }
@@ -87,7 +91,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
   // --- FUNGSI PROSES PEMBAYARAN ---
   Future<void> _processPayment() async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     try {
       final response = await http.post(
@@ -98,32 +102,31 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         },
         body: {
           "class_id": widget.classId.toString(),
-          "promo_code": appliedPromoCode ?? "", // Mengirim kode promo yang valid
+          "promo_code": appliedPromoCode ?? "", 
         },
       );
 
-      if (mounted) Navigator.pop(context); // Tutup loading
-
-      // DEBUGGING: Cek hasil dari server di terminal VS Code
-      print("Payment Status: ${response.statusCode}");
-      print("Payment Body: ${response.body}");
+      if (mounted) Navigator.pop(context);
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
         String snapUrl = data['snap_url'];
         
-        Navigator.push(
+        final result = await Navigator.push(
           context, 
           MaterialPageRoute(builder: (_) => MidtransPaymentPage(url: snapUrl))
         );
+
+        if (result == true) {
+          if (mounted) Navigator.pop(context, true); 
+        }
       } else {
         var errorData = jsonDecode(response.body);
-        _showError(errorData['message'] ?? "Gagal mendapatkan token pembayaran");
+        _showError(errorData['message'] ?? "Gagal mendapatkan token");
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      print("Error Exception: $e");
-      _showError("Terjadi kesalahan koneksi ke server.");
+      _showError("Terjadi kesalahan koneksi.");
     }
   }
 
@@ -147,10 +150,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Rincian Pendaftaran", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12, letterSpacing: 1)),
+            const Text("Rincian Pendaftaran", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 16),
             
-            // CARD RINCIAN (UI Premium)
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -163,15 +165,13 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 children: [
                   _buildRowItem("Program", widget.className),
                   _buildRowItem("Harga Normal", currency.format(widget.basePrice)),
-                  _buildRowItem("Total Potongan", "- ${currency.format(discountAmount)}", color: Colors.green),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(),
-                  ),
+                  if (discountAmount > 0)
+                    _buildRowItem("Total Potongan", "- ${currency.format(discountAmount)}", color: Colors.green),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("TOTAL BAYAR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey, letterSpacing: 1)),
+                      const Text("TOTAL BAYAR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
                       Text(currency.format(finalPrice), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: spektaRed)),
                     ],
                   )
@@ -180,10 +180,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             ),
 
             const SizedBox(height: 32),
-            const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12, letterSpacing: 1)),
+            const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 12),
             
-            // INPUT PROMO
             Row(
               children: [
                 Expanded(
@@ -215,7 +214,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
             const SizedBox(height: 48),
             
-            // TOMBOL BAYAR SEKARANG
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -225,7 +223,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   backgroundColor: spektaRed, 
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   elevation: 8,
-                  shadowColor: spektaRed.withOpacity(0.3)
                 ),
                 child: const Text("BAYAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),

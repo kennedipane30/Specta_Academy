@@ -1,659 +1,269 @@
 @extends('layouts.spekta')
 
-@section('title', 'Upload ' . $subject_name)
-@section('subtitle', 'Kelola materi pembelajaran mingguan')
-
 @section('content')
-@php
-    $materiCollection = collect($materis);
-    $materiByWeek = $materiCollection->keyBy('week');
-    $filledWeeks = $materiCollection->pluck('week')->unique()->count();
-    $progress = round(($filledWeeks / 20) * 100);
-@endphp
-
-<div class="tm-page">
+<div class="cp-page">
 
     {{-- HEADER --}}
-    <section class="tm-detail-header">
+    <section class="cp-header">
         <div>
-            <a href="{{ route('pengajar.materi.index') }}" class="tm-back">
-                <i class="fa-solid fa-arrow-left"></i>
-                Kembali
-            </a>
-
-            <span>Material Weekly Manager</span>
-            <h1>{{ $subject_name }}</h1>
-            <p>{{ $class->program_name }} • Kelola materi pembelajaran untuk 20 minggu.</p>
+            <span class="cp-tagline">
+                SPEKTA COURSE MANAGER
+            </span>
+            <h1 class="cp-title">
+                Kelola Materi: {{ $subject_name }}
+            </h1>
+            <p class="cp-subtitle">
+                Program: <strong>{{ $class->program_name }}</strong>
+            </p>
         </div>
 
-        <div class="tm-progress-box">
-            <strong>{{ $filledWeeks }}/20</strong>
-            <span>Minggu terisi</span>
-            <div>
-                <em style="width: {{ $progress }}%"></em>
-            </div>
-        </div>
+        <a href="{{ route('pengajar.materi.index') }}" class="cp-back-btn">
+            <i class="fa-solid fa-arrow-left"></i> Kembali
+        </a>
     </section>
 
+    {{-- ALERT NOTIFIKASI --}}
     @if(session('success'))
-        <div class="tm-alert success">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>{{ session('success') }}</span>
+        <div style="padding: 15px; background: #dcfce7; color: #15803d; border-radius: 12px; margin-bottom: 20px; font-weight: 700;">
+            <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
         </div>
     @endif
 
-    @if($errors->any())
-        <div class="tm-alert error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <div>
-                <strong>Data belum valid.</strong>
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
+    @if(session('error'))
+        <div style="padding: 15px; background: #fee2e2; color: #dc2626; border-radius: 12px; margin-bottom: 20px; font-weight: 700;">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
         </div>
     @endif
 
-    {{-- UPLOAD FORM --}}
-    <section class="tm-upload-panel">
-        <div class="tm-upload-head">
-            <div>
-                <span>Upload Module</span>
-                <h2>Tambah atau Perbarui Materi</h2>
-                <p>Pilih minggu, isi judul materi, lalu unggah file PDF modul pembelajaran.</p>
-            </div>
+    {{-- FORM --}}
+    <section class="cp-card">
+        <div class="cp-card-head">
+            <h2 id="form-title">Tambah atau Perbarui Materi</h2>
+            <p>Pilih minggu, isi judul, dan upload PDF. Jika minggu sudah ada, sistem akan otomatis memperbarui data lama.</p>
         </div>
 
-        <form action="{{ route('pengajar.materi.store', $class->class_id) }}" method="POST" enctype="multipart/form-data" class="tm-upload-form">
+        <form action="{{ route('pengajar.materi.store', $class->class_id) }}" method="POST" enctype="multipart/form-data">
             @csrf
-
+            
+            <!-- 🔥 PENTING: material_name dikirim agar subject_name di Go tidak kosong -->
             <input type="hidden" name="material_name" value="{{ $subject_name }}">
 
-            <div class="tm-field">
-                <label>Minggu Ke-</label>
+            <div class="cp-form-grid">
                 <div>
-                    <i class="fa-solid fa-calendar-week"></i>
-                    <select name="week" required>
-                        @for($i = 1; $i <= 20; $i++)
-                            <option value="{{ $i }}" {{ old('week') == $i ? 'selected' : '' }}>
-                                Minggu {{ $i }}
-                            </option>
+                    <label>Minggu Ke</label>
+                    <select name="week" id="input-week" class="cp-input" required>
+                        @for($i=1; $i<=20; $i++)
+                            <option value="{{ $i }}">Minggu {{ $i }}</option>
                         @endfor
                     </select>
                 </div>
-            </div>
 
-            <div class="tm-field title">
-                <label>Judul Materi</label>
                 <div>
-                    <i class="fa-solid fa-heading"></i>
-                    <input type="text" name="title" value="{{ old('title') }}" placeholder="Contoh: Persamaan Kuadrat" required>
+                    <label>Judul Materi</label>
+                    <input id="input-title" type="text" name="title" class="cp-input" placeholder="Contoh: Pengenalan Umum" required>
                 </div>
-            </div>
 
-            <div class="tm-field file">
-                <label>File PDF</label>
                 <div>
-                    <i class="fa-solid fa-file-pdf"></i>
-                    <input type="file" name="file_pdf" accept="application/pdf" required>
+                    <label>Upload PDF (Kosongkan jika hanya ubah judul)</label>
+                    <input type="file" name="file_pdf" class="cp-input" accept=".pdf">
                 </div>
-            </div>
 
-            <button type="submit" class="tm-submit">
-                <i class="fa-solid fa-upload"></i>
-                Simpan Materi
-            </button>
+                <button type="submit" class="cp-btn">
+                    <i class="fa-solid fa-save"></i> Simpan
+                </button>
+            </div>
         </form>
     </section>
 
-    {{-- WEEK OVERVIEW --}}
-    <section class="tm-week-panel">
-        <div class="tm-panel-head">
-            <div>
-                <span>Weekly Content</span>
-                <h2>Daftar Materi Mingguan</h2>
-                <p>Pantau minggu mana yang sudah memiliki materi dan akses file PDF yang sudah diunggah.</p>
-            </div>
+    {{-- TABEL --}}
+    <section class="cp-card">
+        <div class="cp-card-head">
+            <h2>Daftar Materi</h2>
         </div>
 
-        <div class="tm-week-strip">
-            @for($i = 1; $i <= 20; $i++)
-                @php $hasMaterial = $materiByWeek->has($i); @endphp
-
-                <div class="tm-week-dot {{ $hasMaterial ? 'filled' : '' }}">
-                    <span>{{ $i }}</span>
-                </div>
-            @endfor
-        </div>
-
-        <div class="tm-table-wrap">
-            <table class="tm-table">
+        <div class="table-responsive">
+            <table class="cp-table">
                 <thead>
                     <tr>
                         <th>Minggu</th>
                         <th>Judul Materi</th>
                         <th>File</th>
-                        <th>Tanggal Upload</th>
-                        <th>Aksi</th>
+                        <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @forelse($materis as $m)
-                        <tr>
-                            <td>
-                                <span class="tm-week-badge">
-                                    MG-{{ $m->week }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <div class="tm-material-title">
-                                    <strong>{{ $m->title }}</strong>
-                                    <span>{{ $m->material_name ?? $subject_name }}</span>
-                                </div>
-                            </td>
-
-                            <td>
-                                @if($m->file_path)
-                                    <span class="tm-file-status active">
-                                        <i class="fa-solid fa-file-pdf"></i>
-                                        PDF tersedia
-                                    </span>
-                                @else
-                                    <span class="tm-file-status empty">
-                                        <i class="fa-solid fa-circle-exclamation"></i>
-                                        Belum ada file
-                                    </span>
+                    @forelse($materis as $item)
+                    <tr>
+                        <td>
+                            <span class="badge-week">MG-{{ $item->week }}</span>
+                        </td>
+                        <td>
+                            <div class="materi-info">
+                                <strong>{{ $item->title }}</strong>
+                                <small>{{ $item->material_name }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            @if($item->file_path)
+                            <a target="_blank" href="{{ asset('storage/'.$item->file_path) }}" class="badge-file">
+                                <i class="fa-solid fa-file-pdf"></i> PDF Tersedia
+                            </a>
+                            @else
+                            <span style="color: #94a3b8; font-size: 12px;">Tanpa File</span>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="action-group">
+                                @if($item->file_path)
+                                <a href="{{ asset('storage/'.$item->file_path) }}" download class="btn-icon blue">
+                                    <i class="fa-solid fa-download"></i>
+                                </a>
                                 @endif
-                            </td>
 
-                            <td>
-                                <span class="tm-date-text">
-                                    {{ $m->created_at ? $m->created_at->translatedFormat('d M Y') : '-' }}
-                                </span>
-                            </td>
+                                <button type="button" onclick="fillEditForm('{{ $item->title }}', '{{ $item->week }}')" class="btn-icon dark">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
 
-                            <td>
-                                @if($m->file_path)
-                                    <a href="{{ asset('storage/' . $m->file_path) }}" target="_blank" class="tm-download">
-                                        Download
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    </a>
-                                @else
-                                    <span class="tm-muted">-</span>
-                                @endif
-                            </td>
-                        </tr>
+                                <form method="POST" action="{{ route('pengajar.materi.destroy', $item->material_id) }}" onsubmit="return confirm('Hapus materi ini? Data di aplikasi HP juga akan terhapus.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn-icon red">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                     @empty
-                        <tr>
-                            <td colspan="5">
-                                <div class="tm-empty">
-                                    <i class="fa-solid fa-file-circle-plus"></i>
-                                    <strong>Belum ada materi yang diunggah.</strong>
-                                    <span>Gunakan form di atas untuk mengunggah materi pertama.</span>
-                                </div>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="4" class="empty-state" style="text-align: center; padding: 40px; color: #94a3b8;">
+                            Belum ada materi untuk mata pelajaran ini.
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </section>
-
 </div>
 
 <style>
-    .tm-page {
-        width: 100%;
+    :root {
+        --red: #d90429;
+        --dark: #0f172a;
+        --gray: #64748b;
     }
 
-    .tm-detail-header {
+    .cp-page { padding: 24px; }
+
+    /* HEADER */
+    .cp-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        gap: 24px;
-        margin-bottom: 22px;
-        padding: 28px 30px;
-        border-radius: 24px;
-        color: #fff;
-        background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%);
-        box-shadow: 0 18px 38px rgba(134, 0, 24, .18);
-    }
-
-    .tm-back {
-        display: inline-flex;
         align-items: center;
-        gap: 8px;
-        min-height: 34px;
-        padding: 0 12px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.13);
-        border: 1px solid rgba(255,255,255,.17);
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-        margin-bottom: 18px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 20px;
     }
 
-    .tm-detail-header span {
-        display: block;
-        color: rgba(255,255,255,.78);
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .16em;
-        margin-bottom: 9px;
-    }
+    .cp-title { font-size: 42px; font-weight: 900; margin: 10px 0; }
+    .cp-tagline { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: #64748b; }
+    .cp-subtitle { color: #475569; }
 
-    .tm-detail-header h1 {
-        margin: 0 0 8px;
-        color: #fff;
-        font-size: 30px;
-        font-weight: 900;
-        letter-spacing: -0.04em;
-        text-transform: uppercase;
-    }
-
-    .tm-detail-header p {
-        margin: 0;
-        color: rgba(255,255,255,.86);
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .tm-progress-box {
-        width: 230px;
-        flex-shrink: 0;
-        padding: 18px;
-        border-radius: 20px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.17);
-        backdrop-filter: blur(12px);
-    }
-
-    .tm-progress-box strong {
-        display: block;
-        color: #fff;
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .tm-progress-box span {
-        margin: 8px 0 14px;
-        color: rgba(255,255,255,.75);
-        letter-spacing: 0;
-    }
-
-    .tm-progress-box div {
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.25);
-        overflow: hidden;
-    }
-
-    .tm-progress-box em {
-        display: block;
-        height: 100%;
-        border-radius: 999px;
-        background: #fff;
-    }
-
-    .tm-alert {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 14px 16px;
-        border-radius: 15px;
-        margin-bottom: 18px;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .tm-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
-
-    .tm-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
-
-    .tm-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
-
-    .tm-upload-panel,
-    .tm-week-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
-        padding: 22px;
-        box-shadow: 0 14px 35px rgba(15,23,42,.05);
-        margin-bottom: 22px;
-    }
-
-    .tm-upload-head,
-    .tm-panel-head {
-        margin-bottom: 18px;
-    }
-
-    .tm-upload-head span,
-    .tm-panel-head span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .16em;
-        margin-bottom: 8px;
-    }
-
-    .tm-upload-head h2,
-    .tm-panel-head h2 {
-        margin: 0;
+    .cp-back-btn {
+        padding: 12px 18px;
+        background: white;
+        border-radius: 12px;
+        text-decoration: none;
         color: #111827;
-        font-size: 18px;
-        font-weight: 900;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+        transition: .3s;
     }
 
-    .tm-upload-head p,
-    .tm-panel-head p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
+    .cp-back-btn:hover { background: #111827; color: white; }
+
+    /* CARD */
+    .cp-card {
+        background: white;
+        padding: 30px;
+        border-radius: 24px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.05);
     }
 
-    .tm-upload-form {
+    .cp-card-head { margin-bottom: 25px; }
+    .cp-card-head h2 { font-size: 30px; font-weight: 800; margin-bottom: 10px; }
+
+    /* FORM */
+    .cp-form-grid {
         display: grid;
-        grid-template-columns: 170px minmax(0, 1fr) 260px 160px;
-        gap: 14px;
+        grid-template-columns: 1fr 2fr 2fr auto;
+        gap: 18px;
         align-items: end;
     }
 
-    .tm-field label {
-        display: block;
-        color: #374151;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        margin-bottom: 8px;
-    }
-
-    .tm-field div {
-        position: relative;
-    }
-
-    .tm-field i {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 13px;
-    }
-
-    .tm-field select,
-    .tm-field input {
+    .cp-input {
         width: 100%;
-        height: 48px;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        background: #f8fafc;
-        padding: 0 15px 0 42px;
-        color: #111827;
-        font-size: 12px;
-        font-weight: 800;
-        outline: none;
-        font-family: inherit;
-    }
-
-    .tm-field input[type="file"] {
-        padding-top: 13px;
-    }
-
-    .tm-field select:focus,
-    .tm-field input:focus {
-        background: #fff;
-        border-color: #fecdd3;
-        box-shadow: 0 0 0 4px rgba(217, 4, 41, .08);
-    }
-
-    .tm-submit {
-        height: 48px;
-        border: none;
-        border-radius: 14px;
-        background: #d90429;
-        color: #fff;
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        gap: 9px;
-        font-size: 11px;
-        font-weight: 900;
-        text-transform: uppercase;
-        cursor: pointer;
-        font-family: inherit;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .20);
-    }
-
-    .tm-week-strip {
-        display: grid;
-        grid-template-columns: repeat(20, minmax(0, 1fr));
-        gap: 6px;
         padding: 14px;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid #edf0f4;
-        margin-bottom: 18px;
-    }
-
-    .tm-week-dot {
-        min-height: 34px;
-        display: grid;
-        place-items: center;
-        border-radius: 10px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-    }
-
-    .tm-week-dot span {
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 900;
-    }
-
-    .tm-week-dot.filled {
-        background: #dcfce7;
-        border-color: #bbf7d0;
-    }
-
-    .tm-week-dot.filled span {
-        color: #16a34a;
-    }
-
-    .tm-table-wrap {
-        overflow-x: auto;
-    }
-
-    .tm-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .tm-table th {
-        text-align: left;
-        padding: 14px 12px;
-        border-bottom: 1px solid #edf0f4;
-        color: #6b7280;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        white-space: nowrap;
-    }
-
-    .tm-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid #edf0f4;
-        vertical-align: middle;
-    }
-
-    .tm-table tbody tr:hover {
-        background: #fff7f9;
-    }
-
-    .tm-week-badge {
-        display: inline-flex;
-        align-items: center;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        background: #fff1f2;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .tm-material-title strong {
-        display: block;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .tm-material-title span {
-        display: block;
-        margin-top: 4px;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-    }
-
-    .tm-file-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
-
-    .tm-file-status.active {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .tm-file-status.empty {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .tm-date-text {
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .tm-download {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 36px;
-        padding: 0 13px;
         border-radius: 12px;
-        background: #dbeafe;
-        color: #2563eb;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
-
-    .tm-muted {
-        color: #9ca3af;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .tm-empty {
-        padding: 42px;
-        text-align: center;
+        border: 1px solid #e2e8f0;
         background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
     }
 
-    .tm-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
+    .cp-btn {
+        height: 50px;
+        padding: 0 25px;
+        border: none;
+        background: var(--red);
+        color: white;
+        font-weight: 800;
+        border-radius: 12px;
+        cursor: pointer;
     }
 
-    .tm-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
+    .cp-btn:hover { background: #b00322; }
 
-    @media (max-width: 1200px) {
-        .tm-upload-form {
-            grid-template-columns: 1fr 1fr;
-        }
+    /* TABLE */
+    .cp-table { width: 100%; border-collapse: collapse; }
+    .cp-table th { padding: 18px; font-size: 12px; color: #94a3b8; text-transform: uppercase; text-align: left; }
+    .cp-table td { padding: 22px 18px; border-top: 1px solid #f1f5f9; }
+    .cp-table tr:hover { background: #fafafa; }
 
-        .tm-submit {
-            grid-column: 1 / -1;
-        }
+    /* BADGE */
+    .badge-week { padding: 8px 12px; background: #f8fafc; border-radius: 10px; font-weight: 800; font-size: 12px; }
+    .badge-file { display: inline-flex; gap: 8px; padding: 8px 14px; background: #ecfdf5; color: #10b981; border-radius: 10px; text-decoration: none; font-weight: 800; }
+    .badge-file:hover { background: #10b981; color: white; }
 
-        .tm-week-strip {
-            grid-template-columns: repeat(10, minmax(0, 1fr));
-        }
-    }
+    .materi-info strong { display: block; font-size: 15px; }
+    .materi-info small { color: #94a3b8; }
 
-    @media (max-width: 760px) {
-        .tm-detail-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
+    /* ACTION */
+    .action-group { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-icon { width: 40px; height: 40px; border: none; border-radius: 10px; display: grid; place-items: center; cursor: pointer; }
+    .blue { background: #e0f2fe; color: #0284c7; }
+    .dark { background: #111827; color: white; }
+    .red { background: #fee2e2; color: #dc2626; }
+    .btn-icon:hover { transform: translateY(-2px); }
 
-        .tm-progress-box {
-            width: 100%;
-        }
-
-        .tm-upload-form {
-            grid-template-columns: 1fr;
-        }
-
-        .tm-week-strip {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
+    /* RESPONSIVE */
+    @media(max-width:900px){
+        .cp-form-grid { grid-template-columns: 1fr; }
+        .cp-table { min-width: 700px; }
+        .table-responsive { overflow: auto; }
     }
 </style>
+
+<script>
+    function fillEditForm(title, week) {
+        document.getElementById('input-title').value = title;
+        document.getElementById('input-week').value = week;
+        document.getElementById('form-title').innerText = "Edit Materi Minggu " + week;
+
+        // Berikan visual feedback bahwa user sedang mengedit
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('input-title').focus();
+    }
+</script>
 @endsection

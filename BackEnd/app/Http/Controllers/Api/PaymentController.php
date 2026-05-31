@@ -28,6 +28,10 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * ✨ 1. GET SNAP TOKEN
+     * Logika: Mencegah user mendaftar lebih dari 1 kelas aktif.
+     */
     public function getSnapToken(Request $request)
     {
         $request->validate([
@@ -37,48 +41,71 @@ class PaymentController extends Controller
 
         $user = auth()->user();
         if (!$user) {
-            return response()->json(['message' => 'User belum login'], 401);
+            return response()->json(['message' => 'Sesi login berakhir'], 401);
         }
 
+        // 1. CEK KEBIJAKAN 1 USER = 1 KELAS AKTIF
+        // Mengecek apakah user sudah punya pendaftaran aktif di KELAS MANAPUN
+        $anyActiveEnrollment = DB::table('enrollments')
+            ->where('user_id', $user->usersID)
+            ->where('status', 'active')
+            ->exists();
+
+        if ($anyActiveEnrollment) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Maaf, Anda sudah memiliki program kelas yang aktif. Setiap siswa hanya diperbolehkan mengikuti 1 program dalam satu waktu.'
+            ], 400);
+        }
+
+        // 2. Ambil data kelas yang ingin dibeli
         $class = DB::table('classes')->where('class_id', $request->class_id)->first();
-        if (!$class) {
-            return response()->json(['message' => 'Class tidak ditemukan'], 404);
-        }
+        if (!$class) return response()->json(['message' => 'Program tidak ditemukan'], 404);
 
-        $basePrice = (int) ($class->price ?? 100000);
+        $basePrice = (int) $class->price;
         $finalPrice = $basePrice;
-        $discountAmount = 0;
-        $appliedPromoId = null;
+        $appliedPromoCode = null;
 
+        // 3. Logika Promo (Double check di Backend)
         if ($request->has('promo_code') && !empty($request->promo_code)) {
+            $promoCode = strtoupper($request->promo_code);
             $promo = DB::table('promotions')
-                ->where('code', strtoupper($request->promo_code))
+                ->where('code', $promoCode)
                 ->where('class_id', $request->class_id)
                 ->where('quota', '>', 0)
                 ->where('is_active', 1)
                 ->first();
 
-            if ($promo) {
-                if ($promo->discount_type == 'percent') {
-                    $discountAmount = ($basePrice * $promo->discount_percent) / 100;
-                } else {
-                    $discountAmount = $promo->discount_percent; 
-                }
+            // Cek apakah user pernah pakai promo ini sebelumnya
+            $alreadyUsedPromo = DB::table('payments')
+                ->where('user_id', $user->usersID)
+                ->where('promo_code', $promoCode)
+                ->whereIn('status', ['success', 'pending'])
+                ->exists();
+
+            if ($promo && !$alreadyUsedPromo) {
+                $discount = ($basePrice * $promo->discount_percent) / 100;
+                $finalPrice = $basePrice - $discount;
                 
-                $finalPrice = $basePrice - $discountAmount;
-                if ($finalPrice < 1) $finalPrice = 1;
-                $appliedPromoId = $promo->promotion_id;
+                // Midtrans minimal transaksi adalah Rp 1.000
+                if ($finalPrice < 1000) $finalPrice = 1000;
+                
+                $appliedPromoCode = $promoCode;
             }
         }
 
-        $orderId = 'ORDER-' . time();
+        $orderId = 'ORDER-' . time() . '-' . $user->usersID;
 
         try {
+            DB::beginTransaction();
+
+            // Simpan record pembayaran awal
             DB::table('payments')->insert([
                 'user_id'    => $user->usersID,
                 'class_id'   => $class->class_id,
                 'order_id'   => $orderId,
                 'amount'     => $finalPrice,
+                'promo_code' => $appliedPromoCode,
                 'status'     => 'pending',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -96,85 +123,86 @@ class PaymentController extends Controller
                 'item_details' => [
                     [
                         'id'       => $class->class_id,
-                        'price'    => (int) $basePrice,
+                        'price'    => (int) $finalPrice,
                         'quantity' => 1,
-                        'name'     => substr('Kelas: ' . $class->program_name, 0, 45),
+                        'name'     => substr("Spekta: " . $class->program_name, 0, 45),
                     ]
                 ],
             ];
 
-            if ($discountAmount > 0) {
-                $params['item_details'][] = [
-                    'id'       => 'PROMO',
-                    'price'    => (int) -$discountAmount,
-                    'quantity' => 1,
-                    'name'     => 'Diskon Promo',
-                ];
-            }
-
             $transaction = Snap::createTransaction($params);
 
+            // Update Snap Token ke database
             DB::table('payments')
-                ->where('order_id', $orderId)
+                ->where('order_id', $order_id)
                 ->update(['snap_token' => $transaction->token]);
 
-            if ($appliedPromoId) {
-                DB::table('promotions')->where('promotion_id', $appliedPromoId)->decrement('quota');
-            }
+            DB::commit();
 
             return response()->json([
+                'status'     => 'success',
                 'snap_token' => $transaction->token,
                 'snap_url'   => $transaction->redirect_url,
                 'final_price' => $finalPrice
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Payment Error: " . $e->getMessage());
+            DB::rollBack();
+            Log::error("Midtrans Snap Error: " . $e->getMessage());
             return response()->json(['message' => 'Gagal membuat transaksi: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-     * 🔥 HANDLE MIDTRANS CALLBACK (NOTIFICATION)
-     * Bagian ini yang diperbaiki agar payment_type tersimpan
+     * ✨ 2. HANDLE MIDTRANS CALLBACK
      */
     public function handleNotification(Request $request)
-{
-    try {
-        $notif = new Notification(); // Ini mengambil data dari Midtrans
-        
-        $order_id = $notif->order_id;
-        $transaction = $notif->transaction_status;
-        $type = $notif->payment_type; // <--- Mengambil tipe (gopay, bank_transfer, dll)
+    {
+        try {
+            $notif = new Notification();
+            $order_id = $notif->order_id;
+            $transaction = $notif->transaction_status;
 
-        $payment = DB::table('payments')->where('order_id', $order_id)->first();
-        if (!$payment) return response()->json(['message' => 'Not found'], 404);
+            $payment = DB::table('payments')->where('order_id', $order_id)->first();
+            if (!$payment) return response()->json(['message' => 'Order not found'], 404);
 
-        if ($transaction == 'settlement' || $transaction == 'capture') {
-            // ✅ PERBAIKAN: Masukkan payment_type ke dalam update
-            DB::table('payments')->where('order_id', $order_id)->update([
-                'status' => 'success',
-                'payment_type' => $type, // Sekarang tipe pembayaran akan tersimpan
-                'updated_at' => now()
-            ]);
+            if ($transaction == 'settlement' || $transaction == 'capture') {
+                DB::transaction(function () use ($order_id, $notif, $payment) {
+                    
+                    // 1. Update Payment
+                    DB::table('payments')->where('order_id', $order_id)->update([
+                        'status' => 'success',
+                        'payment_type' => $notif->payment_type,
+                        'updated_at' => now()
+                    ]);
 
-            // Berikan akses kelas
-            DB::table('enrollments')->updateOrInsert(
-                ['user_id' => $payment->user_id, 'class_id' => $payment->class_id],
-                ['status' => 'active', 'updated_at' => now()]
-            );
-        } 
-        else if (in_array($transaction, ['deny', 'expire', 'cancel'])) {
-            DB::table('payments')->where('order_id', $order_id)->update([
-                'status' => 'failed',
-                'payment_type' => $type, // Tetap simpan tipe meskipun gagal
-                'updated_at' => now()
-            ]);
+                    // 2. Berikan akses kelas di tabel Enrollments
+                    DB::table('enrollments')->updateOrInsert(
+                        ['user_id' => $payment->user_id, 'class_id' => $payment->class_id],
+                        [
+                            'status' => 'active',
+                            'updated_at' => now(),
+                            'created_at' => now()
+                        ]
+                    );
+
+                    // 3. Potong kuota promo jika transaksi sukses
+                    if ($payment->promo_code) {
+                        DB::table('promotions')
+                            ->where('code', $payment->promo_code)
+                            ->where('class_id', $payment->class_id)
+                            ->decrement('quota');
+                    }
+                });
+                
+                Log::info("Payment Success: " . $order_id);
+            } 
+            
+            return response()->json(['status' => 'OK']);
+            
+        } catch (\Exception $e) {
+            Log::error("Midtrans Callback Error: " . $e->getMessage());
+            return response()->json(['message' => $e->getMessage()], 500);
         }
-
-        return response()->json(['status' => 'OK']);
-    } catch (\Exception $e) {
-        return response()->json(['message' => $e->getMessage()], 500);
     }
-}
 }

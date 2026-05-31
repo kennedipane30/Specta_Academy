@@ -4,7 +4,6 @@ import (
 	"materi-service/internal/models"
 	"materi-service/internal/usecase"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,46 +17,49 @@ func NewMaterialHandler(uc usecase.MaterialUsecase) *MaterialHandler {
 }
 
 func (h *MaterialHandler) SyncMaterial(c *gin.Context) {
-	var req models.Material
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	var m models.Material
+	if err := c.ShouldBindJSON(&m); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.uc.Sync(req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	if err := h.uc.SyncMaterial(&m); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Sync Success"})
+	c.JSON(http.StatusOK, gin.H{"message": "Material synced successfully"})
 }
 
 func (h *MaterialHandler) GetMaterials(c *gin.Context) {
-	classIDStr := c.Query("class_id")
-	subjectName := c.Query("subject_name")
-	
-	if classIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "class_id is required"})
-		return
-	}
-
-	classID, _ := strconv.Atoi(classIDStr)
-	var data []models.Material
-	var err error
-
-	if subjectName != "" {
-		// Jika Flutter memilih salah satu Mata Pelajaran (Detail per minggu)
-		data, err = h.uc.FetchMaterialsBySubject(uint(classID), subjectName)
-	} else {
-		// ✨ Jika Laravel Gateway meminta daftar awal semua materi di kelas
-		data, err = h.uc.FetchMaterialsByClass(uint(classID))
-	}
-
+	classID := c.Query("class_id")
+	materials, err := h.uc.GetMaterials(classID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "data": []interface{}{}})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"data": materials})
+}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   data,
-	})
+// ✨ HANDLER UPDATE
+func (h *MaterialHandler) UpdateMaterial(c *gin.Context) {
+	id := c.Param("id")
+	var m models.Material
+	if err := c.ShouldBindJSON(&m); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.uc.UpdateMaterial(id, &m); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Material updated successfully"})
+}
+
+// ✨ HANDLER DELETE
+func (h *MaterialHandler) DeleteMaterial(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.uc.DeleteMaterial(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Material deleted successfully"})
 }

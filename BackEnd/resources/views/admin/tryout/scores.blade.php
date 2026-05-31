@@ -1,40 +1,52 @@
 @extends('layouts.spekta')
-@section('content')
-<div class="p-6">
-    <div class="mb-8">
-        <a href="{{ route('admin.scores.pilih_tryout', $tryout->class_id) }}" class="text-xs font-bold text-gray-400 hover:text-red-600 uppercase">← Kembali ke Daftar Paket</a>
-        <h1 class="text-2xl font-black text-gray-800 uppercase mt-2">Rekap Nilai: {{ $tryout->title }}</h1>
-    </div>
 
-    <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden">
-        <table class="w-full text-left">
-            <thead class="bg-gray-50 border-b">
-                <tr class="text-[10px] font-black text-gray-400 uppercase">
-                    <th class="p-6">No</th>
-                    <th class="p-6">Nama Siswa</th>
-                    <th class="p-6 text-center">Jawaban Benar</th>
-                    <th class="p-6 text-center">Skor Akhir</th>
-                    <th class="p-6 text-right">Waktu</th>
+@section('title', 'Hasil Nilai Siswa')
+
+@section('content')
+<div class="cp-page">
+    <section class="cp-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            {{-- ✨ Gunakan null coalescing (??) untuk keamanan tambahan --}}
+            <h1 style="font-size: 22px; font-weight: 900;">Hasil: {{ $tryout->title ?? 'Paket Tryout' }}</h1>
+            <p style="color: #64748b;">Total {{ $results->count() }} siswa telah menyelesaikan ujian ini.</p>
+        </div>
+        <a href="{{ route('admin.scores.index') }}" class="cp-back-btn" style="text-decoration: none; color: #111827; font-weight: 800; background: #f1f5f9; padding: 10px 20px; border-radius: 12px;">
+            <i class="fa-solid fa-arrow-left"></i> Kembali
+        </a>
+    </section>
+
+    <div class="cp-main-card" style="background: white; border-radius: 24px; padding: 25px; border: 1px solid #f1f5f9;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid #f8fafc;">
+                    <th style="padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Nama Siswa</th>
+                    <th style="padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Benar</th>
+                    <th style="padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Skor Akhir</th>
+                    <th style="padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Tanggal</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
-                @foreach($results as $index => $res)
-                <tr class="hover:bg-gray-50/50 transition">
-                    <td class="p-6 text-sm font-bold text-gray-300">#{{ $index + 1 }}</td>
-                    <td class="p-6">
-                        <p class="font-black text-gray-800 text-sm uppercase">{{ optional($res->user_data)->name ?? 'N/A' }}</p>
+            <tbody>
+                @forelse($results as $res)
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 15px;">
+                        <strong style="color: #111827; display: block;">{{ $res->user_data->name ?? 'Siswa tidak ditemukan' }}</strong>
+                        <small style="color: #94a3b8;">{{ $res->user_data->email ?? '-' }}</small>
                     </td>
-                    <td class="p-6 text-center">
-                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black">{{ $res->total_correct }} SOAL</span>
+                    <td style="padding: 15px; font-weight: 700; color: #10b981;">{{ $res->total_correct }} Soal</td>
+                    <td style="padding: 15px;">
+                        <span style="background: #111827; color: white; padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 16px;">
+                            {{ $res->score }}
+                        </span>
                     </td>
-                    <td class="p-6 text-center font-black text-xl {{ $res->score >= 70 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $res->score }}
-                    </td>
-                    <td class="p-6 text-right text-[10px] font-black uppercase text-gray-400">
-                        {{ $res->created_at->format('d M Y | H:i') }} WIB
+                    <td style="padding: 15px; color: #64748b; font-size: 12px;">
+                        {{ $res->created_at ? $res->created_at->format('d M Y, H:i') : '-' }}
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="4" style="padding: 50px; text-align: center; color: #94a3b8; font-style: italic;">Belum ada siswa yang mengerjakan tryout ini.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
