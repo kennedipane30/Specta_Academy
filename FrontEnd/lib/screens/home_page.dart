@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
   bool isEnrolled = false;
   bool isLoadingBanner = false;
   bool isLoadingSchedule = false;
-
+  
   // ✨ NOTIFIKASI: State untuk angka notifikasi
   int unreadNotifications = 0;
   bool isLoadingNotifications = false;
@@ -209,7 +209,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchNotificationCount() async {
     try {
       setState(() => isLoadingNotifications = true);
-
+      
       final response = await http.get(
         Uri.parse('$baseUrl/api/notifications/unread-count'),
         headers: {
@@ -342,8 +342,7 @@ class _HomePageState extends State<HomePage> {
     final student = currentData?['student'];
 
     if (student == null || student['class_id'] == null) {
-      _showWarning(
-          'Kamu belum terdaftar di kelas mana pun. Daftar kelas dulu ya!');
+      _showWarning('Kamu belum terdaftar di kelas mana pun. Daftar kelas dulu ya!');
       return;
     }
 
@@ -412,38 +411,54 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
+
               const SizedBox(height: 18),
+
               _buildBannerSection(),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
+
                     _sectionTitle(
                       title: 'Jadwal Hari Ini',
                       action: 'Lihat Semua',
                       onTap: null,
                     ),
+
                     const SizedBox(height: 12),
+
                     _buildScheduleWidget(),
+
                     const SizedBox(height: 28),
+
                     _sectionTitle(
                       title: 'Lanjutkan Belajar',
                       action: 'Lihat Semua',
                       onTap: _handleLearningMaterials,
                     ),
+
                     const SizedBox(height: 14),
+
                     _buildContinueLearningCard(),
+
                     const SizedBox(height: 28),
+
                     _sectionTitle(
                       title: 'Tryout',
                       action: 'Lihat Semua',
                       onTap: _handleTryout,
                     ),
+
                     const SizedBox(height: 14),
+
                     _buildTryoutSection(),
+
                     const SizedBox(height: 28),
+
                     const Text(
                       'Menu Utama',
                       style: TextStyle(
@@ -453,17 +468,23 @@ class _HomePageState extends State<HomePage> {
                         letterSpacing: -0.5,
                       ),
                     ),
+
                     const SizedBox(height: 14),
+
                     _buildMainMenuGrid(),
+
                     const SizedBox(height: 28),
+
                     _sectionTitle(
                       title: 'Kelas Mendatang',
                       action: 'Lihat Semua',
                     ),
+
                     const SizedBox(height: 14),
+
                     _buildUpcomingClassCard(),
+
                     const SizedBox(height: 16),
-                    _buildAnnouncementCard(),
                   ],
                 ),
               ),
@@ -502,7 +523,9 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildAvatar(),
+
           const SizedBox(width: 13),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +539,9 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+
                 const SizedBox(height: 4),
+
                 Text(
                   name,
                   maxLines: 1,
@@ -532,9 +557,13 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+
           const SizedBox(width: 10),
+
           _buildGlassButton(Icons.search_rounded),
+
           const SizedBox(width: 8),
+
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -542,6 +571,7 @@ class _HomePageState extends State<HomePage> {
                 onTap: () => _handleNotificationClick(),
                 child: _buildGlassButton(Icons.notifications_none_rounded),
               ),
+              
               if (unreadNotifications > 0)
                 Positioned(
                   top: -6,
@@ -556,12 +586,11 @@ class _HomePageState extends State<HomePage> {
                         color: Color(0xFFFF2D2D),
                         shape: BoxShape.circle,
                         border: Border.fromBorderSide(
-                            BorderSide(color: Colors.white, width: 1.5)),
+                          BorderSide(color: Colors.white, width: 1.5)
+                        ),
                       ),
                       child: Text(
-                        unreadNotifications > 9
-                            ? '9+'
-                            : unreadNotifications.toString(),
+                        unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -629,6 +658,7 @@ class _HomePageState extends State<HomePage> {
                   ),
           ),
         ),
+
         Positioned(
           right: 0,
           bottom: 1,
@@ -758,46 +788,49 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: imageUrl.isEmpty
-                        ? Container(
-                            color: const Color(0xFFE5E7EB),
-                            child: const Icon(
-                              Icons.image_rounded,
-                              color: Colors.grey,
-                              size: 38,
-                            ),
-                          )
-                        // : Image.network(
-                        //     imageUrl,
-                        //     fit: BoxFit.cover,
-                        //     errorBuilder: (_, __, ___) {
-                        //       return Container(
-                        //         color: const Color(0xFFE5E7EB),
-                        //         child: const Icon(
-                        //           Icons.image_rounded,
-                        //           color: Colors.grey,
-                        //           size: 38,
-                        //         ),
-                        //       );
-                        //     },
-                        //   ),
-                        : Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            headers: const {
-                              'User-Agent': 'Flutter',
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              print('BANNER ERROR = $error');
-                              return const Icon(Icons.error);
-                            },
-                          )),
+                  borderRadius: BorderRadius.circular(26),
+                  child: imageUrl.isEmpty
+                      ? Container(
+                          color: const Color(0xFFE5E7EB),
+                          child: const Icon(
+                            Icons.image_rounded,
+                            color: Colors.grey,
+                            size: 38,
+                          ),
+                        )
+                      // : Image.network(
+                      //     imageUrl,
+                      //     fit: BoxFit.cover,
+                      //     errorBuilder: (_, __, ___) {
+                      //       return Container(
+                      //         color: const Color(0xFFE5E7EB),
+                      //         child: const Icon(
+                      //           Icons.image_rounded,
+                      //           color: Colors.grey,
+                      //           size: 38,
+                      //         ),
+                      //       );
+                      //     },
+                      //   ),
+                     : Image.network(
+  imageUrl,
+  fit: BoxFit.cover,
+  headers: const {
+    'User-Agent': 'Flutter',
+  },
+  errorBuilder: (context, error, stackTrace) {
+    print('BANNER ERROR = $error');
+    return const Icon(Icons.error);
+  },
+)
+                ),
               );
             },
           ),
         ),
+
         const SizedBox(height: 6),
+
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -840,6 +873,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
+
         GestureDetector(
           onTap: onTap,
           child: Row(
@@ -852,7 +886,9 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
+
               const SizedBox(width: 5),
+
               const Icon(
                 Icons.arrow_forward_ios_rounded,
                 color: primaryRed,
@@ -971,7 +1007,8 @@ class _HomePageState extends State<HomePage> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEEEE),
                   borderRadius: BorderRadius.circular(99),
@@ -987,7 +1024,9 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
+
           const SizedBox(height: 12),
+
           ...displayList.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value as Map;
@@ -995,6 +1034,7 @@ class _HomePageState extends State<HomePage> {
 
             return _buildScheduleItem(item, isLast: isLast);
           }),
+
           if (scheduleData.length > 3) ...[
             const SizedBox(height: 8),
             Center(
@@ -1070,7 +1110,9 @@ class _HomePageState extends State<HomePage> {
                   ),
               ],
             ),
+
             const SizedBox(width: 12),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1108,7 +1150,9 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 3),
+
                   Row(
                     children: [
                       if (startTime.isNotEmpty) ...[
@@ -1146,6 +1190,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ],
                   ),
+
                   if (!isLast) const SizedBox(height: 8),
                 ],
               ),
@@ -1159,33 +1204,19 @@ class _HomePageState extends State<HomePage> {
   String _getTodayLabel() {
     final now = DateTime.now();
     final days = [
-      'Minggu',
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu'
+      'Minggu', 'Senin', 'Selasa', 'Rabu',
+      'Kamis', 'Jumat', 'Sabtu'
     ];
     final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des'
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
     ];
     return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
   Widget _buildContinueLearningCard() {
-    final className = currentData?['student']?['class']?['program_name'] ??
+    final className =
+        currentData?['student']?['class']?['program_name'] ??
         'TPS Kuantitatif UTBK 2024';
 
     return Container(
@@ -1289,7 +1320,9 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+
           const SizedBox(width: 12),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1314,7 +1347,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 8),
+
                 Text(
                   className,
                   maxLines: 1,
@@ -1325,7 +1360,9 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+
                 const SizedBox(height: 6),
+
                 const Text(
                   'Bab 3 - Persamaan Kuadrat',
                   maxLines: 1,
@@ -1336,7 +1373,9 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+
                 const SizedBox(height: 13),
+
                 Row(
                   children: [
                     Expanded(
@@ -1363,7 +1402,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 14),
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: InkWell(
@@ -1451,7 +1492,9 @@ class _HomePageState extends State<HomePage> {
                 size: 28,
               ),
             ),
+
             const SizedBox(width: 14),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1476,6 +1519,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
+
             const Icon(
               Icons.chevron_right_rounded,
               color: primaryRed,
@@ -1491,9 +1535,11 @@ class _HomePageState extends State<HomePage> {
     final title = tryout['title'] ?? tryout['name'] ?? 'Tryout UTBK';
     final description =
         tryout['description'] ?? tryout['subtitle'] ?? 'Simulasi ujian lengkap';
-    final totalSoal = tryout['total_questions'] ?? tryout['soal_count'] ?? '-';
+    final totalSoal =
+        tryout['total_questions'] ?? tryout['soal_count'] ?? '-';
     final duration = tryout['duration'] ?? tryout['waktu'] ?? '-';
-    final isFree = (tryout['is_free'] == true || tryout['price'] == 0);
+    final isFree =
+        (tryout['is_free'] == true || tryout['price'] == 0);
 
     return GestureDetector(
       onTap: _handleTryout,
@@ -1540,7 +1586,9 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+
                 const Spacer(),
+
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1563,7 +1611,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 10),
+
             Text(
               title,
               maxLines: 1,
@@ -1574,7 +1624,9 @@ class _HomePageState extends State<HomePage> {
                 fontWeight: FontWeight.w900,
               ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
               description,
               maxLines: 1,
@@ -1585,7 +1637,9 @@ class _HomePageState extends State<HomePage> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+
             const SizedBox(height: 12),
+
             Row(
               children: [
                 _tryoutMetaChip(Icons.quiz_outlined, '$totalSoal soal'),
@@ -1593,8 +1647,8 @@ class _HomePageState extends State<HomePage> {
                 _tryoutMetaChip(Icons.timer_outlined, '$duration menit'),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 7),
                   decoration: BoxDecoration(
                     color: primaryRed,
                     borderRadius: BorderRadius.circular(99),
@@ -1762,7 +1816,9 @@ class _HomePageState extends State<HomePage> {
                     size: 25,
                   ),
                 ),
+
                 const SizedBox(width: 10),
+
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1779,7 +1835,9 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+
                       const SizedBox(height: 5),
+
                       Text(
                         item['subtitle'].toString(),
                         maxLines: 1,
@@ -1855,7 +1913,9 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+
           const SizedBox(width: 13),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1878,7 +1938,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 7),
+
                 const Text(
                   'Matematika Dasar',
                   maxLines: 1,
@@ -1889,7 +1951,9 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+
                 const SizedBox(height: 5),
+
                 Row(
                   children: [
                     Icon(
@@ -1908,7 +1972,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 4),
+
                 Text(
                   'Bersama Kak Alif',
                   style: TextStyle(
@@ -1925,69 +1991,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildAnnouncementCard() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFFEEEE),
-            Colors.white,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(21),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              color: primaryRed.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.campaign_rounded,
-              color: primaryRed,
-              size: 25,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Pengumuman',
-                  style: TextStyle(
-                    color: textDark,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Jadwal Tryout UTBK Gelombang 2 telah tersedia!',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: Colors.grey.shade500,
-            size: 25,
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _openClassIfEnrolled() {
     _handleLearningMaterials();
@@ -2068,3 +2072,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+
