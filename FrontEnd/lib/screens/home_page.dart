@@ -338,6 +338,8 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
+  // --- Bagian fungsi _handleLearningMaterials di HomePage ---
+
   Future<void> _handleLearningMaterials() async {
     final student = currentData?['student'];
 
@@ -359,19 +361,20 @@ class _HomePageState extends State<HomePage> {
       final response = await AuthService.getClassContent(classId, widget.token);
 
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Tutup loading
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final int classPrice =
-            int.tryParse(decoded['price']?.toString() ?? '0') ?? 0;
+        
+        // ✨ Ambil harga dari response gateway
+        final int classPrice = int.tryParse(decoded['price']?.toString() ?? '0') ?? 0;
 
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ClassDetailPage(
               classId: classId,
-              className: decoded['program_name'] ?? "Spekta Class",
+              className: decoded['program_name'] ?? "Materi Saya",
               price: classPrice,
               token: widget.token,
               userData: currentData!,
@@ -381,7 +384,7 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _showWarning("Gagal memuat materi kelas.");
+      _showWarning("Gagal memuat materi kelas. Pastikan koneksi stabil.");
     }
   }
 

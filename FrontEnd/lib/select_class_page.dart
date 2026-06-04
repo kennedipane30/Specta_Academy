@@ -17,7 +17,6 @@ class _SelectClassPageState extends State<SelectClassPage> {
   
   // 1. FUNGSI MAPPING (Memetakan ID Database ke File Lokal)
   String _getProgramImage(dynamic id) {
-    // Konversi dynamic ke int agar switch-case bekerja akurat
     int classId = int.tryParse(id.toString()) ?? 0;
     
     switch (classId) {
@@ -30,7 +29,6 @@ class _SelectClassPageState extends State<SelectClassPage> {
       case 4:
         return 'assets/images/favorit.png';
       default:
-        // Jika ID tidak dikenal (misal ID = 10), munculkan gambar pertama sebagai default
         return 'assets/images/abdi_negara.png'; 
     }
   }
@@ -92,9 +90,11 @@ class _SelectClassPageState extends State<SelectClassPage> {
   }
 
   Widget _buildClassCard(Map item) {
-    // Mendeteksi ID dari API (antisipasi jika namanya 'id' atau 'class_id')
     final dynamic rawId = item['class_id'] ?? item['id'];
     int id = int.tryParse(rawId.toString()) ?? 0;
+
+    // Tambahkan variabel untuk menangani harga dari API
+    int price = int.tryParse(item['price'].toString()) ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -112,7 +112,6 @@ class _SelectClassPageState extends State<SelectClassPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // MENAMPILKAN GAMBAR ASSET LOKAL (BUKAN NETWORK)
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
             child: Image.asset(
@@ -120,7 +119,6 @@ class _SelectClassPageState extends State<SelectClassPage> {
               height: 200,
               width: double.infinity,
               fit: BoxFit.cover,
-              // Error handling jika file fisik di folder assets hilang
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 200,
                 color: Colors.grey[200],
@@ -158,9 +156,11 @@ class _SelectClassPageState extends State<SelectClassPage> {
                     ),
                     ElevatedButton(
                       onPressed: () {
+                        // FIX: Menambahkan parameter price yang diwajibkan oleh ClassDetailPage
                         Navigator.push(context, MaterialPageRoute(builder: (_) => ClassDetailPage(
                           classId: id,
                           className: item['program_name'] ?? "",
+                          price: price, // Parameter ini yang tadinya kurang
                           token: widget.token,
                           userData: widget.userData,
                         )));
