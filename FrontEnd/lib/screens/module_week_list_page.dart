@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:spectaacademy/screens/pdf_viewer_page.dart'; // Sesuaikan path
+import 'package:spectaacademy/screens/pdf_viewer_page.dart'; // Sesuaikan path jika berbeda
 
 class ModuleWeekListPage extends StatelessWidget {
   final String subjectName;
@@ -15,7 +15,7 @@ class ModuleWeekListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color spektaRed = const Color(0xFF990000);
+    const Color spektaRed = Color(0xFF990000);
 
     debugPrint("Target Subject: $subjectName");
     debugPrint("Total Materials Received: ${allMaterials.length}");
@@ -38,10 +38,11 @@ class ModuleWeekListPage extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: 20, 
+        itemCount: 20, // Menampilkan 20 minggu
         itemBuilder: (context, index) {
           int weekNumber = index + 1;
 
+          // Cari apakah ada materi yang cocok dengan Minggu dan Mata Pelajaran ini
           var materialData = allMaterials.firstWhere(
             (m) {
               final String mSubject = (m['subject_name'] ?? m['material_name'] ?? m['MaterialName'] ?? '').toString().toLowerCase().trim();
@@ -113,18 +114,22 @@ class ModuleWeekListPage extends StatelessWidget {
                     return;
                   }
                   
+                  // Pastikan URL mengarah ke storage Laravel
                   String pdfUrl = "http://10.0.2.2:8000/storage/$path";
                   
                   debugPrint("📄 Opening PDF: $pdfUrl");
+                  debugPrint("🔑 Sending Token: ${token.isNotEmpty ? 'YES' : 'NO'}");
                   
+                  // ✨ PERBAIKAN: Menambahkan parameter 'token'
                   Navigator.push(
                     context, 
                     MaterialPageRoute(
                       builder: (context) => PdfViewerPage(
                         pdfUrl: pdfUrl, 
-                        title: "Week $weekNumber - $subjectName"
-                      )
-                    )
+                        title: "Week $weekNumber - $subjectName",
+                        token: token, // 👈 Token sekarang dikirim ke PdfViewerPage
+                      ),
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

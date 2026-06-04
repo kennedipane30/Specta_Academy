@@ -16,35 +16,27 @@ class ClassModel extends Model
 
     protected $fillable = [
         'program_name',
-        'image',        // Nama file/path di server
-        'price',        // Harga program
-        'description',  // Detail program
-        'image_url'     // URL lengkap untuk Flutter
+        'image',
+        'price',
+        'description',
+        'image_url',
+        // expires_at → dihapus, tidak dipakai di kelas
     ];
 
-    /**
-     * 🔥 MODIFIKASI PENTING:
-     * Mengonversi tipe data secara otomatis saat model diakses.
-     * Ini memastikan 'price' selalu menjadi angka (integer) di API Flutter,
-     * sehingga tidak muncul sebagai Rp 0.
-     */
     protected $casts = [
-        'price' => 'integer',
+        'price'    => 'integer',
         'class_id' => 'integer',
     ];
 
-    /**
-     * Relasi ke Tabel Materials
-     */
+    // ─────────────────────────────────────────
+    // RELASI
+    // ─────────────────────────────────────────
+
     public function materials()
     {
         return $this->hasMany(\App\Models\Material::class, 'class_id', 'class_id');
     }
 
-    /**
-     * Relasi ke Tabel Enrollments (Pendaftaran Siswa)
-     * Tambahan jika Anda membutuhkannya nanti
-     */
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class, 'class_id', 'class_id');

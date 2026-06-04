@@ -3,394 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Spekta Academy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <title>Admin Login – Spekta Academy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --red:      #C50337;
+        --red-dark: #8f0229;
+        --red-deep: #3a0013;
+        --white:    #ffffff;
+        --off:      #f9f6f7;
+        --muted:    #9a8f92;
+        --border:   #e8dfe1;
+        --text:     #2b1f23;
     }
 
     body {
         font-family: 'DM Sans', sans-serif;
         min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        background: #f0eaec;
         overflow: hidden;
-        background:
-            radial-gradient(circle at 10% 85%, rgba(197,3,55,0.25) 0 90px, transparent 91px),
-            radial-gradient(circle at 90% 85%, rgba(197,3,55,0.22) 0 150px, transparent 151px),
-            radial-gradient(circle at 85% 10%, rgba(197,3,55,0.2) 0 150px, transparent 151px),
-            linear-gradient(135deg, #fff0f4 0%, #f7c5d1 45%, #ffffff 100%);
+    }
+
+    /* ── OUTER WRAPPER ── */
+    .wrapper {
+        width: 100%;
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 16px;
+        animation: fadeUp 0.55s cubic-bezier(.22,1,.36,1) both;
     }
 
-    /* MAIN CARD */
-    .auth-card {
-        width: 1050px;
-        height: 620px;
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(24px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARD ── */
+    .card {
         display: flex;
-        box-shadow: 0 18px 40px rgba(0,0,0,0.22);
-        background: white;
+        width: 100%;
+        max-width: 980px;
+        min-height: 580px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(58,0,19,0.18), 0 4px 16px rgba(0,0,0,0.08);
     }
 
-    /* LEFT PANEL */
+    /* ── LEFT PANEL ── */
     .left {
-        width: 58%;
+        width: 36%;
+        background: linear-gradient(165deg, #C50337 0%, #8f0229 48%, #3a0013 100%);
         position: relative;
-        background: linear-gradient(135deg, #C50337 0%, #8f0229 55%, #3a0013 100%);
-        padding: 70px 70px;
-        overflow: hidden;
         display: flex;
         flex-direction: column;
+        padding: 36px 32px 30px;
+        overflow: hidden;
     }
 
-    /* decorative shapes */
-    .left::before {
-        content: '';
+    .deco-ring {
         position: absolute;
-        width: 340px;
-        height: 340px;
         border-radius: 50%;
-        border: 44px solid rgba(255,255,255,0.12);
-        top: -130px;
-        left: -120px;
+        pointer-events: none;
     }
-
-    .left::after {
-        content: '';
+    .r1 {
+        width: 280px; height: 280px;
+        border: 42px solid rgba(255,255,255,0.08);
+        top: -100px; left: -100px;
+    }
+    .r2 {
+        width: 180px; height: 180px;
+        border: 28px solid rgba(255,255,255,0.07);
+        bottom: 20px; right: -60px;
+    }
+    .r3 {
+        width: 110px; height: 110px;
+        background: rgba(255,255,255,0.06);
+        top: 100px; right: 28px;
+    }
+    .deco-dots {
         position: absolute;
-        width: 250px;
-        height: 250px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.08);
-        bottom: -70px;
-        right: 70px;
+        bottom: 80px; left: 24px;
+        width: 80px; height: 80px;
+        background-image: radial-gradient(rgba(255,255,255,0.20) 1.5px, transparent 1.5px);
+        background-size: 13px 13px;
+        pointer-events: none;
     }
 
-    .circle-mid {
-        position: absolute;
-        width: 210px;
-        height: 210px;
-        border-radius: 50%;
-        border: 35px solid rgba(255,255,255,0.08);
-        top: 120px;
-        right: 40px;
-    }
-
-    .circle-small {
-        position: absolute;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.08);
-        top: 70px;
-        left: 80px;
-    }
-
-    .dots {
-        position: absolute;
-        width: 130px;
-        height: 130px;
-        right: 45px;
-        bottom: 90px;
-        background-image: radial-gradient(rgba(255,255,255,0.25) 2px, transparent 2px);
-        background-size: 16px 16px;
-    }
-
-    /* logo */
     .logo {
         position: relative;
         z-index: 2;
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 120px;
+        gap: 9px;
     }
-
-    .logo-dot {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.25);
-        border: 2px solid rgba(255,255,255,0.45);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .logo-icon {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.18);
+        border: 1.5px solid rgba(255,255,255,0.32);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
     }
-
-    .logo-dot::after {
-        content: '';
-        width: 15px;
-        height: 15px;
-        background: white;
-        border-radius: 50%;
-    }
-
-    .logo-name {
+    .logo-icon svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 1.8; }
+    .logo-text strong {
+        display: block;
         font-family: 'Syne', sans-serif;
-        font-size: 1.05rem;
+        font-size: 0.92rem;
         font-weight: 800;
         color: white;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.1em;
         line-height: 1.1;
     }
-
-    .logo-name small {
-        display: block;
-        font-size: 0.62rem;
-        font-weight: 400;
-        letter-spacing: 0.32em;
-        opacity: 0.75;
+    .logo-text span {
+        font-size: 0.56rem;
+        letter-spacing: 0.28em;
+        color: rgba(255,255,255,0.6);
+        text-transform: uppercase;
     }
 
-    /* headline */
-    .headline {
+    .left-body {
         position: relative;
         z-index: 2;
         margin-top: auto;
-        margin-bottom: 90px;
+        margin-bottom: 12px;
     }
-
-    .headline h1 {
+    .left-body h1 {
         font-family: 'Syne', sans-serif;
-        font-size: 4.2rem;
-        line-height: 0.95;
-        color: white;
+        font-size: 2.8rem;
         font-weight: 800;
-        margin-bottom: 30px;
+        color: white;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+    .left-body h1 .dim {
+        color: rgba(255,255,255,0.45);
+    }
+    .left-body .underline-bar {
+        width: 36px; height: 3px;
+        background: rgba(255,255,255,0.45);
+        border-radius: 2px;
+        margin-bottom: 16px;
+    }
+    .left-body p {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.68);
+        line-height: 1.65;
+        max-width: 200px;
     }
 
-    .headline p {
-        color: rgba(255,255,255,0.8);
-        max-width: 330px;
-        line-height: 1.6;
-        font-size: 0.9rem;
+    .left-footer {
+        position: relative;
+        z-index: 2;
+        margin-top: 24px;
+        font-size: 0.56rem;
+        color: rgba(255,255,255,0.30);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
     }
 
-    /* RIGHT PANEL */
+    /* ── RIGHT PANEL ── */
     .right {
-        width: 42%;
-        background: white;
-        padding: 0 70px;
+        width: 64%;
+        background: var(--white);
         display: flex;
         flex-direction: column;
         justify-content: center;
+        padding: 44px 56px;
     }
 
-    /* input */
-    .input-group {
-        margin-bottom: 12px;
+    .right-header {
+        margin-bottom: 28px;
+    }
+    .right-header h2 {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 5px;
+    }
+    .right-header p {
+        font-size: 0.79rem;
+        color: var(--muted);
     }
 
-    .input-group label {
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
         display: block;
-        font-size: 0.75rem;
-        color: #777;
-        margin-bottom: 6px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
     }
-
-    .input-group input {
+    .input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .input-wrap .icon {
+        position: absolute;
+        left: 13px;
+        color: var(--muted);
+        display: flex; align-items: center;
+        pointer-events: none;
+    }
+    .input-wrap .icon svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .input-wrap input {
         width: 100%;
-        border: 2px solid #C50337;
-        border-radius: 3px;
-        padding: 14px 16px;
-        font-size: 0.9rem;
+        padding: 12px 13px 12px 42px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.86rem;
+        font-family: 'DM Sans', sans-serif;
+        color: var(--text);
+        background: var(--off);
         outline: none;
-        color: #333;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
-
-    .input-group input::placeholder {
-        color: #b7b7b7;
+    .input-wrap input::placeholder { color: #c2b8bb; font-size: 0.82rem; }
+    .input-wrap input:focus {
+        border-color: var(--red);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(197,3,55,0.09);
     }
-
-    .input-group input:focus {
-        box-shadow: 0 0 0 3px rgba(197,3,55,0.12);
+    .input-wrap .toggle-pw {
+        position: absolute; right: 13px;
+        background: none; border: none; cursor: pointer;
+        color: var(--muted); display: flex; align-items: center; padding: 0;
+        transition: color 0.15s;
     }
+    .input-wrap .toggle-pw:hover { color: var(--red); }
+    .input-wrap .toggle-pw svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
     .row-extra {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: 10px 0 25px;
+        margin: 8px 0 24px;
     }
-
     .remember {
-        font-size: 0.78rem;
-        color: #777;
-        display: flex;
-        align-items: center;
-        gap: 7px;
+        display: flex; align-items: center; gap: 7px;
+        font-size: 0.79rem; color: var(--muted); cursor: pointer;
     }
-
-    .remember input {
-        accent-color: #C50337;
-    }
-
-    .forgot {
-        font-size: 0.78rem;
-        color: #C50337;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .btn-row {
-        display: flex;
-        justify-content: center;
-    }
-
-    .btn-login,
-    .btn-signup {
-        width: 50%;
-        padding: 13px;
+    .remember input[type=checkbox] {
+        width: 14px; height: 14px;
+        accent-color: var(--red); cursor: pointer;
         border-radius: 3px;
+    }
+    .forgot {
+        font-size: 0.79rem;
+        color: var(--red);
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity 0.15s;
+    }
+    .forgot:hover { opacity: 0.7; }
+
+    .btn-signin {
+        width: 100%;
+        padding: 14px;
+        background: var(--red);
+        color: white;
+        border: none;
+        border-radius: 8px;
         font-family: 'Syne', sans-serif;
+        font-size: 0.86rem;
         font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
         cursor: pointer;
-        letter-spacing: 0.03em;
+        transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        box-shadow: 0 4px 16px rgba(197,3,55,0.28);
+        position: relative; overflow: hidden;
     }
-
-    .btn-login {
-        background: #C50337;
-        border: 2px solid #C50337;
-        color: white;
+    .btn-signin::after {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.10) 50%, transparent 100%);
+        transform: translateX(-100%);
+        transition: transform 0.45s;
     }
+    .btn-signin:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(197,3,55,0.35); }
+    .btn-signin:hover::after { transform: translateX(100%); }
+    .btn-signin:active { transform: translateY(0); }
 
-    .btn-login:hover {
-        background: #9f022d;
+    .divider {
+        display: flex; align-items: center; gap: 10px;
+        margin-top: 24px;
     }
-
-    .btn-signup {
-        background: white;
-        border: 2px solid #C50337;
-        color: #C50337;
-    }
-
-    .btn-signup:hover {
-        background: #C50337;
-        color: white;
-    }
-
-    /* social */
-    .social-row {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-
-    .social-label {
-        font-size: 0.7rem;
-        color: #999;
+    .divider hr { flex: 1; border: none; border-top: 1px solid var(--border); }
+    .divider span {
+        font-size: 0.6rem;
+        color: #c2b8bb;
         letter-spacing: 0.2em;
         text-transform: uppercase;
+        white-space: nowrap;
     }
 
-    .social-icon {
-        width: 31px;
-        height: 31px;
-        border-radius: 50%;
-        border: 1px solid #ddd;
-        color: #999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .right-footer {
+        margin-top: 16px;
+        text-align: center;
+        font-size: 0.74rem;
+        color: var(--muted);
+        line-height: 1.9;
+    }
+    .right-footer a {
+        color: var(--red);
         text-decoration: none;
-        font-size: 0.8rem;
+        font-weight: 500;
     }
-
-    .social-icon:hover {
-        border-color: #C50337;
-        color: #C50337;
-    }
+    .right-footer a:hover { text-decoration: underline; }
 
     .alert-error {
         background: #fff0f3;
-        border: 1px solid #f5c2cc;
-        color: #C50337;
-        border-radius: 4px;
+        border: 1px solid rgba(197,3,55,0.22);
+        color: var(--red);
+        border-radius: 7px;
         padding: 10px 14px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         margin-bottom: 18px;
+        display: flex; align-items: center; gap: 8px;
     }
 
-    /* responsive */
-    @media (max-width: 1200px) {
-        body {
-            overflow: auto;
-            padding: 30px 16px;
-        }
-
-        .auth-card {
-            width: 100%;
-            height: auto;
-            flex-direction: column;
-        }
-
-        .left,
-        .right {
-            width: 100%;
-        }
-
-        .left {
-            min-height: 420px;
-            padding: 45px 35px;
-        }
-
-        .headline {
-            margin-bottom: 40px;
-        }
-
-        .headline h1 {
-            font-size: clamp(2.6rem, 9vw, 4rem);
-        }
-
-        .right {
-            padding: 45px 35px;
-        }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+        body { overflow: auto; }
+        .wrapper { padding: 16px; align-items: flex-start; min-height: 100vh; }
+        .card { flex-direction: column; min-height: auto; }
+        .left { width: 100%; padding: 32px 28px; min-height: 260px; }
+        .left-body h1 { font-size: 2.2rem; }
+        .right { width: 100%; padding: 36px 28px 32px; justify-content: flex-start; }
     }
     </style>
 </head>
 <body>
 
-<div class="auth-card">
+<div class="wrapper">
+<div class="card">
 
+    <!-- ── LEFT ── -->
     <div class="left">
-        <div class="circle-mid"></div>
-        <div class="circle-small"></div>
-        <div class="dots"></div>
+        <div class="deco-ring r1"></div>
+        <div class="deco-ring r2"></div>
+        <div class="deco-ring r3"></div>
+        <div class="deco-dots"></div>
 
         <div class="logo">
-            <div class="logo-dot"></div>
-            <div class="logo-name">
-                SPEKTA
-                <small>ACADEMY</small>
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="logo-text">
+                <strong>Spekta Academy</strong>
+                <span>Admin Portal</span>
             </div>
         </div>
 
-        <div class="headline">
-            <h1>Hello,<br>welcome!</h1>
+        <div class="left-body">
+            <h1>Hello,<br><span class="dim">welcome!</span></h1>
+            <div class="underline-bar"></div>
             <p>Platform pembelajaran terbaik untuk mengembangkan skill dan karir profesional Anda bersama kami.</p>
         </div>
+
+        <div class="left-footer">© 2024 Spekta Academy v2.4.0</div>
     </div>
 
+    <!-- ── RIGHT ── -->
     <div class="right">
 
         @if(session('error'))
-            <div class="alert-error">{{ session('error') }}</div>
+        <div class="alert-error">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ session('error') }}
+        </div>
         @endif
 
-        <form action="{{ url('/login') }}" method="POST">
+        <div class="right-header">
+            <h2>Administrator Login</h2>
+            <p>Please enter your credentials to access the secure portal.</p>
+        </div>
+
+        <form action="{{ url('/login') }}" method="POST" id="loginForm">
             @csrf
 
-            <div class="input-group">
-                <label>Email address</label>
-                <input type="email" name="email" placeholder="name@mail.com" required>
+            <div class="form-group">
+                <label>Email Address</label>
+                <div class="input-wrap">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </span>
+                    <input type="email" name="email" placeholder="admin@gmail.com" required autocomplete="email">
+                </div>
             </div>
 
-            <div class="input-group">
+            <div class="form-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="••••••••••••••••" required>
+                <div class="input-wrap">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </span>
+                    <input type="password" name="password" id="pwInput" placeholder="••••••••••••" required autocomplete="current-password">
+                    <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password">
+                        <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
             </div>
 
             <div class="row-extra">
@@ -400,12 +423,34 @@
                 <a href="#" class="forgot">Forgot password?</a>
             </div>
 
-            <div class="btn-row">
-                <button type="submit" class="btn-login">Login</button>
-            </div>
+            <button type="submit" class="btn-signin">Sign In</button>
+
         </form>
+
+        <div class="divider">
+            <hr><span>Security Assured</span><hr>
+        </div>
+
+        <div class="right-footer">
+            Unauthorized access is strictly prohibited.<br>
+            <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Support</a>
+        </div>
+
     </div>
 </div>
+</div>
+
+<script>
+    const pw = document.getElementById('pwInput');
+    const btn = document.getElementById('togglePw');
+    const eyeOn  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const eyeOff = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+    btn.addEventListener('click', () => {
+        const show = pw.type === 'password';
+        pw.type = show ? 'text' : 'password';
+        btn.innerHTML = show ? eyeOff : eyeOn;
+    });
+</script>
 
 </body>
 </html>

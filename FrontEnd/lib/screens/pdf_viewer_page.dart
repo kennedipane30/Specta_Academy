@@ -6,11 +6,13 @@ import '../services/auth_service.dart';
 class PdfViewerPage extends StatefulWidget {
   final String pdfUrl;
   final String title;
+  final String token; // ✨ Tambahkan parameter token
 
   const PdfViewerPage({
     super.key,
     required this.pdfUrl,
     required this.title,
+    required this.token, // ✨ Wajib diisi
   });
 
   @override
@@ -45,11 +47,18 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
       _totalBytes = 0;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    debugPrint('🔑 Token ada: ${token != null ? "YA (${token.length} chars)" : "TIDAK"}');
+    // 💡 Mengambil token dari widget (dikirim dari halaman sebelumnya)
+    String activeToken = widget.token;
 
-    // 🔥 PAKAI METHOD DOWNLOAD YANG SUDAH DIMODIFIKASI
+    // Fallback: Jika token dari widget kosong, baru coba ambil dari SharedPreferences
+    if (activeToken.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      activeToken = prefs.getString('token') ?? '';
+    }
+
+    debugPrint('🔑 Token digunakan: ${activeToken.isNotEmpty ? "YA (${activeToken.length} chars)" : "TIDAK (KOSONG)"}');
+
+    // 🔥 Gunakan AuthService untuk mengunduh file
     final path = await AuthService.downloadMateri(
       widget.pdfUrl,
       (received, total) {
@@ -63,7 +72,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
           });
         }
       },
-      token: token,
+      token: activeToken, // 👈 Kirim token yang sudah dipastikan ada
       maxRetry: 3,
     );
 
@@ -77,12 +86,11 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Gagal memuat PDF setelah beberapa percobaan.\n\n'
-              'Solusi:\n'
-              '1. Pastikan file PDF tidak corrupt\n'
-              '2. Cek koneksi internet\n'
-              '3. Restart server Laravel\n'
-              '4. Hapus cache aplikasi';
+          _errorMessage = 'Gagal memuat PDF. Server menolak akses (Unauthorized) atau file tidak ditemukan.\n\n'
+              'Saran:\n'
+              '1. Pastikan Anda masih dalam keadaan login\n'
+              '2. Periksa apakah masa aktif kelas masih berlaku\n'
+              '3. Cek koneksi internet Anda';
         });
       }
     }
@@ -135,7 +143,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
     if (_isLoading) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -146,7 +154,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
                   value: _progress > 0 ? _progress : null,
                   color: spektaRed,
                   strokeWidth: 5,
-                  backgroundColor: spektaRed.withOpacity(0.15),
+                  backgroundColor: spektaRed.withOpacity(0.1),
                 ),
               ),
               const SizedBox(height: 24),
@@ -160,26 +168,26 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
                   color: spektaRed,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (_totalBytes > 0)
                 Text(
                   '${_formatBytes(_receivedBytes)} / ${_formatBytes(_totalBytes)}',
                   style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
-              const SizedBox(height: 4),
-              Text(
-                'Mengunduh materi...',
-                style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-              ),
               const SizedBox(height: 20),
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: _progress > 0 ? _progress : null,
-                  minHeight: 6,
+                  minHeight: 8,
                   color: spektaRed,
-                  backgroundColor: spektaRed.withOpacity(0.15),
+                  backgroundColor: spektaRed.withOpacity(0.1),
                 ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Mengunduh materi ke penyimpanan lokal...',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
             ],
           ),
@@ -190,38 +198,23 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.error_outline_rounded,
-                  size: 52,
-                  color: Colors.red,
-                ),
-              ),
+              const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               const Text(
                 'Gagal Memuat PDF',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
               ElevatedButton.icon(
                 onPressed: _retryDownload,
                 icon: const Icon(Icons.refresh_rounded),
@@ -229,13 +222,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: spektaRed,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                 ),
               ),
             ],
@@ -247,7 +234,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
     return PdfViewer.file(
       _localPath!,
       params: const PdfViewerParams(
-        maxScale: 3.0,
+        maxScale: 4.0,
         enableTextSelection: true,
       ),
     );

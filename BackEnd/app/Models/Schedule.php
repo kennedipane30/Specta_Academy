@@ -10,33 +10,35 @@ class Schedule extends Model
     use HasFactory;
 
     protected $table = 'schedules';
-    protected $primaryKey = 'schedule_id';
+    protected $primaryKey = 'schedule_id'; // Menghilangkan error "column id does not exist"
 
     protected $fillable = [
         'class_id',
+        'subject_id',
         'teacher_id',
         'title',
         'date',
         'start_time',
-        'end_time'
-        // 'location' sudah dihapus sesuai permintaan sebelumnya
+        'end_time',
+        'meeting_link', // Sudah ditambahkan
+        'status'
     ];
 
-    /**
-     * Relasi ke ClassModel
-     * Nama fungsi 'class' harus sama dengan yang dipanggil di Controller with(['class'])
-     */
-    public function class()
+    // Relasi ke Mata Pelajaran
+    public function subject()
     {
-        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
+        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
     }
 
-    /**
-     * Relasi ke User (Pengajar)
-     * teacher_id merujuk ke usersID di tabel users
-     */
+    // Relasi ke Pengajar
     public function teacher()
     {
         return $this->belongsTo(User::class, 'teacher_id', 'usersID');
+    }
+
+    // Relasi ke Kelas
+    public function class()
+    {
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 }

@@ -6,13 +6,13 @@ import 'login_page.dart';
 class AkunPage extends StatefulWidget {
   final String token;
   final Map userData;
-  final VoidCallback onGoToHome; // ✨ Tambahkan callback untuk navigasi ke Home
+  final VoidCallback onGoToHome;
 
   const AkunPage({
     super.key,
     required this.token,
     required this.userData,
-    required this.onGoToHome, // ✨ Wajib diisi di main_screen
+    required this.onGoToHome,
   });
 
   @override
@@ -87,21 +87,186 @@ class _AkunPageState extends State<AkunPage> {
       body: RefreshIndicator(
         color: redPrimary,
         onRefresh: _refreshProfile,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 50, 18, 120),
+        child: Column(
+          children: [
+            // 🔴 HEADER MERAH SEPERTI GAMBAR 1 🔴
+            _buildRedHeader(),
+            // 🔴 SISA KONTEN (TIDAK DIHAPUS)
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProfileCard(),
+                    const SizedBox(height: 28),
+                    _sectionTitle("Account Settings"),
+                    const SizedBox(height: 14),
+                    _buildSettingsCard(),
+                    const SizedBox(height: 28),
+                    _buildSignOutButton(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ========== 🔴 HEADER BARU WARNA MERAH (seperti gambar 1) 🔴 ==========
+  Widget _buildRedHeader() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: redPrimary,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: redDeep.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTopBar(), // ✨ Bagian yang dimodifikasi (Header)
-              const SizedBox(height: 22),
-              _buildProfileCard(),
-              const SizedBox(height: 28),
-              _sectionTitle("Account Settings"),
+              // Baris atas: Tombol back + Title Profile
+              Row(
+                children: [
+                  // Tombol kembali ke Home
+                  GestureDetector(
+                    onTap: widget.onGoToHome,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Profile",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  // Ikon notifikasi
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Avatar
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: redPrimary,
+                    size: 55,
+                  ),
+                ),
+              ),
               const SizedBox(height: 14),
-              _buildSettingsCard(),
-              const SizedBox(height: 28),
-              _buildSignOutButton(),
+              // Nama
+              Text(
+                currentData['name'] ?? "steven",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Email
+              Text(
+                currentData['email'] ?? "stevensimanjuntak2606@gmail.com",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Badge STUDENT
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "STUDENT",
+                  style: TextStyle(
+                    color: redPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -109,58 +274,7 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  // ✨ MODIFIKASI HEADER: Tambah Ikon Panah ke Home
-  Widget _buildTopBar() {
-    return Row(
-      children: [
-        // TOMBOL KEMBALI KE HOME
-        IconButton(
-          onPressed: widget.onGoToHome, // ⬅️ Pindah ke tab Home
-          icon: Icon(Icons.arrow_back, color: redWine, size: 28),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            "Profile",
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              color: redWine,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-        // ICON NOTIFIKASI
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
-              ),
-              child: Icon(Icons.notifications_none_rounded, color: redWine, size: 24),
-            ),
-            Positioned(
-              right: 10,
-              top: 10,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: redPrimary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
+  // ========== KODE ASLI (TIDAK DIHAPUS, HANYA DISESUAIKAN) ==========
   Widget _buildProfileCard() {
     return Container(
       width: double.infinity,
@@ -170,64 +284,21 @@ class _AkunPageState extends State<AkunPage> {
       ),
       child: Column(
         children: [
-          Container(
-            height: 245,
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [redPrimary, redDark, redDeep, redWine]),
-            ),
-            child: Stack(
-              children: [
-                // Decoration Dots
-                Positioned(left: 0, top: 0, child: Opacity(opacity: 0.15, child: Icon(Icons.apps, color: Colors.white, size: 80))),
-                // Edit Button
-                Positioned(
-                  right: 0, top: 0,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfilePage(userData: currentData, token: widget.token))).then((_) => _refreshProfile());
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white38)),
-                      child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.edit_rounded, color: Colors.white, size: 14), SizedBox(width: 6), Text("Edit Profile", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))]),
-                    ),
-                  ),
-                ),
-                // User Info
-                Positioned(
-                  left: 0, right: 0, top: 75,
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                        child: CircleAvatar(radius: 45, backgroundColor: softRed, child: Icon(Icons.person_rounded, color: redPrimary, size: 55)),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(currentData['name'] ?? "User", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 4),
-                          Text(currentData['email'] ?? "", maxLines: 1, style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 10),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Text("STUDENT", style: TextStyle(color: redPrimary, fontSize: 10, fontWeight: FontWeight.w900))),
-                        ],
-                      )),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Stats Row
+          // Stats Row (Langsung tanpa header gradient karena sudah di header merah)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Row(
               children: [
                 _statItem(Icons.description_rounded, "0", "Tryouts"),
@@ -246,12 +317,16 @@ class _AkunPageState extends State<AkunPage> {
   }
 
   Widget _statItem(IconData icon, String value, String label) {
-    return Expanded(child: Column(children: [
-      Icon(icon, color: redPrimary, size: 20),
-      const SizedBox(height: 6),
-      Text(value, style: TextStyle(color: redWine, fontSize: 16, fontWeight: FontWeight.w900)),
-      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w600)),
-    ]));
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: redPrimary, size: 20),
+          const SizedBox(height: 6),
+          Text(value, style: TextStyle(color: redWine, fontSize: 16, fontWeight: FontWeight.w900)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   Widget _divider() => Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.15));
@@ -261,13 +336,25 @@ class _AkunPageState extends State<AkunPage> {
   Widget _buildSettingsCard() {
     return Container(
       decoration: _cardDecoration(),
-      child: Column(children: [
-        _menuItem(title: "Personal Data", subtitle: "Update address and parent info", icon: Icons.person_outline_rounded, onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfilePage(userData: currentData, token: widget.token))).then((_) => _refreshProfile());
-        }),
-        _line(),
-        _menuItem(title: "Security", subtitle: "Change password and security", icon: Icons.lock_outline_rounded, onTap: () {}),
-      ]),
+      child: Column(
+        children: [
+          _menuItem(
+            title: "Personal Data",
+            subtitle: "Update address and parent info",
+            icon: Icons.person_outline_rounded,
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfilePage(userData: currentData, token: widget.token))).then((_) => _refreshProfile());
+            },
+          ),
+          _line(),
+          _menuItem(
+            title: "Security",
+            subtitle: "Change password and security",
+            icon: Icons.lock_outline_rounded,
+            onTap: () {},
+          ),
+        ],
+      ),
     );
   }
 
@@ -277,15 +364,27 @@ class _AkunPageState extends State<AkunPage> {
       borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: softRed, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: redPrimary, size: 22)),
-          const SizedBox(width: 15),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(color: redWine, fontSize: 15, fontWeight: FontWeight.bold)),
-            Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-          ])),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-        ]),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: softRed, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: redPrimary, size: 22),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: redWine, fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
@@ -298,17 +397,23 @@ class _AkunPageState extends State<AkunPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(color: softRed, borderRadius: BorderRadius.circular(20)),
-        child: Row(children: [
-          Icon(Icons.logout_rounded, color: redPrimary),
-          const SizedBox(width: 15),
-          Expanded(child: Text("Sign Out", style: TextStyle(color: redPrimary, fontSize: 16, fontWeight: FontWeight.bold))),
-          Icon(Icons.arrow_forward_ios_rounded, color: redPrimary, size: 14),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.logout_rounded, color: redPrimary),
+            const SizedBox(width: 15),
+            Expanded(child: Text("Sign Out", style: TextStyle(color: redPrimary, fontSize: 16, fontWeight: FontWeight.bold))),
+            Icon(Icons.arrow_forward_ios_rounded, color: redPrimary, size: 14),
+          ],
+        ),
       ),
     );
   }
 
   Widget _line() => Padding(padding: const EdgeInsets.only(left: 75, right: 15), child: Divider(height: 1, color: Colors.grey.withOpacity(0.1)));
 
-  BoxDecoration _cardDecoration() => BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))]);
+  BoxDecoration _cardDecoration() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(25),
+    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))],
+  );
 }

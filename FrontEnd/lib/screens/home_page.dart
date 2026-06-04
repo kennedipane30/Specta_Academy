@@ -11,9 +11,8 @@ import 'fitur/support_center_page.dart';
 import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
-
-// ✨ TAMBAHAN: Import halaman tryout
 import 'fitur/tryout_page.dart';
+import 'notification_page.dart'; // ✨ TAMBAHKAN IMPORT INI
 
 import 'class_detail_page.dart';
 import 'subject_list_page.dart';
@@ -47,12 +46,17 @@ class _HomePageState extends State<HomePage> {
   Map? currentData;
 
   List bannerData = [];
-  // ✨ TAMBAHAN: State untuk data tryout
   List tryoutData = [];
-  bool isLoadingTryout = false;
+  List scheduleData = [];
 
+  bool isLoadingTryout = false;
   bool isEnrolled = false;
   bool isLoadingBanner = false;
+  bool isLoadingSchedule = false;
+  
+  // ✨ NOTIFIKASI: State untuk angka notifikasi
+  int unreadNotifications = 0;
+  bool isLoadingNotifications = false;
 
   int activeBannerIndex = 0;
 
@@ -81,7 +85,9 @@ class _HomePageState extends State<HomePage> {
     await Future.wait([
       refreshUserData(),
       fetchBanners(),
-      fetchTryouts(), // ✨ TAMBAHAN
+      fetchTryouts(),
+      fetchSchedules(),
+      fetchNotificationCount(),
     ]);
   }
 
@@ -137,7 +143,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ✨ TAMBAHAN: Fetch data tryout dari API
   Future<void> fetchTryouts() async {
     try {
       setState(() => isLoadingTryout = true);
@@ -167,6 +172,83 @@ class _HomePageState extends State<HomePage> {
         setState(() => isLoadingTryout = false);
       }
     }
+  }
+
+  Future<void> fetchSchedules() async {
+    try {
+      setState(() => isLoadingSchedule = true);
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/schedules/today'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          scheduleData = decoded['data'] ?? decoded['schedules'] ?? [];
+        });
+      } else {
+        debugPrint('SCHEDULE API ERROR: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('SCHEDULE ERROR: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoadingSchedule = false);
+      }
+    }
+  }
+
+  // ✨ NOTIFIKASI: Fungsi untuk mengambil jumlah notifikasi dari API
+  Future<void> fetchNotificationCount() async {
+    try {
+      setState(() => isLoadingNotifications = true);
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/notifications/unread-count'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          unreadNotifications = decoded['unread_count'] ?? 0;
+        });
+      } else {
+        debugPrint('NOTIFICATION API ERROR: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('NOTIFICATION COUNT ERROR: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoadingNotifications = false);
+      }
+    }
+  }
+
+  // ✨ NOTIFIKASI: Fungsi untuk handle klik notifikasi (DIPERBAIKI)
+  void _handleNotificationClick() {
+    // Navigasi ke halaman daftar notifikasi
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationPage(
+          token: widget.token,
+        ),
+      ),
+    ).then((_) {
+      // Refresh jumlah notifikasi saat kembali dari halaman notifikasi
+      fetchNotificationCount();
+    });
   }
 
   void _startBannerAutoSlide() {
@@ -281,34 +363,21 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final String enrollStatus = decoded['enroll_status'] ?? "none";
+        final int classPrice =
+            int.tryParse(decoded['price']?.toString() ?? '0') ?? 0;
 
-        if (enrollStatus == 'active') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SubjectListPage(
-                classId: classId,
-                className: decoded['program_name'] ?? "Spekta Class",
-                token: widget.token,
-                subjects: decoded['subjects'] ?? [],
-                materi: decoded['materi'] ?? [],
-              ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClassDetailPage(
+              classId: classId,
+              className: decoded['program_name'] ?? "Spekta Class",
+              price: classPrice,
+              token: widget.token,
+              userData: currentData!,
             ),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ClassDetailPage(
-                classId: classId,
-                className: decoded['program_name'] ?? "Spekta Class",
-                token: widget.token,
-                userData: currentData!,
-              ),
-            ),
-          );
-        }
+          ),
+        );
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
@@ -316,7 +385,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ✨ TAMBAHAN: Handler navigasi ke halaman Tryout
   void _handleTryout() {
     Navigator.push(
       context,
@@ -353,7 +421,19 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 20),
+
+                    _sectionTitle(
+                      title: 'Jadwal Hari Ini',
+                      action: 'Lihat Semua',
+                      onTap: null,
+                    ),
+
                     const SizedBox(height: 12),
+
+                    _buildScheduleWidget(),
+
+                    const SizedBox(height: 28),
 
                     _sectionTitle(
                       title: 'Lanjutkan Belajar',
@@ -367,7 +447,6 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 28),
 
-                    // ✨ TAMBAHAN: Seksi Tryout
                     _sectionTitle(
                       title: 'Tryout',
                       action: 'Lihat Semua',
@@ -490,28 +569,39 @@ class _HomePageState extends State<HomePage> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              _buildGlassButton(Icons.notifications_none_rounded),
-              Positioned(
-                top: -6,
-                right: -4,
-                child: Container(
-                  height: 22,
-                  width: 22,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF2D2D),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    '3',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+              GestureDetector(
+                onTap: () => _handleNotificationClick(),
+                child: _buildGlassButton(Icons.notifications_none_rounded),
+              ),
+              
+              if (unreadNotifications > 0)
+                Positioned(
+                  top: -6,
+                  right: -4,
+                  child: GestureDetector(
+                    onTap: () => _handleNotificationClick(),
+                    child: Container(
+                      height: 22,
+                      width: 22,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF2D2D),
+                        shape: BoxShape.circle,
+                        border: Border.fromBorderSide(
+                          BorderSide(color: Colors.white, width: 1.5)
+                        ),
+                      ),
+                      child: Text(
+                        unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -680,6 +770,9 @@ class _HomePageState extends State<HomePage> {
 
               final imageUrl = _imageUrl(imagePath);
 
+              print('IMAGE PATH = $imagePath');
+              print('IMAGE URL  = $imageUrl');
+
               return Container(
                 margin: const EdgeInsets.symmetric(
                   horizontal: 7,
@@ -707,20 +800,31 @@ class _HomePageState extends State<HomePage> {
                             size: 38,
                           ),
                         )
-                      : Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) {
-                            return Container(
-                              color: const Color(0xFFE5E7EB),
-                              child: const Icon(
-                                Icons.image_rounded,
-                                color: Colors.grey,
-                                size: 38,
-                              ),
-                            );
-                          },
-                        ),
+                      // : Image.network(
+                      //     imageUrl,
+                      //     fit: BoxFit.cover,
+                      //     errorBuilder: (_, __, ___) {
+                      //       return Container(
+                      //         color: const Color(0xFFE5E7EB),
+                      //         child: const Icon(
+                      //           Icons.image_rounded,
+                      //           color: Colors.grey,
+                      //           size: 38,
+                      //         ),
+                      //       );
+                      //     },
+                      //   ),
+                     : Image.network(
+  imageUrl,
+  fit: BoxFit.cover,
+  headers: const {
+    'User-Agent': 'Flutter',
+  },
+  errorBuilder: (context, error, stackTrace) {
+    print('BANNER ERROR = $error');
+    return const Icon(Icons.error);
+  },
+)
                 ),
               );
             },
@@ -797,6 +901,319 @@ class _HomePageState extends State<HomePage> {
         ),
       ],
     );
+  }
+
+  Widget _buildScheduleWidget() {
+    if (isLoadingSchedule) {
+      return Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(23),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: primaryRed),
+        ),
+      );
+    }
+
+    if (scheduleData.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(23),
+          border: Border.all(color: const Color(0xFFFFE0E3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 46,
+              width: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEEE),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(
+                Icons.calendar_today_outlined,
+                color: primaryRed,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tidak ada jadwal hari ini',
+                  style: TextStyle(
+                    color: textDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Jadwal dari guru akan muncul di sini',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final displayList = scheduleData.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: const Color(0xFFFFCDD2), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: primaryRed.withOpacity(0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_rounded,
+                  color: primaryRed, size: 15),
+              const SizedBox(width: 6),
+              Text(
+                _getTodayLabel(),
+                style: const TextStyle(
+                  color: primaryRed,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEEEE),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '${scheduleData.length} jadwal',
+                  style: const TextStyle(
+                    color: primaryRed,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          ...displayList.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value as Map;
+            final isLast = index == displayList.length - 1;
+
+            return _buildScheduleItem(item, isLast: isLast);
+          }),
+
+          if (scheduleData.length > 3) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                '+ ${scheduleData.length - 3} jadwal lainnya',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleItem(Map item, {bool isLast = false}) {
+    final subject = item['subject_name'] ?? 'Mata Pelajaran';
+    final teacherName = item['teacher_name'] ?? '';
+    final startTime = item['start_time'] ?? '';
+    final endTime = item['end_time'] ?? '';
+    final statusLabel = item['status_label'] ?? 'TERJADWAL';
+    final statusColor = item['status_color'] ?? 'blue';
+
+    Color dotColor;
+    Color badgeBg;
+    Color badgeText;
+    String badgeLabel;
+
+    switch (statusColor) {
+      case 'green':
+        dotColor = const Color(0xFF3B6D11);
+        badgeBg = const Color(0xFFEAF3DE);
+        badgeText = const Color(0xFF27500A);
+        badgeLabel = 'Sedang berlangsung';
+        break;
+      case 'grey':
+        dotColor = Colors.grey.shade500;
+        badgeBg = const Color(0xFFF1EFE8);
+        badgeText = const Color(0xFF444441);
+        badgeLabel = 'Selesai';
+        break;
+      default:
+        dotColor = const Color(0xFF185FA5);
+        badgeBg = const Color(0xFFE6F1FB);
+        badgeText = const Color(0xFF0C447C);
+        badgeLabel = 'Terjadwal';
+    }
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                Container(
+                  height: 10,
+                  width: 10,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                if (!isLast)
+                  Container(
+                    width: 1.5,
+                    height: 38,
+                    color: const Color(0xFFFFCDD2),
+                  ),
+              ],
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          subject,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: textDark,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          badgeLabel,
+                          style: TextStyle(
+                            color: badgeText,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Row(
+                    children: [
+                      if (startTime.isNotEmpty) ...[
+                        Icon(Icons.access_time_rounded,
+                            size: 11, color: Colors.grey.shade500),
+                        const SizedBox(width: 3),
+                        Text(
+                          endTime.isNotEmpty
+                              ? '$startTime – $endTime'
+                              : startTime,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (teacherName.isNotEmpty) ...[
+                        Icon(Icons.person_outline_rounded,
+                            size: 11, color: Colors.grey.shade500),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            teacherName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  if (!isLast) const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _getTodayLabel() {
+    final now = DateTime.now();
+    final days = [
+      'Minggu', 'Senin', 'Selasa', 'Rabu',
+      'Kamis', 'Jumat', 'Sabtu'
+    ];
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
   Widget _buildContinueLearningCard() {
@@ -1023,9 +1440,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ✨ TAMBAHAN: Widget seksi Tryout di Home
   Widget _buildTryoutSection() {
-    // Loading state
     if (isLoadingTryout) {
       return Container(
         height: 130,
@@ -1039,12 +1454,10 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // Jika tidak ada data tryout, tampilkan card kosong yang tetap bisa diklik
     if (tryoutData.isEmpty) {
       return _buildTryoutEmptyCard();
     }
 
-    // Tampilkan tryout pertama yang tersedia sebagai highlight
     final firstTryout = tryoutData.first as Map;
     return _buildTryoutHighlightCard(firstTryout);
   }
@@ -1122,11 +1535,13 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTryoutHighlightCard(Map tryout) {
     final title = tryout['title'] ?? tryout['name'] ?? 'Tryout UTBK';
-    final description = tryout['description'] ?? tryout['subtitle'] ?? 'Simulasi ujian lengkap';
-    final totalSoal = tryout['total_questions'] ?? tryout['soal_count'] ?? '-';
+    final description =
+        tryout['description'] ?? tryout['subtitle'] ?? 'Simulasi ujian lengkap';
+    final totalSoal =
+        tryout['total_questions'] ?? tryout['soal_count'] ?? '-';
     final duration = tryout['duration'] ?? tryout['waktu'] ?? '-';
-    final isFree = (tryout['is_free'] == true || tryout['price'] == 0);
-    final status = tryout['status'] ?? 'open';
+    final isFree =
+        (tryout['is_free'] == true || tryout['price'] == 0);
 
     return GestureDetector(
       onTap: _handleTryout,
@@ -1149,9 +1564,9 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-                // Badge label
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: primaryRed,
                     borderRadius: BorderRadius.circular(99),
@@ -1159,7 +1574,8 @@ class _HomePageState extends State<HomePage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 12),
+                      Icon(Icons.local_fire_department_rounded,
+                          color: Colors.white, size: 12),
                       SizedBox(width: 4),
                       Text(
                         'Mulai Sekarang',
@@ -1175,9 +1591,9 @@ class _HomePageState extends State<HomePage> {
 
                 const Spacer(),
 
-                // Badge gratis / berbayar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isFree
                         ? const Color(0xFFE8F5E9)
@@ -1232,9 +1648,9 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 8),
                 _tryoutMetaChip(Icons.timer_outlined, '$duration menit'),
                 const Spacer(),
-                // Tombol mulai
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 7),
                   decoration: BoxDecoration(
                     color: primaryRed,
                     borderRadius: BorderRadius.circular(99),
@@ -1666,7 +2082,6 @@ class _HomePageState extends State<HomePage> {
         );
         break;
 
-      // ✨ TAMBAHAN: Case Tryout di switch
       case 'Tryout':
         _handleTryout();
         break;

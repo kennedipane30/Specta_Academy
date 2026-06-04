@@ -264,18 +264,18 @@
                             </div>
 
                             <div class="td-assignment-actions">
-                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}">
-                                    Materi
-                                </a>
+                            <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
+                                Materi
+                            </a>
 
-                                <a href="{{ route('pengajar.tryout.create', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}">
-                                    Tryout
-                                </a>
+                            <a href="{{ route('pengajar.tryout.create', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
+                                Tryout
+                            </a>
 
-                                <a href="{{ route('pengajar.latihan.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}">
-                                    Latihan
-                                </a>
-                            </div>
+                            <a href="{{ route('pengajar.latihan.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
+                                Latihan
+                            </a>
+                        </div>
                         </article>
                     @empty
                         <div class="td-empty">

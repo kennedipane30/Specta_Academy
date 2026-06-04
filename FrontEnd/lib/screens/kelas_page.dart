@@ -3,19 +3,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; 
 import 'class_detail_page.dart';
+import 'subject_list_page.dart'; // ✨ Tambahkan import ini
+import '../services/auth_service.dart'; // ✨ Tambahkan import ini
 
 class KelasPage extends StatefulWidget {
   final String token;
   final Map userData;
   final VoidCallback onGoToProfile;
-  final VoidCallback onGoToHome; // ✨ Fungsi untuk pindah ke Tab Home
+  final VoidCallback onGoToHome;
 
   const KelasPage({
     super.key,
     required this.token,
     required this.userData,
     required this.onGoToProfile,
-    required this.onGoToHome, // ✨ Wajib diisi di main_screen
+    required this.onGoToHome,
   });
 
   @override
@@ -50,7 +52,10 @@ class _KelasPageState extends State<KelasPage> {
     try {
       final response = await http.get(
         Uri.parse('http://10.0.2.2:8000/api/user'),
-        headers: {'Authorization': 'Bearer ${widget.token}', 'Accept': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', 
+          'Accept': 'application/json'
+        },
       );
       if (response.statusCode == 200) {
         if (mounted) setState(() => currentData = json.decode(response.body));
@@ -63,14 +68,21 @@ class _KelasPageState extends State<KelasPage> {
   Future<void> _fetchPrograms() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/classes'), 
-        headers: {'Authorization': 'Bearer ${widget.token}', 'Accept': 'application/json'},
+        Uri.parse('http://10.0.2.2:8000/api/classes'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', 
+          'Accept': 'application/json'
+        },
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (mounted) setState(() { programs = data['data']; isLoading = false; });
+        if (mounted) setState(() {
+          programs = data['data'] ?? [];
+        });
       }
     } catch (e) {
+      debugPrint('CLASSES FETCH EXCEPTION: $e');
+    } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -94,7 +106,6 @@ class _KelasPageState extends State<KelasPage> {
           ? Center(child: CircularProgressIndicator(color: spektaRed))
           : CustomScrollView(
               slivers: [
-                // --- HEADER PENDEK (Sesuai Referensi Gambar 2) ---
                 SliverAppBar(
                   expandedHeight: 100.0, 
                   pinned: true, 
@@ -102,10 +113,9 @@ class _KelasPageState extends State<KelasPage> {
                   centerTitle: true,
                   backgroundColor: spektaRed,
                   automaticallyImplyLeading: false, 
-                  // ✨ TOMBOL PANAH SIMPEL (Sesuai Gambar 1)
                   leading: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                    onPressed: widget.onGoToHome, // ⬅️ BALIK KE HOME (Bukan Pop)
+                    onPressed: widget.onGoToHome,
                   ),
                   flexibleSpace: FlexibleSpaceBar(
                     centerTitle: true,
@@ -208,14 +218,62 @@ class _KelasPageState extends State<KelasPage> {
     );
   }
 
+  // 🔥 PERBAIKAN LOGIKA NAVIGASI OTOMATIS
   Future<void> _navigateToDetail(BuildContext context, Map<String, dynamic> item) async {
-    await _refreshUserStatus();
+    await _refreshUserStatus(); // Ambil status pendaftaran terbaru
     if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => ClassDetailPage(
-      classId: int.parse(item['class_id'].toString()), 
-      className: item['program_name'], 
-      token: widget.token,
-      userData: currentData!, 
-    )));
+
+    final classId = int.parse(item['class_id'].toString());
+    int classPrice = int.tryParse(item['price'].toString()) ?? 0;
+
+    // 1. Cek apakah user sedang terdaftar di kelas yang diklik ini?
+    dynamic activeClassId = currentData?['active_class_id'] ?? currentData?['student']?['class_id'];
+    bool isEnrolledInThis = activeClassId?.toString() == classId.toString();
+
+    if (isEnrolledInThis) {
+      // Tampilkan Loading sebentar untuk ambil konten
+      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
+      try {
+        final response = await AuthService.getClassContent(classId, widget.token);
+        if (!mounted) return;
+        Navigator.pop(context); // Tutup loading
+
+        if (response.statusCode == 200) {
+          final decoded = jsonDecode(response.body);
+          final String enrollStatus = decoded['enroll_status'] ?? "none";
+          final apiData = decoded['data'] ?? {};
+
+          if (enrollStatus == 'active') {
+            // 🚀 BYPASS: Langsung ke Gambar 2 (Daftar Mapel)
+            Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectListPage(
+              classId: classId,
+              className: item['program_name'],
+              token: widget.token,
+              subjects: apiData['subjects'] ?? [],
+              materi: apiData['materi'] ?? [],
+            )));
+            return; // Selesai, jangan lanjut ke ClassDetailPage
+          }
+        }
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+        debugPrint("Error Auto Navigate: $e");
+      }
+    }
+
+    // 🏠 JIKA BELUM BELI / BELUM AKTIF: Ke Gambar 1 (Halaman Detail)
+    Navigator.push(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => ClassDetailPage(
+          classId: classId, 
+          className: item['program_name'], 
+          price: classPrice, 
+          token: widget.token,
+          userData: currentData!, 
+        ),
+      ),
+    );
   }
 }

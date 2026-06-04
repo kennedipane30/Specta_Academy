@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Pengajar;
 use App\Http\Controllers\Controller;
 use App\Models\TeacherAssignment;
 use App\Models\ClassModel;
-use App\Models\TryoutDraft; // Model penampung soal
+use App\Models\TryoutDraft; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,46 +14,63 @@ use Illuminate\Support\Facades\Log;
 class TryoutController extends Controller
 {
     /**
-     * 1. DAFTAR PENUGASAN SOAL
+     * 1. DAFTAR PENUGASAN SOAL (Dashboard Guru)
+     * Menampilkan daftar mapel dan jumlah soal yang sudah terupload
      */
     public function index()
     {
-        // Ambil kelas & mapel yang ditugaskan ke guru ini
-        $assignments = TeacherAssignment::with('classModel')
-            ->where('user_id', Auth::user()->usersID)
+        $userId = Auth::user()->usersID;
+
+        // Ambil semua penugasan untuk guru yang sedang login
+        $assignments = TeacherAssignment::with(['classModel', 'subject'])
+            ->where('user_id', $userId)
             ->get();
+
+        foreach ($assignments as $assignment) {
+            // Kita bersihkan nama mapel dari spasi dan jadikan huruf kecil untuk pencarian
+            $subjectName = strtolower(trim($assignment->subject->name ?? ''));
+            
+            // Hitung jumlah draf soal secara akurat (Case-Insensitive)
+            $assignment->total_soal = TryoutDraft::where('user_id', $userId)
+                ->where('class_id', $assignment->class_id)
+                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subjectName])
+                ->count();
+        }
         
         return view('pengajar.tryout.index', compact('assignments'));
     }
     
     /**
-     * 2. FORM INPUT SOAL (MANUAL & CSV)
+     * 2. HALAMAN INPUT SOAL (Create & Sidebar Daftar Soal)
      */
     public function create($class_id, $subject_name)
     {
         $classModel = ClassModel::findOrFail($class_id);
+        $cleanSubject = strtolower(trim($subject_name)); 
+        $userId = Auth::user()->usersID;
 
-        // Ambil draf soal yang sudah pernah dikirim guru ini untuk mapel tersebut
+        // Ambil data untuk sidebar kanan "Soal Terkirim"
         $existingSoal = TryoutDraft::where('class_id', $class_id)
-            ->where('subject_name', $subject_name)
-            ->where('user_id', Auth::user()->usersID)
+            ->where('user_id', $userId)
+            ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$cleanSubject])
             ->latest()
             ->get();
         
         return view('pengajar.tryout.create', [
             'classId'      => $class_id,
             'classModel'   => $classModel,
-            'subjectName'  => $subject_name,
+            'subjectName'  => trim($subject_name), // Tampilkan nama asli di UI
             'existingSoal' => $existingSoal
         ]);
     }
     
     /**
-     * 3. SIMPAN SOAL SATUAN (MANUAL)
+     * 3. SIMPAN ATAU UPDATE SOAL (MANUAL FORM)
      */
     public function store(Request $request)
     {
         $request->validate([
+            'draft_id'       => 'nullable|exists:tryout_drafts,id',
             'class_id'       => 'required',
             'subject_name'   => 'required',
             'question'       => 'required',
@@ -66,84 +83,116 @@ class TryoutController extends Controller
         ]);
 
         try {
-            TryoutDraft::create([
-                'class_id'       => $request->class_id,
-                'user_id'        => Auth::user()->usersID,
-                'subject_name'   => $request->subject_name,
-                'question'       => $request->question,
-                'option_a'       => $request->option_a,
-                'option_b'       => $request->option_b,
-                'option_c'       => $request->option_c,
-                'option_d'       => $request->option_d,
-                'option_e'       => $request->option_e,
-                'correct_answer' => $request->correct_answer,
-                'explanation'    => $request->explanation,
-            ]);
+            TryoutDraft::updateOrCreate(
+                ['id' => $request->draft_id], // Jika ada ID, maka Update. Jika tidak, Create.
+                [
+                    'class_id'       => $request->class_id,
+                    'user_id'        => Auth::user()->usersID,
+                    'subject_name'   => trim($request->subject_name), 
+                    'question'       => $request->question,
+                    'option_a'       => trim($request->option_a),
+                    'option_b'       => trim($request->option_b),
+                    'option_c'       => trim($request->option_c),
+                    'option_d'       => trim($request->option_d),
+                    'option_e'       => trim($request->option_e),
+                    'correct_answer' => strtoupper($request->correct_answer),
+                    'explanation'    => $request->explanation,
+                ]
+            );
 
-            return back()->with('success', 'Soal satuan berhasil disetor ke Admin.');
+            return back()->with('success', 'Berhasil! Soal telah disimpan ke draf.');
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal: ' . $e->getMessage());
+            Log::error("Store Draft Error: " . $e->getMessage());
+            return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
     }
 
     /**
-     * 4. IMPORT SOAL MASSAL (VIA CSV)
+     * 4. IMPORT MASSAL (CSV)
+     * ✨ FIX: Mengabaikan angka di CSV dan memaksa Nama Mapel dari URL
      */
     public function importCSV(Request $request)
     {
         $request->validate([
             'file_csv'     => 'required|mimes:csv,txt',
             'class_id'     => 'required',
-            'subject_name' => 'required'
+            'subject_name' => 'required' 
         ]);
 
         $file = $request->file('file_csv');
         $handle = fopen($file->getRealPath(), "r");
-
-        // Lewati baris header CSV
-        fgetcsv($handle, 1000, ",");
+        fgetcsv($handle, 1000, ","); // Lewati Baris Header
 
         $count = 0;
+        $userId = Auth::user()->usersID;
+        $forcedSubject = trim($request->subject_name); // Contoh: "Biology"
+
         DB::beginTransaction();
         try {
             while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                if (empty($row[0])) continue; // Lewati baris kosong
+                // Lewati jika kolom pertanyaan (index 1) kosong
+                if (!isset($row[1]) || empty(trim($row[1]))) continue; 
 
                 TryoutDraft::create([
-                    'class_id'       => $request->class_id,
-                    'user_id'        => Auth::user()->usersID,
-                    'subject_name'   => $request->subject_name,
-                    'question'       => $row[0],
-                    'option_a'       => $row[1],
-                    'option_b'       => $row[2],
-                    'option_c'       => $row[3],
-                    'option_d'       => $row[4],
-                    'option_e'       => $row[5],
-                    'correct_answer' => strtoupper($row[6]), // A-E
-                    'explanation'    => $row[7] ?? null,
+                    'class_id'       => (int) $request->class_id,
+                    'user_id'        => (int) $userId,
+                    'subject_name'   => $forcedSubject, // ✨ PAKSA Nama Mapel agar tidak jadi angka
+                    'question'       => trim($row[1]), 
+                    'option_a'       => trim($row[2] ?? '-'), 
+                    'option_b'       => trim($row[3] ?? '-'),
+                    'option_c'       => trim($row[4] ?? '-'), 
+                    'option_d'       => trim($row[5] ?? '-'), 
+                    'option_e'       => trim($row[6] ?? '-'), 
+                    'correct_answer' => strtoupper(substr(trim($row[7] ?? 'A'), 0, 1)), 
+                    'explanation'    => trim($row[8] ?? ''),              
                 ]);
                 $count++;
             }
             fclose($handle);
             DB::commit();
 
-            return back()->with('success', "Berhasil mengimpor $count soal ke draf.");
+            return back()->with('success', "Sukses! $count soal berhasil diimport ke mata pelajaran $forcedSubject.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Format CSV salah. Mohon ikuti template yang tersedia.');
+            Log::error("Import CSV Error: " . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
         }
     }
 
     /**
-     * 5. HAPUS DRAF (Sebelum dipublish Admin)
+     * 5. HAPUS DRAF SATUAN
      */
     public function destroy($id)
     {
-        $draft = TryoutDraft::where('id', $id)
-            ->where('user_id', Auth::user()->usersID)
-            ->firstOrFail();
+        try {
+            // Pastikan hanya pemilik draf yang bisa menghapus
+            TryoutDraft::where('id', $id)
+                ->where('user_id', Auth::user()->usersID)
+                ->delete();
+                
+            return back()->with('success', 'Soal berhasil dihapus dari draf.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus soal.');
+        }
+    }
+
+    /**
+     * 6. HAPUS SEMUA DRAF MAPEL INI (Reset)
+     */
+    public function deleteAllDrafts(Request $request)
+    {
+        try {
+            $subject = strtolower(trim($request->subject_name));
             
-        $draft->delete();
-        return back()->with('success', 'Soal berhasil ditarik/dihapus.');
+            TryoutDraft::where('user_id', Auth::user()->usersID)
+                ->where('class_id', $request->class_id)
+                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subject])
+                ->delete();
+
+            return back()->with('success', "Seluruh draf untuk mata pelajaran ini telah dihapus.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal membersihkan draf.');
+        }
     }
 }

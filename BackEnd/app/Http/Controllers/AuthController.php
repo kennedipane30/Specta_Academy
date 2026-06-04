@@ -13,12 +13,12 @@ use Carbon\Carbon;
 class AuthController extends Controller {
 
     /**
-     * 1. REGISTER SISWA (OTP + Profil Awal)
+     * 1. REGISTER SISWA (Dukungan Daftar Ulang)
      */
     public function registerSiswa(Request $request): JsonResponse {
         $v = Validator::make($request->all(), [
             'name' => 'required|regex:/^[a-zA-Z\s]+$/',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email',
             'nomor_wa' => 'required',
             'password' => 'required|confirmed|min:8',
         ]);
@@ -27,26 +27,36 @@ class AuthController extends Controller {
 
         DB::beginTransaction();
         try {
-            // Simpan User
-            $user = User::create([
-                'name' => trim($request->name), 
-                'email' => trim($request->email), 
-                'phone' => $request->nomor_wa, 
-                'password' => bcrypt($request->password), 
-                'role_id' => 3, 
-                'is_verified' => false
-            ]);
+            $user = User::where('email', trim($request->email))->first();
 
-            // Simpan Profil Siswa Kosong
-            Student::create([
-                'user_id' => $user->usersID, 
-                'address' => '-', 
-                'date_of_birth' => null, 
-                'parent_phone' => '-', 
-                'parent_name' => '-'
-            ]);
+            if ($user) {
+                if ($user->is_verified) {
+                    return response()->json(['status' => 'error', 'message' => 'Email ini sudah terdaftar dan aktif.'], 422);
+                }
+                $user->update([
+                    'name' => trim($request->name),
+                    'phone' => $request->nomor_wa,
+                    'password' => bcrypt($request->password),
+                ]);
+            } else {
+                $user = User::create([
+                    'name' => trim($request->name), 
+                    'email' => trim($request->email), 
+                    'phone' => $request->nomor_wa, 
+                    'password' => bcrypt($request->password), 
+                    'role_id' => 3, 
+                    'is_verified' => false
+                ]);
 
-            // Generate & Kirim OTP
+                Student::create([
+                    'user_id' => $user->usersID, 
+                    'address' => '-', 
+                    'date_of_birth' => null, 
+                    'parent_phone' => '-', 
+                    'parent_name' => '-'
+                ]);
+            }
+
             $otp = rand(100000, 999999);
             OtpCode::updateOrCreate(['user_id' => $user->usersID], [
                 'otp' => $otp, 
@@ -56,7 +66,8 @@ class AuthController extends Controller {
             Mail::to($user->email)->send(new OtpMail($otp));
             DB::commit();
 
-            return response()->json(['status' => 'success', 'name' => $user->name], 201);
+            return response()->json(['status' => 'success', 'name' => $user->name, 'message' => 'Silakan verifikasi email Anda'], 201);
+            
         } catch (\Exception $e) { 
             DB::rollBack(); 
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500); 
@@ -64,17 +75,30 @@ class AuthController extends Controller {
     }
 
     /**
-     * 2. VERIFIKASI REGISTRASI (OTP)
+     * 2. RESEND OTP
+     */
+    public function resendOtp(Request $request): JsonResponse {
+        $user = User::where('name', trim($request->name))->where('is_verified', false)->latest()->first();
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
+
+        try {
+            $otp = rand(100000, 999999);
+            OtpCode::updateOrCreate(['user_id' => $user->usersID], ['otp' => $otp, 'valid_until' => Carbon::now()->addMinutes(10)]);
+            Mail::to($user->email)->send(new OtpMail($otp));
+            return response()->json(['status' => 'success', 'message' => 'OTP Baru berhasil dikirim!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Gagal mengirim OTP'], 500);
+        }
+    }
+
+    /**
+     * 3. VERIFY REGISTRATION
      */
     public function verifyRegistration(Request $request): JsonResponse {
         $user = User::where('name', trim($request->name))->where('is_verified', false)->latest()->first();
         if (!$user) return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan'], 404);
 
-        $otpRecord = OtpCode::where('user_id', $user->usersID)
-            ->where('otp', $request->otp)
-            ->where('valid_until', '>', now())
-            ->first();
-
+        $otpRecord = OtpCode::where('user_id', $user->usersID)->where('otp', $request->otp)->where('valid_until', '>', now())->first();
         if (!$otpRecord) return response()->json(['status' => 'error', 'message' => 'OTP Salah atau Kadaluarsa'], 401);
 
         $user->is_verified = true; 
@@ -85,12 +109,13 @@ class AuthController extends Controller {
     }
 
     /**
-     * 3. LOGIN SISTEM
+     * 4. LOGIN
      */
     public function login(Request $request): JsonResponse {
-        $user = User::where('name', trim($request->name))->first();
+        $user = User::where('name', trim($request->name))->orWhere('email', trim($request->name))->first();
+        
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['status' => 'error', 'message' => 'Nama atau Password Salah'], 401);
+            return response()->json(['status' => 'error', 'message' => 'Credential Salah'], 401);
         }
 
         if ($user->role_id == 3 && !$user->is_verified) {
@@ -105,8 +130,7 @@ class AuthController extends Controller {
     }
 
     /**
-     * 4. GET CLASS CONTENT (Gateway Microservices + Subjects)
-     * Mengambil daftar mapel lokal & materi dari Go
+     * 5. GET CLASS CONTENT (Gateway Microservices + Subjects)
      */
     public function getClassContent(Request $request): JsonResponse {
         $classId = $request->class_id;
@@ -115,44 +139,43 @@ class AuthController extends Controller {
         $class = ClassModel::find($classId);
         if (!$class) return response()->json(['status' => 'error', 'message' => 'Kelas tidak ditemukan'], 404);
 
-        // Cek status pendaftaran
         $enrollStatus = 'none';
         if ($user) {
             $enrollment = Enrollment::where('user_id', $user->usersID)->where('class_id', $classId)->first();
             if ($enrollment) $enrollStatus = $enrollment->status;
         }
 
-        // Ambil Daftar Mapel dari tabel penugasan pengajar (Lokal Laravel)
+        // AMBIL SUBJEK BERDASARKAN MATRIX PENUGASAN (Dinamis)
         $subjects = DB::table('teacher_assignments')
-            ->where('class_id', $classId)
-            ->pluck('subject_name')->unique()->values();
+            ->join('subjects', 'teacher_assignments.subject_id', '=', 'subjects.subject_id')
+            ->where('teacher_assignments.class_id', $classId)
+            ->select('subjects.subject_id', 'subjects.name')
+            ->distinct()
+            ->get();
 
         try {
-            // Tarik materi dari Microservice Go Materi (Port 9001)
             $materiRes = Http::get(env('GO_MATERI_URL') . "/api/materials?class_id=$classId");
-            
-            return response()->json([
-                'status'        => 'success',
-                'enroll_status' => $enrollStatus,
-                'program_name'  => $class->program_name,
-                'description'   => $class->description ?? "Materi belajar lengkap.",
-                'price'         => (int) $class->price, 
-                'subjects'      => $subjects,
-                'materi'        => $materiRes->json()['data'] ?? [],
-            ]);
+            $materiData = $materiRes->json()['data'] ?? [];
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'success', 
-                'enroll_status' => $enrollStatus, 
-                'subjects' => $subjects, 
-                'price' => (int) $class->price,
-                'message' => 'Konten microservice sedang tidak terjangkau'
-            ]);
+            $materiData = [];
         }
+
+        return response()->json([
+            'status'        => 'success',
+            'enroll_status' => $enrollStatus,
+            'data' => [
+                'class_id'     => $class->class_id,
+                'program_name' => $class->program_name,
+                'description'  => $class->description ?? "Materi belajar lengkap tersedia.",
+                'price'        => (int) $class->price, 
+                'subjects'     => $subjects,
+                'materi'       => $materiData,
+            ]
+        ]);
     }
 
     /**
-     * 5. CHECK PROMO (Single Use & Anti Rp 0)
+     * 6. CHECK PROMO
      */
     public function checkPromo(Request $request): JsonResponse {
         $user = Auth::user();
@@ -168,32 +191,29 @@ class AuthController extends Controller {
             ->where('quota', '>', 0)
             ->first();
 
-        if (!$promo) return response()->json(['status' => 'error', 'message' => 'Promo tidak valid'], 404);
+        if (!$promo) return response()->json(['status' => 'error', 'message' => 'Promo tidak valid atau kuota habis'], 404);
 
-        // Proteksi: 1 User 1 Kali Pakai
-        $alreadyUsed = DB::table('payments')
-            ->where('user_id', $user->usersID)
-            ->where('promo_code', $promoCode)
-            ->whereIn('status', ['success', 'pending'])
-            ->exists();
+        $alreadyUsed = DB::table('payments')->where('user_id', $user->usersID)->where('promo_code', $promoCode)->whereIn('status', ['success', 'pending'])->exists();
+        if ($alreadyUsed) return response()->json(['status' => 'error', 'message' => 'Promo sudah pernah digunakan'], 400);
 
-        if ($alreadyUsed) return response()->json(['status' => 'error', 'message' => 'Promo sudah pernah dipakai'], 400);
+        // Hitung diskon (mendukung persen & nominal fixed)
+        if ($promo->discount_type == 'percent') {
+            $potongan = ($class->price * $promo->discount_percent) / 100;
+        } else {
+            $potongan = $promo->discount_percent; // Nilai nominal
+        }
 
-        $potongan = ($class->price * $promo->discount_percent) / 100;
-        $hargaBaru = $class->price - $potongan;
-
-        // Minimal bayar Rp 1.000 agar Midtrans tidak error
-        if ($hargaBaru < 1000) { $hargaBaru = 1000; $potongan = $class->price - 1000; }
+        $hargaBaru = max(1000, $class->price - $potongan);
 
         return response()->json([
             'status' => 'success',
-            'discount_amount' => (int) $potongan, 
+            'discount_amount' => (int) ($class->price - $hargaBaru), 
             'final_price' => (int) $hargaBaru
         ]);
     }
 
     /**
-     * 6. SUBMIT TRYOUT (Sinkronisasi Laravel & Go)
+     * 7. SUBMIT TRYOUT (Sinkronisasi Laravel & Go)
      */
     public function submitTryout(Request $request): JsonResponse {
         $userAnswers = $request->input('answers'); 
@@ -202,53 +222,29 @@ class AuthController extends Controller {
         $correctCount = 0;
 
         try {
-            // Ambil kunci jawaban dari Microservice Go Tryout (Port 9003)
             $response = Http::get(env('GO_TRYOUT_URL') . "/api/questions?tryout_id=$tryoutId");
             $questions = $response->json()['data'] ?? [];
 
-            if (empty($questions)) return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan'], 404);
-
             foreach ($questions as $q) {
                 $qId = $q['question_id'];
-                if (isset($userAnswers[$qId]) && strtoupper($userAnswers[$qId]) == strtoupper($q['correct_answer'])) {
-                    $correctCount++;
-                }
+                if (isset($userAnswers[$qId]) && strtoupper($userAnswers[$qId]) == strtoupper($q['correct_answer'])) $correctCount++;
             }
 
             $score = count($questions) > 0 ? round(($correctCount / count($questions)) * 100) : 0;
 
-            // A. SIMPAN KE LARAVEL (db_spectaacademy) -> Untuk Grafik Report
             DB::table('tryout_results')->insert([
-                'user_id'       => (int) $user->usersID,
-                'tryout_id'     => (int) $tryoutId,
-                'score'         => (int) $score,
-                'total_correct' => (int) $correctCount,
-                'created_at'    => now(),
-                'updated_at'    => now()
+                'user_id' => $user->usersID, 'tryout_id' => $tryoutId, 'score' => $score,
+                'total_correct' => $correctCount, 'created_at' => now(), 'updated_at' => now()
             ]);
 
-            // B. SIMPAN KE GO SERVICE (specta_tryout) -> Untuk Riwayat Detail
-            try {
-                Http::post(env('GO_TRYOUT_URL') . "/api/tryouts/submissions/sync", [
-                    'user_id'       => (int) $user->usersID,
-                    'tryout_id'     => (int) $tryoutId,
-                    'score'         => (int) $score,
-                    'total_correct' => (int) $correctCount,
-                ]);
-            } catch (\Exception $ge) {
-                Log::error("Go Sync Error: " . $ge->getMessage());
-            }
-
-            return response()->json(['status' => 'success', 'score' => $score]);
-
+            return response()->json(['status' => 'success', 'score' => (int)$score]);
         } catch (\Exception $e) {
-            Log::error("Submit Error: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Gagal simpan skor'], 500);
         }
     }
 
     /**
-     * 7. UPDATE PROFILE SISWA
+     * 8. UPDATE PROFILE, LOGOUT, GET SCHEDULE
      */
     public function updateProfile(Request $request): JsonResponse {
         $v = Validator::make($request->all(), [
@@ -263,23 +259,18 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'message' => 'Profil diperbarui']);
     }
 
-    /**
-     * 8. LOGOUT
-     */
     public function logout(Request $request): JsonResponse {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['status' => 'success', 'message' => 'Berhasil Logout']);
     }
 
-    /**
-     * 9. GET SISWA SCHEDULE (Jadwal Kelas Aktif)
-     */
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
-        $classIds = $user->classes()->wherePivot('status', 'active')->pluck('enrollments.class_id');
+        // Ambil kelas yang enrollments-nya aktif
+        $classIds = DB::table('enrollments')->where('user_id', $user->usersID)->where('status', 'active')->pluck('class_id');
         
         $schedules = Schedule::whereIn('class_id', $classIds)
-                    ->with(['class', 'material'])
+                    ->with(['class', 'subject']) // Load relasi subject agar nampak nama mapelnya
                     ->orderBy('date', 'asc')
                     ->get();
                     

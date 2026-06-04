@@ -64,7 +64,7 @@ class ClassManagementController extends Controller
         $data = $request->only(['program_name', 'price', 'description']);
 
         if ($request->hasFile('image')) {
-            // Hapus gambar lama
+            // Hapus gambar lama    
             if ($class->image) {
                 Storage::disk('public')->delete($class->image);
             }

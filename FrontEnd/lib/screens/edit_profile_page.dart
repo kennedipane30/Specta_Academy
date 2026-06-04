@@ -140,7 +140,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       backgroundColor: bgColor,
       body: Column(
         children: [
-          _buildHeader(),
+          _buildProfileHeader(), // 🔴 DIGANTI dengan header ala gambar 1 (foto + email + role)
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
@@ -167,52 +167,177 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ],
       ),
+      // 🔴 BOTTOM NAVIGATION BAR (seperti gambar 1)
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildHeader() {
+  // ========== 🟢 HEADER BARU (gaya gambar 1) ==========
+  Widget _buildProfileHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 50, 20, 25),
-      decoration: BoxDecoration(
-        color: redPrimary,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(30),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: redDeep.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          // ✨ IKON PANAH SIMPEL SESUAI PERMINTAAN
-          IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: 28,
-            ),
-            onPressed: () => Navigator.pop(context),
+          // baris atas (back + settings)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios, size: 22),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                color: Colors.black87,
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.settings_outlined, size: 24),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                color: Colors.black54,
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              "Lengkapi Profil",
-              style: TextStyle(
+          const SizedBox(height: 8),
+          // Avatar
+          Center(
+            child: Container(
+              width: 85,
+              height: 85,
+              decoration: BoxDecoration(
+                color: redPrimary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: redPrimary.withOpacity(0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.person_rounded,
+                size: 46,
                 color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
               ),
             ),
           ),
+          const SizedBox(height: 14),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  widget.userData['full_name'] ?? widget.userData['name'] ?? "steven",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E1E2E),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  widget.userData['email'] ?? "email@example.com",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: redPrimary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Text(
+                    'STUDENT',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF9C0412),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // ========== 🟢 BOTTOM NAVIGATION BAR (Home, Classes, Report, Profile) ==========
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home_outlined, 'Home', false),
+              _buildNavItem(Icons.class_outlined, 'Classes', false),
+              _buildNavItem(Icons.bar_chart_outlined, 'Report', false),
+              _buildNavItem(Icons.person_outline, 'Profile', true),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, bool isActive) {
+    return GestureDetector(
+      onTap: () {
+        // kamu bisa tambahkan navigasi ke halaman lain nanti
+        // contoh: if (label == 'Home') Navigator.push(...)
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? redPrimary : Colors.grey[400],
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isActive ? redPrimary : Colors.grey[400],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===== KODE ASLI KAMU (TIDAK DIHAPUS, HANYA DIGESER / TETAP ADA) =====
   Widget _buildUserInfoCard() {
     return Container(
       padding: const EdgeInsets.all(20),

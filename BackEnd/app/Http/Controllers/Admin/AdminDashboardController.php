@@ -38,7 +38,8 @@ class AdminDashboardController extends Controller
          * Karena tabel classes belum punya kolom is_active/status,
          * kelas aktif sementara dihitung dari jadwal hari ini dan ke depan.
          */
-        $total_kelas_aktif = Schedule::whereDate('date', '>=', $today)->count();
+        $total_kelas_aktif = Enrollment::where('status', 'active')->count();
+
 
         /*
          * Karena tabel materials belum punya kolom status,

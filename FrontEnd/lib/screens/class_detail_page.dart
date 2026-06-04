@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import 'payment_confirmation_page.dart';
@@ -11,6 +12,7 @@ import 'tryout_detail_page.dart';
 class ClassDetailPage extends StatefulWidget {
   final int classId;
   final String className;
+  final int price; 
   final String token;
   final Map userData;
 
@@ -18,6 +20,7 @@ class ClassDetailPage extends StatefulWidget {
     super.key,
     required this.classId,
     required this.className,
+    required this.price, 
     required this.token,
     required this.userData,
   });
@@ -28,7 +31,8 @@ class ClassDetailPage extends StatefulWidget {
 
 class _ClassDetailPageState extends State<ClassDetailPage> {
   String status = "none";
-  int basePrice = 0;
+  late int basePrice; 
+  late Map currentLocalUserData;
   String description = "";
   List materi = [];
   List subjects = []; 
@@ -42,9 +46,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   @override
   void initState() {
     super.initState();
+    basePrice = widget.price; 
+    currentLocalUserData = widget.userData; 
     _fetchDetail();
   }
 
+  // --- FIX ERROR: FUNGSI ASSET GAMBAR ---
   String _getLocalAsset() {
     int cid = int.tryParse(widget.classId.toString()) ?? 0;
     switch (cid) {
@@ -53,6 +60,28 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       case 3: return 'assets/images/reguler.png';
       case 4: return 'assets/images/favorit.png';
       default: return 'assets/images/abdi_negara.png';
+    }
+  }
+
+  // --- FUNGSI REFRESH PROFIL USER ---
+  Future<void> _refreshUserProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/user'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': 'application/json'
+        },
+      );
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            currentLocalUserData = json.decode(response.body);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error Refresh Profil: $e");
     }
   }
 
@@ -65,15 +94,17 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
+        final apiData = decoded['data'] ?? {}; 
+
         if (mounted) {
           setState(() {
             status = decoded['enroll_status'] ?? "none";
-            materi = decoded['materi'] ?? [];
-            subjects = decoded['subjects'] ?? []; 
-            tryouts = decoded['tryouts'] ?? [];
-            practiceQuestions = decoded['practice_questions'] ?? [];
-            description = decoded['description'] ?? "Materi belajar lengkap tersedia untuk membantu kelulusanmu.";
-            basePrice = int.tryParse(decoded['price']?.toString() ?? "0") ?? 0;
+            materi = apiData['materi'] ?? [];
+            subjects = apiData['subjects'] ?? []; 
+            tryouts = apiData['tryouts'] ?? [];
+            practiceQuestions = apiData['practice_questions'] ?? [];
+            description = apiData['description'] ?? "Materi belajar lengkap tersedia untuk membantu kelulusanmu.";
+            basePrice = int.tryParse(apiData['price']?.toString() ?? widget.price.toString()) ?? widget.price;
             isLoading = false;
           });
         }
@@ -86,30 +117,25 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  // --- FUNGSI ALERT MAAF (JIKA SUDAH PUNYA KELAS LAIN) ---
   void _showAlreadyEnrolledDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         title: const Text("Pendaftaran Gagal", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.red, size: 64),
-            const SizedBox(height: 20),
+            Icon(Icons.error_outline_rounded, color: Colors.red, size: 64),
+            SizedBox(height: 20),
             Text(
-              "Maaf, Anda sudah terdaftar dalam program kelas lain. Setiap siswa hanya diperbolehkan memiliki 1 program aktif di Spekta Academy.",
+              "Maaf, Anda sudah terdaftar dalam program kelas lain. Setiap siswa hanya diperbolehkan memiliki 1 program aktif.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("MENGERTI", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-          )
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("MENGERTI"))
         ],
       ),
     );
@@ -117,48 +143,28 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
 
   void _navigateToMaterials() {
     Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectListPage(
-      classId: widget.classId,
-      className: widget.className,
-      token: widget.token,
-      subjects: subjects, 
-      materi: materi,
+      classId: widget.classId, className: widget.className, token: widget.token, subjects: subjects, materi: materi,
     )));
   }
 
   void _navigateToPractice() {
-    if (practiceQuestions.isEmpty) {
-      _showWarningSnack("Latihan soal belum tersedia.");
-      return;
-    }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PracticeSubjectListPage(
-      allExercises: practiceQuestions, 
-      token: widget.token,
-    )));
+    if (practiceQuestions.isEmpty) { _showWarningSnack("Latihan soal belum tersedia."); return; }
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PracticeSubjectListPage(allExercises: practiceQuestions, token: widget.token)));
   }
 
   void _navigateToTryouts() {
-    if (tryouts.isEmpty) {
-      _showWarningSnack("Tryout belum tersedia.");
-    } else {
-       Navigator.push(context, MaterialPageRoute(builder: (context) => TryoutDetailPage(
-         tryoutData: tryouts[0], 
-         token: widget.token
-       )));
-    }
+    if (tryouts.isEmpty) { _showWarningSnack("Tryout belum tersedia."); } 
+    else { Navigator.push(context, MaterialPageRoute(builder: (context) => TryoutDetailPage(tryoutData: tryouts[0], token: widget.token))); }
   }
 
   void _showWarningSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(backgroundColor: Colors.orange, content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)))
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.orange, content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isActive = status == 'active';
-    
-    // Logika deteksi kelas lain
-    dynamic enrolledClassId = widget.userData['active_class_id'] ?? widget.userData['student']?['class_id'];
+    bool isActive = (status == 'active');
+    dynamic enrolledClassId = currentLocalUserData['active_class_id'] ?? currentLocalUserData['student']?['class_id'];
     bool hasOtherClassActive = enrolledClassId != null && enrolledClassId.toString() != widget.classId.toString();
 
     return Scaffold(
@@ -166,7 +172,10 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: spektaRed))
           : RefreshIndicator(
-              onRefresh: _fetchDetail,
+              onRefresh: () async {
+                await _refreshUserProfile();
+                await _fetchDetail();
+              },
               child: CustomScrollView(
                 slivers: [
                   _buildSliverAppBar(),
@@ -217,7 +226,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 ],
               ),
             ),
-      // Tampilkan bottom bar hanya jika belum aktif (untuk daftar) atau sudah aktif (untuk tombol belajar)
       bottomNavigationBar: isActive 
           ? _buildSuccessBottomBar() 
           : _buildPremiumBottomBar(hasOtherClassActive),
@@ -276,11 +284,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       child: SafeArea(
         child: ElevatedButton(
           onPressed: _navigateToMaterials, 
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green, 
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            minimumSize: const Size(double.infinity, 50)
-          ), 
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(double.infinity, 50)), 
           child: const Text("MULAI BELAJAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
         ),
       ),
@@ -297,22 +301,27 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
             Expanded(child: Text(currency.format(basePrice), style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
-                // ✨ LOGIKA PENCEGATAN: Jika sudah punya kelas lain, tampilkan dialog penolakan
                 if (isOtherClassActive) {
                   _showAlreadyEnrolledDialog();
                 } else {
-                  // Jika belum punya kelas, lanjut ke konfirmasi pembayaran
                   final bool? success = await Navigator.push(
                     context, 
                     MaterialPageRoute(builder: (_) => PaymentConfirmationPage(
-                      classId: widget.classId, 
-                      className: widget.className, 
-                      basePrice: basePrice, 
-                      token: widget.token, 
-                      userData: widget.userData
+                      classId: widget.classId, className: widget.className, basePrice: basePrice, token: widget.token, userData: currentLocalUserData
                     ))
                   );
-                  if (success == true) _fetchDetail();
+
+                  if (success == true) {
+                    setState(() => isLoading = true); 
+                    await Future.delayed(const Duration(seconds: 3));
+                    await _refreshUserProfile();
+                    await _fetchDetail();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(backgroundColor: Colors.green, content: Text("Pembayaran Berhasil!"))
+                      );
+                    }
+                  }
                 }
               }, 
               style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), 

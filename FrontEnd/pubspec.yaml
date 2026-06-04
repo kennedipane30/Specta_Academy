@@ -1,5 +1,5 @@
 name: spectaacademy
-description: "A new Flutter project."
+description: "A new Flutter project for Specta Academy."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -8,35 +8,46 @@ environment:
   sdk: ^3.0.0
 
 dependencies:
-  webview_flutter: ^4.0.7
   flutter:
     sdk: flutter
 
+  # --- UI & Design ---
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  carousel_slider: ^5.0.0
+  smooth_page_indicator: ^1.2.0
+  cached_network_image: ^3.4.1
+
+  # --- Networking & API ---
   http: ^1.1.0  
   dio: ^5.4.1
-
-  # ✨ MODIFIKASI: Update versi untuk fix error Registrar & Tambah Core agar tidak konflik
-  pdfrx: ^1.0.67
-  path_provider: ^2.1.1
-
-  # ✨ MODIFIKASI: Pindahkan fl_chart ke sini agar grafik laporan bisa jalan
-  fl_chart: ^0.66.0
   
-  # Kunci di versi 1.1.0 (Tanpa tanda ^) agar startPaymentUi berfungsi kembali
-  midtrans_sdk: 1.1.0             
-  
-  shared_preferences: ^2.2.2
-  intl: ^0.19.0 
-  image_picker: ^1.0.4
-  table_calendar: ^3.1.0
-  url_launcher: ^6.2.5
-  file_picker: ^8.0.0+1
-  google_fonts: ^6.2.1
+  # --- State Management & Storage ---
   provider: ^6.1.2
-  carousel_slider: ^5.0.0
-  cached_network_image: ^3.4.1
-  smooth_page_indicator: ^1.2.0
+  shared_preferences: ^2.2.2
+
+  # --- File Handling & PDF (✨ Untuk Question Bank Hub) ---
+  file_picker: ^8.0.0+1
+  url_launcher: ^6.2.5
+  path_provider: ^2.1.1
+  pdfrx: ^1.0.67 # PDF Viewer yang ringan dan stabil
+  
+  # --- Media & Camera ---
+  image_picker: ^1.0.4
+
+  # --- Data Visualization (✨ Untuk Grafik Laporan Belajar) ---
+  fl_chart: ^0.66.0
+
+  # --- Utils ---
+  intl: ^0.19.0 # Untuk format tanggal & mata uang Rupiah
+  table_calendar: ^3.1.0 # Untuk fitur jadwal/kalender
+
+  # --- Payment Gateway (✨ Hardlocked untuk Midtrans) ---
+  # Kunci di versi 1.1.0 agar UI Kit Midtrans tidak error/pecah
+  midtrans_sdk: 1.1.0             
+
+  # --- WebView ---
+  webview_flutter: ^4.0.7
 
 dev_dependencies:
   flutter_test:
@@ -45,8 +56,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # --- Assets Configuration ---
   assets:
     - assets/images/abdi_negara.png
     - assets/images/ptn_unhan.png
     - assets/images/favorit.png
     - assets/images/reguler.png
+    # Tambahkan folder assets lainnya jika ada, misal:
+    # - assets/icons/

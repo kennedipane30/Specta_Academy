@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\TeacherAssignment;
 use App\Models\Schedule;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,7 @@ class ManajemenPengajarController extends Controller
     public function index(Request $request)
     {
         $teacherQuery = User::where('role_id', 2)
-            ->with(['assignments.classModel']);
+            ->with(['assignments.classModel', 'assignments.subject']);
 
         if ($request->filled('search')) {
             $search = strtolower($request->search);
@@ -25,15 +26,15 @@ class ManajemenPengajarController extends Controller
                 $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"])
-                    ->orWhereHas('assignments', function ($assignmentQuery) use ($search) {
-                        $assignmentQuery->whereRaw('LOWER(subject_name) LIKE ?', ["%{$search}%"]);
+                    ->orWhereHas('assignments.subject', function ($subjectQuery) use ($search) {
+                        $subjectQuery->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
 
-        if ($request->filled('subject_name')) {
+        if ($request->filled('subject_id')) {
             $teacherQuery->whereHas('assignments', function ($assignmentQuery) use ($request) {
-                $assignmentQuery->where('subject_name', $request->subject_name);
+                $assignmentQuery->where('subject_id', $request->subject_id);
             });
         }
 
@@ -54,7 +55,7 @@ class ManajemenPengajarController extends Controller
 
         $teacherIds = $teachers->getCollection()->pluck('usersID');
 
-        $assignmentMap = TeacherAssignment::with('classModel')
+        $assignmentMap = TeacherAssignment::with(['classModel', 'subject'])
             ->whereIn('user_id', $teacherIds)
             ->get()
             ->groupBy('user_id');
@@ -65,11 +66,7 @@ class ManajemenPengajarController extends Controller
             ->groupBy('teacher_id')
             ->pluck('total', 'teacher_id');
 
-        $subjects = TeacherAssignment::whereNotNull('subject_name')
-            ->where('subject_name', '!=', '')
-            ->distinct()
-            ->orderBy('subject_name')
-            ->pluck('subject_name');
+        $subjects = Subject::orderBy('name')->get();
 
         $totalPengajar = User::where('role_id', 2)->count();
 
@@ -92,13 +89,13 @@ class ManajemenPengajarController extends Controller
 
         $kelasDiajar = TeacherAssignment::distinct()->count('class_id');
 
-        $distribusiBidang = TeacherAssignment::select(
-                'subject_name',
+        // Distribusi bidang via join ke tabel subjects
+        $distribusiBidang = TeacherAssignment::join('subjects', 'teacher_assignments.subject_id', '=', 'subjects.subject_id')
+            ->select(
+                'subjects.name as subject_name',
                 DB::raw('COUNT(*) as total')
             )
-            ->whereNotNull('subject_name')
-            ->where('subject_name', '!=', '')
-            ->groupBy('subject_name')
+            ->groupBy('subjects.subject_id', 'subjects.name')
             ->orderByDesc('total')
             ->get();
 
@@ -117,15 +114,16 @@ class ManajemenPengajarController extends Controller
                 ];
             });
 
-        $aktivitasAssignment = TeacherAssignment::with(['user', 'classModel'])
+        // Gunakan relasi subject untuk nama mapel
+        $aktivitasAssignment = TeacherAssignment::with(['teacher', 'classModel', 'subject'])
             ->latest()
             ->take(4)
             ->get()
             ->map(function ($assignment) {
                 return [
                     'icon' => 'fa-book-open',
-                    'title' => $assignment->user->name ?? 'Pengajar',
-                    'description' => 'Ditugaskan mengajar ' . ($assignment->subject_name ?? 'materi'),
+                    'title' => $assignment->teacher->name ?? 'Pengajar',
+                    'description' => 'Ditugaskan mengajar ' . ($assignment->subject->name ?? 'materi'),
                     'time' => $assignment->created_at,
                 ];
             });

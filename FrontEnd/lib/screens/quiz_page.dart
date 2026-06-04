@@ -21,6 +21,7 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   int _currentIndex = 0;
+  // Map untuk menyimpan jawaban user: {question_id: "A"}
   Map<int, String> _myAnswers = {}; 
   final Color spektaRed = const Color(0xFF990000);
 
@@ -75,6 +76,19 @@ class _QuizPageState extends State<QuizPage> {
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)),
             onPressed: () {
+              // ✨ PROSES SINKRONISASI JAWABAN SEBELUM PINDAH KE EXPLANATION PAGE
+              for (var i = 0; i < widget.questions.length; i++) {
+                // Ambil question_id dari data soal
+                int qId = widget.questions[i]['question_id'];
+                
+                // Ambil jawaban user dari map _myAnswers berdasarkan qId
+                // Jika user tidak menjawab, beri tanda "-"
+                String userChoice = _myAnswers[qId] ?? "-";
+                
+                // Masukkan jawaban tersebut ke dalam list questions agar bisa dibaca di ExplanationPage
+                widget.questions[i]['user_answer'] = userChoice;
+              }
+
               Navigator.pop(context); // Tutup dialog
               Navigator.push(context, MaterialPageRoute(
                 builder: (context) => ExplanationPage(questions: widget.questions)
@@ -84,7 +98,10 @@ class _QuizPageState extends State<QuizPage> {
             label: const Text("LIHAT PENJELASAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
           ),
           TextButton(
-            onPressed: () { Navigator.pop(context); Navigator.pop(context); }, 
+            onPressed: () { 
+              Navigator.pop(context); // Tutup dialog
+              Navigator.pop(context); // Kembali ke menu sebelumnya
+            }, 
             child: const Text("BACK TO MENU")
           ),
         ],
@@ -104,38 +121,64 @@ class _QuizPageState extends State<QuizPage> {
       ),
       body: Column(
         children: [
-          LinearProgressIndicator(value: (_currentIndex + 1) / widget.questions.length, backgroundColor: Colors.red[50], color: spektaRed),
+          LinearProgressIndicator(
+            value: (_currentIndex + 1) / widget.questions.length, 
+            backgroundColor: Colors.red[50], 
+            color: spektaRed
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(25), 
               child: Column(
                 children: [
+                  // Box Pertanyaan
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20), 
                     decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(15)),
-                    child: Text(q['question'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))
+                    child: Text(q['question'] ?? "", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))
                   ),
                   const SizedBox(height: 30),
-                  _buildOption("A", q['option_a'], q['question_id']),
-                  _buildOption("B", q['option_b'], q['question_id']),
-                  _buildOption("C", q['option_c'], q['question_id']),
-                  _buildOption("D", q['option_d'], q['question_id']),
+
+                  // Pilihan Jawaban
+                  _buildOption("A", q['option_a'] ?? "", q['question_id']),
+                  _buildOption("B", q['option_b'] ?? "", q['question_id']),
+                  _buildOption("C", q['option_c'] ?? "", q['question_id']),
+                  _buildOption("D", q['option_d'] ?? "", q['question_id']),
                 ]
               )
             )
           ),
+          
           // Navigasi Bottom Bar
           Container(
             padding: const EdgeInsets.all(20), 
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))]
+            ),
             child: Row(
               children: [
-                if (_currentIndex > 0) IconButton(onPressed: () => setState(() => _currentIndex--), icon: const Icon(Icons.arrow_back_ios)),
+                if (_currentIndex > 0) 
+                  IconButton(
+                    onPressed: () => setState(() => _currentIndex--), 
+                    icon: const Icon(Icons.arrow_back_ios)
+                  ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: _currentIndex == widget.questions.length - 1 ? Colors.green : spektaRed),
-                    onPressed: () => _currentIndex == widget.questions.length - 1 ? _submitQuiz() : setState(() => _currentIndex++),
-                    child: Text(_currentIndex == widget.questions.length - 1 ? "FINISH" : "NEXT", style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _currentIndex == widget.questions.length - 1 ? Colors.green : spektaRed,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                    ),
+                    onPressed: () => _currentIndex == widget.questions.length - 1 
+                      ? _submitQuiz() 
+                      : setState(() => _currentIndex++),
+                    child: Text(
+                      _currentIndex == widget.questions.length - 1 ? "FINISH" : "NEXT", 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
                   ),
                 ),
               ],
@@ -160,7 +203,10 @@ class _QuizPageState extends State<QuizPage> {
         ),
         child: Row(
           children: [
-            CircleAvatar(backgroundColor: isSelected ? spektaRed : Colors.grey[200], child: Text(code, style: TextStyle(color: isSelected ? Colors.white : Colors.black))),
+            CircleAvatar(
+              backgroundColor: isSelected ? spektaRed : Colors.grey[200], 
+              child: Text(code, style: TextStyle(color: isSelected ? Colors.white : Colors.black))
+            ),
             const SizedBox(width: 15), 
             Expanded(child: Text(text)),
           ]

@@ -9,22 +9,19 @@ class Material extends Model
 {
     use HasFactory;
 
-    // Pastikan koneksi ini sudah terdaftar di config/database.php
-    protected $connection = 'pgsql_materi';
+    /**
+     * MODIFIKASI PENTING:
+     * Karena di file .env Anda hanya ada satu database (db_spectaacademy),
+     * kita harus menonaktifkan baris connection di bawah ini.
+     * Jika diaktifkan, Laravel akan error karena mencari database 'pgsql_materi' yang tidak ada di .env.
+     */
+    // protected $connection = 'pgsql_materi'; 
 
-    // Nama tabel di database specta_materi
     protected $table = 'materials';
-
-    // 🔥 PENTING: Tentukan Primary Key Anda
     protected $primaryKey = 'material_id';
-
-    // 🔥 PENTING: Beritahu Laravel bahwa ini adalah auto-incrementing
     public $incrementing = true;
-
-    // 🔥 Tipe data primary key (biasanya int atau bigInt)
     protected $keyType = 'int';
 
-    // Kolom yang boleh diisi
     protected $fillable = [
         'class_id', 
         'user_id', 
@@ -36,11 +33,9 @@ class Material extends Model
 
     /**
      * Relasi ke Model ClassModel
-     * Pastikan ClassModel menggunakan koneksi default (auth/main db)
      */
     public function classModel()
     {
-        // Gunakan nama classModel agar tidak bentrok dengan keyword 'class' di PHP lama
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 

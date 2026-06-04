@@ -1,14 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 1. Izin Internet & Jaringan (Wajib untuk Midtrans) -->
+    <!-- 1. Izin Dasar & Internet (Wajib untuk Midtrans & API) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 2. Izin Akses File & Media (Wajib untuk File Picker & Image Picker) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:label="spectaacademy"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true"> <!-- Mengizinkan koneksi HTTP ke Localhost -->
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         
         <activity
             android:name=".MainActivity"
@@ -30,7 +36,7 @@
             </intent-filter>
         </activity>
 
-        <!-- 2. Aktivitas Internal Midtrans (Wajib agar tidak crash saat bayar) -->
+        <!-- 3. Aktivitas Internal Midtrans (Wajib agar tidak crash saat bayar) -->
         <activity
             android:name="com.midtrans.sdk.uikit.PaymentMethodsActivity"
             android:configChanges="orientation|screenSize"
@@ -49,8 +55,9 @@
             android:value="2" />
     </application>
 
-    <!-- 3. Queries untuk URL Launcher -->
+    <!-- 4. Queries (Wajib untuk URL Launcher agar bisa buka Browser & PDF) -->
     <queries>
+        <!-- Membuka Link Website -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
@@ -58,6 +65,11 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
+        </intent>
+        <!-- Membuka File PDF secara Eksternal -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/pdf" />
         </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

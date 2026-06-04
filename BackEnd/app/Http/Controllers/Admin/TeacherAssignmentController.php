@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\ClassModel;
+use App\Models\Subject; // Import Model Subject
 use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
 
@@ -12,53 +13,56 @@ class TeacherAssignmentController extends Controller
 {
     public function index()
     {
-        // Ambil semua user dengan role_id 2 (Pengajar)
-        $teachers = User::where('role_id', 2)->get();
+        // 1. Ambil semua user dengan role_id 2 (Pengajar)
+        $teachers = User::where('role_id', 2)->orderBy('name')->get();
 
-        // Ambil semua kelas
-        $classes = ClassModel::all();
+        // 2. Ambil semua kelas
+        $classes = ClassModel::orderBy('program_name')->get();
 
-        // Ambil data penugasan saat ini beserta relasinya
-        $assignments = TeacherAssignment::with(['classModel'])->get();
+        // 3. Ambil data Mata Pelajaran dari Database (Bukan Hardcoded lagi)
+        $subjects = Subject::orderBy('name')->get();
 
-        // Data Mata Pelajaran (Bisa dibuat dinamis jika perlu,
-        // atau hardcoded sesuai seeder Anda)
-        $subjects = ['TIU', 'TWK', 'English', 'Mathematics', 'Psychological Test', 'Physics', 'Biology', 'Chemistry'];
+        // 4. Ambil data penugasan saat ini dengan relasi lengkap
+        // Pastikan di model TeacherAssignment sudah ada relasi 'teacher', 'classModel', dan 'subject'
+        $assignments = TeacherAssignment::with(['classModel', 'teacher', 'subject'])->get();
 
         return view('admin.assignments.index', compact('teachers', 'classes', 'assignments', 'subjects'));
     }
 
     public function store(Request $request)
     {
+        // Validasi menggunakan subject_id
         $request->validate([
-            'teacher_id' => 'required',
-            'class_id' => 'required',
-            'subject_name' => 'required'
+            'teacher_id' => 'required|exists:users,usersID',
+            'class_id'   => 'required|exists:classes,class_id',
+            'subject_id' => 'required|exists:subjects,subject_id'
         ]);
 
-        // Cek apakah penugasan yang sama sudah ada (Cegah duplikasi)
+        // Cek apakah penugasan yang sama sudah ada (Cegah duplikasi guru di mapel & kelas yang sama)
         $exists = TeacherAssignment::where([
-            'user_id' => $request->teacher_id,
-            'class_id' => $request->class_id,
-            'subject_name' => $request->subject_name
+            'class_id'   => $request->class_id,
+            'subject_id' => $request->subject_id
         ])->exists();
 
         if ($exists) {
-            return back()->with('error', 'Pengajar ini sudah ditugaskan untuk materi tersebut di kelas ini.');
+            return back()->with('error', 'Mata pelajaran ini sudah memiliki pengajar di kelas tersebut. Hapus penugasan lama jika ingin mengganti pengajar.');
         }
 
+        // Simpan penugasan baru
         TeacherAssignment::create([
-            'user_id' => $request->teacher_id,
-            'class_id' => $request->class_id,
-            'subject_name' => $request->subject_name
+            'user_id'    => $request->teacher_id,
+            'class_id'   => $request->class_id,
+            'subject_id' => $request->subject_id
         ]);
 
-        return back()->with('success', 'Penugasan berhasil ditambahkan!');
+        return back()->with('success', 'Pengajar berhasil ditugaskan ke Matrix Kurikulum!');
     }
 
     public function destroy($id)
     {
+        // Hapus penugasan dari Matrix
         TeacherAssignment::findOrFail($id)->delete();
-        return back()->with('success', 'Penugasan berhasil dihapus!');
+        
+        return back()->with('success', 'Penugasan berhasil dihapus. Slot di Matrix sekarang kosong.');
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
 use App\Models\Material;
 use App\Models\TeacherAssignment;
+use App\Models\Subject; // Pastikan Model Subject diimport
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -15,11 +16,12 @@ use Illuminate\Support\Facades\Storage;
 class MateriController extends Controller
 {
     /**
-     * Tampilkan daftar kelas yang ditugaskan ke pengajar
+     * Tampilkan daftar kelas dan mata pelajaran yang ditugaskan (SINKRON MATRIX)
      */
     public function index()
     {
-        $assignments = TeacherAssignment::with('classModel')
+        // PERBAIKAN: Eager load 'subject' agar nampak di tabel
+        $assignments = TeacherAssignment::with(['classModel', 'subject'])
             ->where('user_id', Auth::user()->usersID)
             ->get();
 
@@ -27,34 +29,39 @@ class MateriController extends Controller
     }
 
     /**
-     * Tampilkan materi mingguan untuk mapel tertentu
+     * Tampilkan materi mingguan untuk mapel tertentu berdasarkan ID
      */
-    public function pilihMateri($class_id, $subject_name)
+    public function pilihMateri($class_id, $subject_id)
     {
+        // Cek akses guru terhadap ID Mapel dan Kelas di Matrix
         $access = TeacherAssignment::where('user_id', Auth::user()->usersID)
             ->where('class_id', $class_id)
-            ->where('subject_name', $subject_name)
+            ->where('subject_id', $subject_id)
             ->first();
 
-        if (!$access) abort(403, 'Akses Ditolak!');
+        if (!$access) abort(403, 'Akses Ditolak! Anda tidak ditugaskan untuk mata pelajaran ini.');
 
         $class = ClassModel::findOrFail($class_id);
+        $subject = Subject::findOrFail($subject_id);
 
+        // Ambil materi berdasarkan Nama Mapel agar sinkron dengan data yang sudah ada
         $materis = Material::where('class_id', $class_id)
-            ->where('material_name', $subject_name)
+            ->where('material_name', $subject->name)
             ->orderBy('week', 'asc')->get();
 
-        return view('pengajar.materi.pilih', compact('class', 'materis', 'subject_name'));
+        $subject_name = $subject->name;
+
+        return view('pengajar.materi.pilih', compact('class', 'materis', 'subject_name', 'subject_id'));
     }
 
     /**
-     * Simpan atau Perbarui materi (Otomatis sinkron ke Go Service)
+     * Simpan materi baru
      */
     public function store(Request $request, $class_id)
     {
         $request->validate([
             'title'         => 'required|string|max:255',
-            'material_name' => 'required|string',
+            'material_name' => 'required|string', // Ini adalah Nama Mapel (TIU, TWK, dll)
             'file_pdf'      => 'nullable|mimes:pdf|max:10240',
             'week'          => 'required|integer|min:1|max:20',
         ]);
@@ -93,9 +100,7 @@ class MateriController extends Controller
                 $newMaterial = Material::create($dataLocal);
                 $response = $this->syncToGo($newMaterial, 'POST');
 
-                // Jika gagal karena ID sudah ada di Go, paksa timpa dengan PUT
                 if (!$response->successful()) {
-                    Log::warning("Go POST duplicate, fallback to PUT for ID: " . $newMaterial->material_id);
                     $this->syncToGo($newMaterial, 'PUT');
                 }
 
@@ -108,7 +113,7 @@ class MateriController extends Controller
     }
 
     /**
-     * Helper untuk sinkronisasi ke Microservice Go
+     * Helper sinkronisasi ke Microservice Go
      */
     private function syncToGo($material, $method)
     {
@@ -131,33 +136,23 @@ class MateriController extends Controller
     }
 
     /**
-     * Hapus Materi secara permanen
+     * Hapus Materi
      */
     public function destroy($id)
     {
         $material = Material::find($id);
-
-        if (!$material) {
-            return back()->with('error', 'Materi tidak ditemukan.');
-        }
+        if (!$material) return back()->with('error', 'Materi tidak ditemukan.');
 
         try {
             if ($material->file_path) {
                 Storage::disk('public')->delete($material->file_path);
             }
-
-            $response = Http::delete(env('GO_MATERI_URL') . "/api/materials/" . $id);
-
-            if (!$response->successful()) {
-                Log::error("Go Delete Error: " . $response->body());
-            }
-
+            Http::delete(env('GO_MATERI_URL') . "/api/materials/" . $id);
             $material->delete();
             return back()->with('success', 'Materi telah dihapus secara permanen.');
         } catch (\Exception $e) {
-            Log::error("Koneksi Go Gagal saat hapus: " . $e->getMessage());
             $material->delete();
-            return back()->with('success', 'Materi dihapus (Server Go Offline).');
+            return back()->with('success', 'Materi dihapus lokal (Server Go Offline).');
         }
     }
 }

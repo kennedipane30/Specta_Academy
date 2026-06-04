@@ -77,12 +77,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+   'locale' => 'id', // UBAH INI dari 'en' ke 'id'
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => 'en',
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
-
+    'faker_locale' => 'id_ID', // OPSIONAL: Ubah agar data dummy Faker juga berbahasa Indonesia
     /*
     |--------------------------------------------------------------------------
     | Encryption Key

@@ -143,7 +143,8 @@
                                 </td>
 
                                 <td>
-                                    <a href="{{ route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_name]) }}" class="pq-action">
+                                    <a href="{{ route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_id]) }}" class="pq-action">
+
                                         Kelola Bank Soal
                                         <i class="fa-solid fa-arrow-right"></i>
                                     </a>

@@ -65,12 +65,12 @@
             @forelse($classes as $item)
                 @php
                     $imageUrl = $item->image_url ?? asset('storage/' . $item->image);
-                    $assignments = \DB::table('teacher_assignments')
-                        ->join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
-                        ->where('class_id', $item->class_id)
-                        ->select('subject_name', 'users.name as teacher_name')
-                        ->get();
-                @endphp
+                   $assignments = \DB::table('teacher_assignments')
+                    ->join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
+                    ->join('subjects', 'teacher_assignments.subject_id', '=', 'subjects.subject_id') // Join ke subjects
+                    ->where('teacher_assignments.class_id', $item->class_id)
+                    ->select('subjects.name as subject_name', 'users.name as teacher_name') // Ambil subjects.name
+                    ->get();                @endphp
 
                 <div class="cp-card">
                     <div class="cp-card-img">

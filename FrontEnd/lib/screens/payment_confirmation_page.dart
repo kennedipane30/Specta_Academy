@@ -38,12 +38,15 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   @override
   void initState() {
     super.initState();
+    // Inisialisasi harga akhir dengan harga asli kelas
     finalPrice = widget.basePrice;
   }
 
-  // --- FUNGSI CEK PROMO ---
+  // --- FUNGSI CEK PROMO KE BACKEND ---
   Future<void> _checkPromo() async {
-    if (_promoController.text.isEmpty) return;
+    String inputCode = _promoController.text.trim().toUpperCase();
+    if (inputCode.isEmpty) return;
+
     FocusScope.of(context).unfocus();
     setState(() => isChecking = true);
 
@@ -55,45 +58,55 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           'Accept': 'application/json'
         },
         body: {
-          "code": _promoController.text.trim(),
+          "code": inputCode,
           "class_id": widget.classId.toString(),
         },
       );
 
-      debugPrint("Promo Response: ${response.body}");
       var data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         setState(() {
-          appliedPromoCode = _promoController.text.trim().toUpperCase();
-          // 🔥 SINKRON DENGAN LOG TERMINAL ANDA
+          // Simpan kode yang berhasil dipasang
+          appliedPromoCode = inputCode;
+          // Ambil nominal diskon dan harga akhir dari respons server
           discountAmount = int.tryParse(data['discount_amount'].toString()) ?? 0;
           finalPrice = int.tryParse(data['final_price'].toString()) ?? widget.basePrice;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.green, content: Text("✅ Promo Berhasil Dipasang!"))
+          const SnackBar(
+            backgroundColor: Colors.green, 
+            content: Text("✅ Kode Promo Berhasil Digunakan!"),
+            behavior: SnackBarBehavior.floating,
+          )
         );
       } else {
+        // Jika kode salah atau tidak valid
         setState(() {
           appliedPromoCode = null;
           discountAmount = 0;
           finalPrice = widget.basePrice;
         });
-        _showError(data['message'] ?? "Promo tidak valid");
+        _showError(data['message'] ?? "Kode promo tidak berlaku.");
       }
     } catch (e) {
-      _showError("Koneksi gagal ke server");
+      _showError("Gagal terhubung ke server. Periksa koneksi internet.");
     } finally {
       setState(() => isChecking = false);
     }
   }
 
-  // --- FUNGSI PROSES PEMBAYARAN ---
+  // --- FUNGSI PROSES PEMBAYARAN KE MIDTRANS ---
   Future<void> _processPayment() async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white)));
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white))
+    );
 
     try {
+      // 🔥 PENTING: Mengirim promo_code ke Backend agar Midtrans menghitung harga diskon
       final response = await http.post(
         Uri.parse("http://10.0.2.2:8000/api/payment/snap-token"),
         headers: {
@@ -102,36 +115,40 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         },
         body: {
           "class_id": widget.classId.toString(),
-          "promo_code": appliedPromoCode ?? "", 
+          "promo_code": appliedPromoCode ?? "", // Mengirim kode promo yang sedang aktif
         },
       );
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context); // Tutup Loading Spinner
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
         String snapUrl = data['snap_url'];
         
+        // Buka WebView Midtrans
         final result = await Navigator.push(
           context, 
           MaterialPageRoute(builder: (_) => MidtransPaymentPage(url: snapUrl))
         );
 
+        // Jika user menyelesaikan pembayaran di WebView (Midtrans melempar success)
         if (result == true) {
           if (mounted) Navigator.pop(context, true); 
         }
       } else {
         var errorData = jsonDecode(response.body);
-        _showError(errorData['message'] ?? "Gagal mendapatkan token");
+        _showError(errorData['message'] ?? "Gagal memproses pembayaran");
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _showError("Terjadi kesalahan koneksi.");
+      _showError("Terjadi kesalahan teknis saat menghubungi sistem pembayaran.");
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating)
+    );
   }
 
   @override
@@ -141,8 +158,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       appBar: AppBar(
         backgroundColor: spektaRed,
         elevation: 0,
-        title: const Text("Konfirmasi Pembayaran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        title: const Text(
+          "Konfirmasi Pembayaran", 
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white), 
+          onPressed: () => Navigator.pop(context)
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -150,39 +173,57 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Rincian Pendaftaran", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+            const Text(
+              "Rincian Pendaftaran", 
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)
+            ),
             const SizedBox(height: 16),
             
+            // --- KARTU RINCIAN HARGA ---
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.red.shade50),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Colors.grey.shade100),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))
+                ],
               ),
               child: Column(
                 children: [
                   _buildRowItem("Program", widget.className),
                   _buildRowItem("Harga Normal", currency.format(widget.basePrice)),
+                  
+                  // Munculkan baris potongan hanya jika ada diskon
                   if (discountAmount > 0)
-                    _buildRowItem("Total Potongan", "- ${currency.format(discountAmount)}", color: Colors.green),
+                    _buildRowItem(
+                      "Potongan Promo (${appliedPromoCode})", 
+                      "- ${currency.format(discountAmount)}", 
+                      color: Colors.green
+                    ),
+                  
                   const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
+                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("TOTAL BAYAR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
-                      Text(currency.format(finalPrice), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: spektaRed)),
+                      Text(
+                        currency.format(finalPrice), 
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: spektaRed)
+                      ),
                     ],
                   )
                 ],
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 35),
             const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 12),
             
+            // --- INPUT KODE PROMO ---
             Row(
               children: [
                 Expanded(
@@ -190,7 +231,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     controller: _promoController,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      hintText: "Contoh: SPEKTA50",
+                      hintText: "Masukkan Kode",
                       filled: true,
                       fillColor: Colors.grey.shade50,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -203,7 +244,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: isChecking ? null : _checkPromo,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(horizontal: 24)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black, 
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), 
+                      padding: const EdgeInsets.symmetric(horizontal: 24)
+                    ),
                     child: isChecking 
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
                       : const Text("CEK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -212,19 +257,24 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
               ],
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 50),
             
+            // --- TOMBOL BAYAR ---
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 58,
               child: ElevatedButton(
                 onPressed: _processPayment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: spektaRed, 
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   elevation: 8,
+                  shadowColor: spektaRed.withOpacity(0.4),
                 ),
-                child: const Text("BAYAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text(
+                  "BAYAR SEKARANG", 
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+                ),
               ),
             )
           ],
@@ -235,11 +285,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
   Widget _buildRowItem(String label, String value, {Color color = Colors.black}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+          Expanded(child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500))),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
         ],
       ),
