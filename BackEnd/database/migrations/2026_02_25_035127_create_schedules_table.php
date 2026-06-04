@@ -16,22 +16,33 @@ return new class extends Migration
             $table->id('schedule_id');
 
             // 1. Relasi ke Kelas
-            $table->foreignId('class_id')->constrained('classes', 'class_id')->onDelete('cascade');
+            // Pastikan tabel target adalah 'classes' (bukan 'class_models' sesuai nama file Anda)
+            $table->unsignedBigInteger('class_id');
+            $table->foreign('class_id')
+                  ->references('class_id')
+                  ->on('classes') // Sesuaikan dengan nama tabel di migrasi class_models Anda
+                  ->onDelete('cascade');
 
             // 2. Relasi ke Pengajar (User) - merujuk ke 'usersID' di tabel 'users'
             $table->unsignedBigInteger('teacher_id');
-            $table->foreign('teacher_id')->references('usersID')->on('users')->onDelete('cascade');
+            $table->foreign('teacher_id')
+                  ->references('usersID')
+                  ->on('users')
+                  ->onDelete('cascade');
 
             // 3. Relasi ke Mata Pelajaran (Subject)
-            // Diubah dari subject_name (string) menjadi subject_id (Foreign Key)
-            // agar bisa menggunakan relasi $this->belongsTo(Subject::class) di Model
-            $table->foreignId('subject_id')->constrained('subjects', 'subject_id')->onDelete('cascade');
+            // Error tadi terjadi di sini karena urutan file. Pastikan file subjects sudah direname ke tanggal lebih awal.
+            $table->unsignedBigInteger('subject_id');
+            $table->foreign('subject_id')
+                  ->references('subject_id')
+                  ->on('subjects')
+                  ->onDelete('cascade');
 
             // 4. Detail Pembelajaran
             $table->string('title'); // Judul Materi
 
             // 5. Link Meeting
-            $table->string('meeting_link')->nullable(); 
+            $table->string('meeting_link')->nullable();
 
             // 6. Waktu Pelaksanaan
             $table->date('date');

@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
 
-    <title>Spekta Academy - @yield('title', 'Dashboard')</title>
+    <title>Spekta Academy - <?php echo $__env->yieldContent('title', 'Dashboard'); ?></title>
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -145,90 +145,90 @@
                 </div>
 
                 <nav class="sidebar-nav">
-                    @if(Auth::check() && Auth::user()->role_id == 1)
+                    <?php if(Auth::check() && Auth::user()->role_id == 1): ?>
                         <div class="nav-section">
                             <div class="nav-heading">Overview</div>
-                            <a href="{{ route('admin.dashboard') }}" class="sidebar-item {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.dashboard')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.dashboard') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-house"></i> <span>Dashboard</span>
                             </a>
                         </div>
 
                         <div class="nav-section">
                             <div class="nav-heading">Manajemen Akademik</div>
-                            <a href="{{ route('admin.siswa.index') }}" class="sidebar-item {{ request()->routeIs('admin.siswa.index') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.siswa.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.siswa.index') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-user-group"></i> <span>Siswa</span>
                             </a>
-                            <a href="{{ route('admin.manajemen-pengajar.index') }}" class="sidebar-item {{ request()->routeIs('admin.manajemen-pengajar.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.manajemen-pengajar.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.manajemen-pengajar.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-chalkboard-user"></i> <span>Pengajar</span>
                             </a>
-                            <a href="{{ route('admin.jadwal.index') }}" class="sidebar-item {{ request()->routeIs('admin.jadwal.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.jadwal.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.jadwal.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-calendar-days"></i> <span>Jadwal Kelas</span>
                             </a>
-                            <a href="{{ route('admin.scores.index') }}" class="sidebar-item {{ request()->routeIs('admin.scores.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.scores.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.scores.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-clipboard-list"></i> <span>Rekap Nilai</span>
                             </a>
                         </div>
 
                         <div class="nav-section">
                             <div class="nav-heading">Pembelajaran</div>
-                            <a href="{{ route('admin.assignments.index') }}" class="sidebar-item {{ request()->routeIs('admin.assignments.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.assignments.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.assignments.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-book-open"></i> <span>Materi</span>
                             </a>
 
                             <!-- ✨ MENU BARU: Master Tryout (Kurasi Soal) -->
-                            <a href="{{ route('admin.tryout.index') }}"
-                               class="sidebar-item {{ request()->routeIs('admin.tryout.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.tryout.index')); ?>"
+                               class="sidebar-item <?php echo e(request()->routeIs('admin.tryout.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-stopwatch-20"></i>
                                 <span>Master Tryout</span>
                             </a>
 
-                            <a href="{{ route('admin.classes.index') }}" class="sidebar-item {{ request()->routeIs('admin.classes.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.classes.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.classes.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-layer-group"></i> <span>Program Kelas</span>
                             </a>
-                            <a href="{{ route('admin.tutor.index') }}" class="sidebar-item {{ request()->routeIs('admin.tutor.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.tutor.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.tutor.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-headset"></i> <span>Dedicated Tutor</span>
                             </a>
                         </div>
 
                         <div class="nav-section">
                             <div class="nav-heading">Promosi & Informasi</div>
-                            <a href="{{ route('admin.promo.index') }}" class="sidebar-item {{ request()->routeIs('admin.promo.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.promo.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.promo.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-tags"></i> <span>Promo</span>
                             </a>
-                            <a href="{{ route('admin.banners.index') }}" class="sidebar-item {{ request()->routeIs('admin.banners.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.banners.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.banners.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-image"></i> <span>Banner</span>
                             </a>
-                            <a href="{{ route('admin.announcement.index') }}" class="sidebar-item {{ request()->routeIs('admin.announcement.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('admin.announcement.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('admin.announcement.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-bullhorn"></i> <span>Pengumuman</span>
                             </a>
                         </div>
-                    @elseif(Auth::check() && Auth::user()->role_id == 2)
+                    <?php elseif(Auth::check() && Auth::user()->role_id == 2): ?>
                         <div class="nav-section">
                             <div class="nav-heading">Overview</div>
-                            <a href="{{ route('pengajar.dashboard') }}" class="sidebar-item {{ request()->routeIs('pengajar.dashboard') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('pengajar.dashboard')); ?>" class="sidebar-item <?php echo e(request()->routeIs('pengajar.dashboard') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-house"></i> <span>Dashboard</span>
                             </a>
                         </div>
 
                         <div class="nav-section">
                             <div class="nav-heading">Pembelajaran</div>
-                            <a href="{{ route('pengajar.absensi.index') }}" class="sidebar-item {{ request()->routeIs('pengajar.absensi.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('pengajar.absensi.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('pengajar.absensi.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-clipboard-check"></i> <span>Absensi Siswa</span>
                             </a>
-                            <a href="{{ route('pengajar.materi.index') }}" class="sidebar-item {{ request()->routeIs('pengajar.materi.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('pengajar.materi.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('pengajar.materi.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-book-open"></i> <span>Upload Materi</span>
                             </a>
-                            <a href="{{ route('pengajar.latihan.index') }}" class="sidebar-item {{ request()->routeIs('pengajar.latihan.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('pengajar.latihan.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('pengajar.latihan.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-file-pen"></i> <span>Latihan Soal</span>
                             </a>
-                            <a href="{{ route('pengajar.tryout.index') }}" class="sidebar-item {{ request()->routeIs('pengajar.tryout.*') ? 'is-active' : '' }}">
+                            <a href="<?php echo e(route('pengajar.tryout.index')); ?>" class="sidebar-item <?php echo e(request()->routeIs('pengajar.tryout.*') ? 'is-active' : ''); ?>">
                                 <i class="fa-solid fa-pen-to-square"></i> <span>Setor Soal TO</span>
                             </a>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </nav>
 
-                <div class="sidebar-footer">Spekta Academy © {{ date('Y') }}</div>
+                <div class="sidebar-footer">Spekta Academy © <?php echo e(date('Y')); ?></div>
             </div>
         </aside>
 
@@ -239,31 +239,31 @@
                 <div class="topbar-left">
                     <button type="button" class="sidebar-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
                     <div class="page-title">
-                        <h1>@yield('title', 'Dashboard')</h1>
-                        <p>@yield('subtitle', 'Sistem Manajemen Terpadu Spekta Academy')</p>
+                        <h1><?php echo $__env->yieldContent('title', 'Dashboard'); ?></h1>
+                        <p><?php echo $__env->yieldContent('subtitle', 'Sistem Manajemen Terpadu Spekta Academy'); ?></p>
                     </div>
                 </div>
 
                 <div class="topbar-right">
                     <div class="profile-wrap">
                         <button type="button" class="profile-button" onclick="toggleDropdown('profileDropdown')">
-                            <div class="profile-avatar">{{ Auth::check() ? strtoupper(substr(Auth::user()->name, 0, 1)) : 'S' }}</div>
+                            <div class="profile-avatar"><?php echo e(Auth::check() ? strtoupper(substr(Auth::user()->name, 0, 1)) : 'S'); ?></div>
                             <div class="profile-info">
-                                <strong>{{ Auth::check() ? Auth::user()->name : 'User' }}</strong>
-                                <span>{{ Auth::check() && Auth::user()->role ? ucfirst(Auth::user()->role->name) : 'User' }}</span>
+                                <strong><?php echo e(Auth::check() ? Auth::user()->name : 'User'); ?></strong>
+                                <span><?php echo e(Auth::check() && Auth::user()->role ? ucfirst(Auth::user()->role->name) : 'User'); ?></span>
                             </div>
                             <i class="fa-solid fa-chevron-down" style="font-size: 11px; color: #6b7280;"></i>
                         </button>
 
                         <div class="dropdown-panel" id="profileDropdown">
                             <div class="dropdown-title">
-                                <strong>{{ Auth::check() ? Auth::user()->name : 'User' }}</strong>
-                                <span>{{ Auth::check() ? Auth::user()->email : '-' }}</span>
+                                <strong><?php echo e(Auth::check() ? Auth::user()->name : 'User'); ?></strong>
+                                <span><?php echo e(Auth::check() ? Auth::user()->email : '-'); ?></span>
                             </div>
 
                             <!-- ✅ FIX: Gunakan Form POST untuk Logout agar tidak error 405 -->
-                            <form action="{{ route('logout') }}" method="POST">
-                                @csrf
+                            <form action="<?php echo e(route('logout')); ?>" method="POST">
+                                <?php echo csrf_field(); ?>
                                 <button type="submit" class="logout-button">
                                     <i class="fa-solid fa-right-from-bracket"></i> Logout
                                 </button>
@@ -274,7 +274,7 @@
             </header>
 
             <main class="content-scroll">
-                <div class="content-container">@yield('content')</div>
+                <div class="content-container"><?php echo $__env->yieldContent('content'); ?></div>
             </main>
         </div>
     </div>
@@ -296,6 +296,7 @@
             }
         });
     </script>
-    @stack('scripts')
+    <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 </html>
+<?php /**PATH C:\Users\Windows\Documents\GitHub\Specta_Academy\BackEnd\resources\views/layouts/spekta.blade.php ENDPATH**/ ?>

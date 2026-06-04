@@ -1,13 +1,11 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Katalog Program - Spekta Academy'); ?>
 
-@section('title', 'Katalog Program - Spekta Academy')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     $classCollection = method_exists($classes, 'getCollection') ? $classes->getCollection() : collect($classes);
     $totalProgram = method_exists($classes, 'total') ? $classes->total() : $classCollection->count();
     $avgPrice = $classCollection->count() > 0 ? round($classCollection->avg('price')) : 0;
-@endphp
+?>
 
 <div class="cp-page">
 
@@ -17,7 +15,7 @@
             <h1 class="cp-title">Katalog Program</h1>
             <p class="cp-subtitle">Manajemen pusat konten. Monitor harga, deskripsi, dan penugasan pengajar dalam satu dashboard.</p>
         </div>
-        <a href="{{ route('admin.classes.create') }}" class="cp-primary-btn">
+        <a href="<?php echo e(route('admin.classes.create')); ?>" class="cp-primary-btn">
             <i class="fa-solid fa-plus"></i>
             <span>Tambah Program</span>
         </a>
@@ -28,21 +26,21 @@
         <div class="cp-stat-card border-red">
             <div class="cp-stat-content">
                 <p>Total Program</p>
-                <h2>{{ number_format($totalProgram) }}</h2>
+                <h2><?php echo e(number_format($totalProgram)); ?></h2>
             </div>
             <div class="cp-stat-icon"><i class="fa-solid fa-layer-group"></i></div>
         </div>
         <div class="cp-stat-card border-green">
             <div class="cp-stat-content">
                 <p>Rata-rata Harga</p>
-                <h2>Rp {{ number_format($avgPrice, 0, ',', '.') }}</h2>
+                <h2>Rp <?php echo e(number_format($avgPrice, 0, ',', '.')); ?></h2>
             </div>
             <div class="cp-stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
         </div>
         <div class="cp-stat-card border-blue">
             <div class="cp-stat-content">
                 <p>Pengajar Aktif</p>
-                <h2>{{ \App\Models\User::where('role_id', 2)->count() }}</h2>
+                <h2><?php echo e(\App\Models\User::where('role_id', 2)->count()); ?></h2>
             </div>
             <div class="cp-stat-icon"><i class="fa-solid fa-user-tie"></i></div>
         </div>
@@ -62,8 +60,8 @@
         </div>
 
         <div class="cp-program-list">
-            @forelse($classes as $item)
-                @php
+            <?php $__empty_1 = true; $__currentLoopData = $classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <?php
                     $imageUrl = $item->image_url ?? asset('storage/' . $item->image);
 
                     // PERBAIKAN: Menggunakan 'user_id' kembali karena kolom 'teacher_id' tidak ada di tabel ini
@@ -73,19 +71,19 @@
                         ->where('teacher_assignments.class_id', $item->class_id)
                         ->select('subjects.name as subject_name', 'users.name as teacher_name')
                         ->get();
-                @endphp
+                ?>
 
                 <div class="cp-card">
                     <div class="cp-card-img">
-                        <img src="{{ $imageUrl }}" alt="">
-                        <div class="cp-badge-price">Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+                        <img src="<?php echo e($imageUrl); ?>" alt="">
+                        <div class="cp-badge-price">Rp <?php echo e(number_format($item->price, 0, ',', '.')); ?></div>
                     </div>
 
                     <div class="cp-card-content">
                         <div class="cp-card-header">
-                            <span class="cp-id">ID: #{{ $item->class_id }}</span>
-                            <h3 class="cp-class-name">{{ $item->program_name }}</h3>
-                            <p class="cp-class-desc">{{ $item->description }}</p>
+                            <span class="cp-id">ID: #<?php echo e($item->class_id); ?></span>
+                            <h3 class="cp-class-name"><?php echo e($item->program_name); ?></h3>
+                            <p class="cp-class-desc"><?php echo e($item->description); ?></p>
                         </div>
 
                         <div class="cp-curriculum-section">
@@ -93,29 +91,30 @@
                                 <i class="fa-solid fa-book-bookmark"></i> KURIKULUM & PENGAJAR
                             </div>
                             <div class="cp-subject-grid">
-                                @forelse($assignments as $assign)
+                                <?php $__empty_2 = true; $__currentLoopData = $assignments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
                                     <div class="cp-subject-item">
-                                        <div class="cp-subject-name">{{ $assign->subject_name }}</div>
+                                        <div class="cp-subject-name"><?php echo e($assign->subject_name); ?></div>
                                         <div class="cp-teacher-name">
-                                            <i class="fa-solid fa-chalkboard-user"></i> {{ $assign->teacher_name }}
+                                            <i class="fa-solid fa-chalkboard-user"></i> <?php echo e($assign->teacher_name); ?>
+
                                         </div>
                                     </div>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
                                     <div class="cp-empty-subject">Belum ada mata pelajaran & pengajar.</div>
-                                @endforelse
+                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="cp-card-actions">
-                            <a href="{{ route('admin.classes.edit', $item->class_id) }}" class="btn-main dark">
+                            <a href="<?php echo e(route('admin.classes.edit', $item->class_id)); ?>" class="btn-main dark">
                                 <i class="fa-solid fa-sliders"></i> Konfigurasi
                             </a>
                             <div class="btn-group">
-                                <a href="{{ route('admin.assignments.index', ['class_id' => $item->class_id]) }}" class="btn-icon blue" title="Atur Kurikulum">
+                                <a href="<?php echo e(route('admin.assignments.index', ['class_id' => $item->class_id])); ?>" class="btn-icon blue" title="Atur Kurikulum">
                                     <i class="fa-solid fa-book"></i>
                                 </a>
-                                <form action="{{ route('admin.classes.destroy', $item->class_id) }}" method="POST" class="d-inline">
-                                    @csrf @method('DELETE')
+                                <form action="<?php echo e(route('admin.classes.destroy', $item->class_id)); ?>" method="POST" class="d-inline">
+                                    <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                                     <button type="submit" class="btn-icon red" onclick="return confirm('Hapus program?')">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
@@ -124,9 +123,9 @@
                         </div>
                     </div>
                 </div>
-            @empty
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="cp-empty-state">Belum ada program kelas yang dibuat.</div>
-            @endforelse
+            <?php endif; ?>
         </div>
     </section>
 </div>
@@ -185,4 +184,6 @@
         .cp-subject-grid { grid-template-columns: 1fr; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\Specta_Academy\BackEnd\resources\views/admin/classes/index.blade.php ENDPATH**/ ?>

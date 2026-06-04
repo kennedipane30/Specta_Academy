@@ -8,16 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('schedules', function (Blueprint $table) {
-            // Menambahkan kolom meeting_link setelah kolom end_time
-            $table->string('meeting_link')->nullable()->after('end_time');
-        });
+        // Menambahkan pengecekan agar tidak terjadi error duplicate column
+        if (!Schema::hasColumn('schedules', 'meeting_link')) {
+            Schema::table('schedules', function (Blueprint $table) {
+                $table->string('meeting_link')->nullable()->after('end_time');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('schedules', function (Blueprint $table) {
-            $table->dropColumn('meeting_link');
-        });
+        if (Schema::hasColumn('schedules', 'meeting_link')) {
+            Schema::table('schedules', function (Blueprint $table) {
+                $table->dropColumn('meeting_link');
+            });
+        }
     }
 };
