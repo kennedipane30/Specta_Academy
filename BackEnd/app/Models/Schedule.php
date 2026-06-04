@@ -10,7 +10,7 @@ class Schedule extends Model
     use HasFactory;
 
     protected $table = 'schedules';
-    protected $primaryKey = 'schedule_id'; // Menghilangkan error "column id does not exist"
+    protected $primaryKey = 'schedule_id';
 
     protected $fillable = [
         'class_id',
@@ -20,14 +20,21 @@ class Schedule extends Model
         'date',
         'start_time',
         'end_time',
-        'meeting_link', // Sudah ditambahkan
+        'meeting_link',
         'status'
     ];
 
-    // Relasi ke Mata Pelajaran
+    /**
+     * Relasi ke Mata Pelajaran (Model Subject)
+     */
     public function subject()
     {
-        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
+        /**
+         * MODIFIKASI PENTING:
+         * Parameter ke-2: 'subject_id' adalah kolom Foreign Key di tabel schedules.
+         * Parameter ke-3: 'material_id' adalah kolom Primary Key di tabel materials (milik Model Subject).
+         */
+        return $this->belongsTo(Subject::class, 'subject_id', 'material_id');
     }
 
     // Relasi ke Pengajar

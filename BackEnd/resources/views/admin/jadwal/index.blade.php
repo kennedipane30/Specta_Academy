@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $userRole = auth()->user()->role->name ?? 'admin'; 
+    $userRole = auth()->user()->role->name ?? 'admin';
     $isAdmin = $userRole === 'admin';
     $isTeacher = $userRole === 'teacher';
     $isStudent = $userRole === 'student';
@@ -54,7 +54,7 @@
 
             <form action="{{ route('admin.jadwal.store') }}" method="POST" class="sc-form">
                 @csrf
-                
+
                 {{-- Input tersembunyi untuk Teacher ID dan Judul (Title) --}}
                 <input type="hidden" name="teacher_id" id="teacherIdHidden">
                 <input type="hidden" name="title" id="autoTitle">
@@ -208,7 +208,7 @@
     .sc-badge-live { background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; color: #64748b; display: flex; align-items: center; gap: 6px; border: 1px solid #e2e8f0; }
     .dot-pulse { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
-    
+
     .sc-top-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 25px; margin-bottom: 30px; }
     .sc-panel { background: #fff; border-radius: 22px; padding: 25px; border: 1px solid #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.03); }
     .sc-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -239,7 +239,6 @@
     .btn-delete { color: #d90429; border: none; background: none; cursor: pointer; font-size: 16px; opacity: 0.7; transition: 0.3s; }
     .btn-delete:hover { opacity: 1; transform: scale(1.1); }
 </style>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const BASE_URL = "{{ url('/') }}";
@@ -252,8 +251,7 @@
         if (classSelect) {
             classSelect.addEventListener('change', function() {
                 const classId = this.value;
-                
-                // Reset state
+
                 subjectSelect.disabled = true;
                 subjectSelect.innerHTML = '<option value="">Memuat...</option>';
                 teacherNameDisplay.value = '';
@@ -261,32 +259,41 @@
                 autoTitle.value = '';
 
                 if (classId) {
+                    // Panggil AJAX ke route getSubjects
                     fetch(`${BASE_URL}/admin/jadwal/get-subjects/${classId}`)
                         .then(res => res.json())
                         .then(data => {
                             subjectSelect.disabled = false;
                             subjectSelect.innerHTML = '<option value="">Pilih Mata Pelajaran</option>';
-                            data.forEach(sub => {
-                                subjectSelect.innerHTML += `<option value="${sub.subject_id}">${sub.name}</option>`;
-                            });
+
+                            if (data.length > 0) {
+                                data.forEach(sub => {
+                                    // sub.name berasal dari alias 'materials.material_name as name' di controller
+                                    subjectSelect.innerHTML += `<option value="${sub.subject_id}">${sub.name}</option>`;
+                                });
+                            } else {
+                                subjectSelect.innerHTML = '<option value="">Belum ada mapel di Matrix</option>';
+                            }
                         })
                         .catch(() => {
+                            subjectSelect.disabled = false;
                             subjectSelect.innerHTML = '<option value="">Gagal memuat mapel</option>';
                         });
+                } else {
+                    subjectSelect.innerHTML = '<option value="">Pilih program dahulu</option>';
                 }
             });
 
             subjectSelect.addEventListener('change', function() {
                 const classId = classSelect.value;
                 const subjectId = this.value;
-                
-                // Judul otomatis diambil dari teks mata pelajaran yang dipilih
+
                 const selectedText = subjectSelect.options[subjectSelect.selectedIndex].text;
                 autoTitle.value = selectedText;
 
                 if (classId && subjectId) {
                     teacherNameDisplay.value = 'Mencari pengajar...';
-                    
+
                     fetch(`${BASE_URL}/admin/jadwal/get-teacher/${classId}/${subjectId}`)
                         .then(res => res.json())
                         .then(data => {

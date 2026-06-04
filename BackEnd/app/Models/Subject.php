@@ -6,11 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Subject extends Model
 {
-    // 1. Ubah ke tabel 'materials' karena tabel 'subjects' tidak ada di database Anda
+    // Arahkan ke tabel materials karena tabel subjects tidak digunakan
     protected $table = 'materials';
     protected $primaryKey = 'material_id';
 
-    // 2. Sesuaikan fillable dengan kolom di tabel materials
     protected $fillable = ['material_name', 'class_id'];
 
     /**
@@ -24,7 +23,7 @@ class Subject extends Model
 
     public function assignments()
     {
-        // Parameter ke-3 merujuk ke primary key tabel materials
+        // Hubungkan subject_id di penugasan ke material_id di tabel ini
         return $this->hasMany(TeacherAssignment::class, 'subject_id', 'material_id');
     }
 }
