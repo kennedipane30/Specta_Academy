@@ -66,7 +66,7 @@
                 @php
                     $imageUrl = $item->image_url ?? asset('storage/' . $item->image);
 
-                    // PERBAIKAN: Menggunakan 'user_id' kembali karena kolom 'teacher_id' tidak ada di tabel ini
+                    // QUERY FIX: Melakukan join secara eksplisit ke tabel users dan subjects
                     $assignments = \DB::table('teacher_assignments')
                         ->join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
                         ->join('subjects', 'teacher_assignments.subject_id', '=', 'subjects.subject_id')
@@ -132,7 +132,7 @@
 </div>
 
 <style>
-    /* Style tetap sama seperti sebelumnya */
+    /* CSS tetap dipertahankan sesuai aslinya */
     .cp-page { padding: 10px; font-family: 'Plus Jakarta Sans', sans-serif; }
     .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .cp-tagline { color: #d90429; font-weight: 800; font-size: 11px; letter-spacing: 1.5px; }
