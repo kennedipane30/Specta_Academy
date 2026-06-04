@@ -8,24 +8,24 @@ use Illuminate\Support\Facades\File;
 // --- IMPORT CONTROLLERS ---
 use App\Http\Controllers\WebAuthController;
 use App\Http\Controllers\Admin\{
-    AdminDashboardController, 
-    PembayaranController, 
-    ManajemenSiswaController, 
-    JadwalController, 
-    ManajemenPengajarController, 
-    AdminDedicatedTutorController, 
-    TeacherAssignmentController, 
-    PromoController, 
-    AnnouncementController, 
-    ClassManagementController, 
-    BannerController, 
+    AdminDashboardController,
+    PembayaranController,
+    ManajemenSiswaController,
+    JadwalController,
+    ManajemenPengajarController,
+    AdminDedicatedTutorController,
+    TeacherAssignmentController,
+    PromoController,
+    AnnouncementController,
+    ClassManagementController,
+    BannerController,
     AdminTryoutController
 };
 use App\Http\Controllers\Pengajar\{
-    PengajarDashboardController, 
-    MateriController, 
-    TryoutController as PengajarTryoutController, 
-    AbsensiController, 
+    PengajarDashboardController,
+    MateriController,
+    TryoutController as PengajarTryoutController,
+    AbsensiController,
     PracticeQuestionController
 };
 
@@ -81,7 +81,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('promo', PromoController::class)->only(['index', 'store', 'destroy']);
 
     // ✅ DEDICATED TUTOR (MANAJEMEN REQUEST SISWA)
-    // Route ini menangani list antrian dari siswa dan proses assignment guru
     Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])->name('tutor.index');
     Route::post('/dedicated-tutor/update/{id}', [AdminDedicatedTutorController::class, 'updateAssignment'])->name('tutor.update');
 
@@ -90,6 +89,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/penugasan-materi', [TeacherAssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/penugasan-materi', [TeacherAssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('/penugasan-materi/{id}', [TeacherAssignmentController::class, 'destroy'])->name('assignments.destroy');
+
+    // ✅ ROUTE AJAX UNTUK DROP DOWN (PENTING)
+    // Route ini akan memiliki nama 'admin.getSubjectsByClass' secara otomatis
+    Route::get('/get-subjects-by-class/{class_id}', [TeacherAssignmentController::class, 'getSubjectsByClass'])->name('getSubjectsByClass');
 
     // ✅ MASTER TRYOUT (KELOLA PAKET)
     Route::prefix('tryout-master')->name('tryout.')->group(function() {
@@ -106,12 +109,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('banners', BannerController::class)->except(['show']);
 });
 
-
 // ============================================================
 // 🔥 3. GROUP PENGAJAR (Role: Pengajar)
 // ============================================================
 Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar.')->group(function () {
-    
+
     Route::get('/dashboard', [PengajarDashboardController::class, 'index'])->name('dashboard');
 
     // ✅ MANAJEMEN MATERI BELAJAR
@@ -133,7 +135,13 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     });
 
     // ✅ ABSENSI SISWA
-    Route::resource('absensi', AbsensiController::class);
+    Route::prefix('absensi')->name('absensi.')->group(function() {
+        Route::get('/', [AbsensiController::class, 'index'])->name('index');
+        Route::get('/weeks/{class_id}/{subject}', [AbsensiController::class, 'listWeeks'])->name('weeks');
+        Route::get('/create/{class_id}/{subject}/{week}', [AbsensiController::class, 'create'])->name('create');
+        Route::post('/store', [AbsensiController::class, 'store'])->name('store');
+        Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
+    });
 
     // ✅ MANAJEMEN LATIHAN SOAL (CSV)
     Route::prefix('latihan')->name('latihan.')->group(function() {

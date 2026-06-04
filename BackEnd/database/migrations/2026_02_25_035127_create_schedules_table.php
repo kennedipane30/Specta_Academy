@@ -16,11 +16,10 @@ return new class extends Migration
             $table->id('schedule_id');
 
             // 1. Relasi ke Kelas
-            // Pastikan tabel target adalah 'classes' (bukan 'class_models' sesuai nama file Anda)
             $table->unsignedBigInteger('class_id');
             $table->foreign('class_id')
                   ->references('class_id')
-                  ->on('classes') // Sesuaikan dengan nama tabel di migrasi class_models Anda
+                  ->on('classes')
                   ->onDelete('cascade');
 
             // 2. Relasi ke Pengajar (User) - merujuk ke 'usersID' di tabel 'users'
@@ -30,12 +29,12 @@ return new class extends Migration
                   ->on('users')
                   ->onDelete('cascade');
 
-            // 3. Relasi ke Mata Pelajaran (Subject)
-            // Error tadi terjadi di sini karena urutan file. Pastikan file subjects sudah direname ke tanggal lebih awal.
+            // 3. Relasi ke Mata Pelajaran (MODIFIKASI: Merujuk ke tabel materials)
+            // Kita arahkan ke 'materials' karena tabel 'subjects' tidak Anda gunakan/tidak ada.
             $table->unsignedBigInteger('subject_id');
             $table->foreign('subject_id')
-                  ->references('subject_id')
-                  ->on('subjects')
+                  ->references('material_id') // Kolom target di tabel materials
+                  ->on('materials')           // Nama tabel target
                   ->onDelete('cascade');
 
             // 4. Detail Pembelajaran

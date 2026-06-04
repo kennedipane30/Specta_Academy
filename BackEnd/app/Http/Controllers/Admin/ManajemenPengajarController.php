@@ -27,7 +27,8 @@ class ManajemenPengajarController extends Controller
                     ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"])
                     ->orWhereHas('assignments.subject', function ($subjectQuery) use ($search) {
-                        $subjectQuery->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                        // MODIFIKASI: Gunakan material_name
+                        $subjectQuery->whereRaw('LOWER(material_name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
@@ -66,7 +67,8 @@ class ManajemenPengajarController extends Controller
             ->groupBy('teacher_id')
             ->pluck('total', 'teacher_id');
 
-        $subjects = Subject::orderBy('name')->get();
+        // MODIFIKASI: Gunakan material_name untuk pengurutan
+        $subjects = Subject::orderBy('material_name')->get();
 
         $totalPengajar = User::where('role_id', 2)->count();
 
@@ -89,13 +91,13 @@ class ManajemenPengajarController extends Controller
 
         $kelasDiajar = TeacherAssignment::distinct()->count('class_id');
 
-        // Distribusi bidang via join ke tabel subjects
-        $distribusiBidang = TeacherAssignment::join('subjects', 'teacher_assignments.subject_id', '=', 'subjects.subject_id')
+        // MODIFIKASI: Join ke tabel 'materials' dan gunakan material_name
+        $distribusiBidang = TeacherAssignment::join('materials', 'teacher_assignments.subject_id', '=', 'materials.material_id')
             ->select(
-                'subjects.name as subject_name',
+                'materials.material_name as subject_name',
                 DB::raw('COUNT(*) as total')
             )
-            ->groupBy('subjects.subject_id', 'subjects.name')
+            ->groupBy('materials.material_id', 'materials.material_name')
             ->orderByDesc('total')
             ->get();
 
@@ -114,7 +116,7 @@ class ManajemenPengajarController extends Controller
                 ];
             });
 
-        // Gunakan relasi subject untuk nama mapel
+        // MODIFIKASI: Gunakan material_name untuk log aktivitas
         $aktivitasAssignment = TeacherAssignment::with(['teacher', 'classModel', 'subject'])
             ->latest()
             ->take(4)
@@ -123,7 +125,7 @@ class ManajemenPengajarController extends Controller
                 return [
                     'icon' => 'fa-book-open',
                     'title' => $assignment->teacher->name ?? 'Pengajar',
-                    'description' => 'Ditugaskan mengajar ' . ($assignment->subject->name ?? 'materi'),
+                    'description' => 'Ditugaskan mengajar ' . ($assignment->subject->material_name ?? 'materi'),
                     'time' => $assignment->created_at,
                 ];
             });

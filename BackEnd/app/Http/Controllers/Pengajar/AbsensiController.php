@@ -21,11 +21,14 @@ class AbsensiController extends Controller
         $teacherId = Auth::user()->usersID;
         $today = now()->toDateString();
 
-        $assignments = TeacherAssignment::with('classModel')
+        // MODIFIKASI: Menghapus orderBy('subject_name') karena kolom tersebut tidak ada di tabel ini.
+        // Kita sorting menggunakan Collection sortBy agar bisa mengambil nama dari relasi subject.
+        $assignments = TeacherAssignment::with(['classModel', 'subject'])
             ->where('user_id', $teacherId)
-            ->orderBy('class_id')
-            ->orderBy('subject_name')
-            ->get();
+            ->get()
+            ->sortBy(function($query) {
+                return $query->class_id . '-' . ($query->subject->material_name ?? '');
+            });
 
         $jadwalHariIni = Schedule::where('teacher_id', $teacherId)
             ->whereDate('date', $today)
@@ -45,10 +48,13 @@ class AbsensiController extends Controller
     {
         $teacherId = Auth::user()->usersID;
 
+        // MODIFIKASI: Menggunakan whereHas untuk mencocokkan nama mata pelajaran (string) ke tabel materials
         $assignment = TeacherAssignment::with('classModel')
             ->where('user_id', $teacherId)
             ->where('class_id', $class_id)
-            ->where('subject_name', $subject)
+            ->whereHas('subject', function($q) use ($subject) {
+                $q->where('material_name', $subject);
+            })
             ->firstOrFail();
 
         $doneWeeks = Attendance::where('teacher_id', $teacherId)
@@ -73,9 +79,12 @@ class AbsensiController extends Controller
     {
         $teacherId = Auth::user()->usersID;
 
+        // MODIFIKASI: Validasi penugasan menggunakan whereHas
         TeacherAssignment::where('user_id', $teacherId)
             ->where('class_id', $class_id)
-            ->where('subject_name', $subject)
+            ->whereHas('subject', function($q) use ($subject) {
+                $q->where('material_name', $subject);
+            })
             ->firstOrFail();
 
         $class = ClassModel::findOrFail($class_id);
@@ -116,9 +125,12 @@ class AbsensiController extends Controller
 
         $teacherId = Auth::user()->usersID;
 
+        // MODIFIKASI: Validasi penugasan menggunakan whereHas
         TeacherAssignment::where('user_id', $teacherId)
             ->where('class_id', $request->class_id)
-            ->where('subject_name', $request->subject_name)
+            ->whereHas('subject', function($q) use ($request) {
+                $q->where('material_name', $request->subject_name);
+            })
             ->firstOrFail();
 
         foreach ($request->status as $siswaID => $statusValue) {
@@ -156,9 +168,12 @@ class AbsensiController extends Controller
     {
         $teacherId = Auth::user()->usersID;
 
+        // MODIFIKASI: Validasi penugasan menggunakan whereHas
         TeacherAssignment::where('user_id', $teacherId)
             ->where('class_id', $class_id)
-            ->where('subject_name', $subject)
+            ->whereHas('subject', function($q) use ($subject) {
+                $q->where('material_name', $subject);
+            })
             ->firstOrFail();
 
         $class = ClassModel::findOrFail($class_id);

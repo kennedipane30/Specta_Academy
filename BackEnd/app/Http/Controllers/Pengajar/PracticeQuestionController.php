@@ -9,31 +9,42 @@ use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http; // ✨ Tambahkan ini untuk HTTP Client
-use Illuminate\Support\Facades\Log;  // ✨ Tambahkan ini untuk Logging error
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PracticeQuestionController extends Controller
 {
     public function index()
     {
-        $assignments = TeacherAssignment::with('classModel')
+        $assignments = TeacherAssignment::with(['classModel', 'subject'])
                         ->where('user_id', Auth::user()->usersID)
                         ->get();
 
         return view('pengajar.Latihan.index', compact('assignments'));
     }
 
-    public function selectPractice($class_id, $subject_name)
+    /**
+     * MODIFIKASI: Mengubah pencarian akses agar menggunakan ID
+     * karena URL mengirimkan ID (misal: /pilih/1/1)
+     */
+    public function selectPractice($class_id, $subject_id)
     {
-        $access = TeacherAssignment::where('user_id', Auth::user()->usersID)
+        // 1. Cek akses pengajar berdasarkan ID Kelas dan ID Mapel
+        $assignment = TeacherAssignment::with('subject')
+                    ->where('user_id', Auth::user()->usersID)
                     ->where('class_id', $class_id)
-                    ->where('subject_name', $subject_name)
-                    ->exists();
+                    ->where('subject_id', $subject_id)
+                    ->first();
 
-        if (!$access) abort(403);
+        // Jika tidak ditemukan penugasan, tampilkan 403
+        if (!$assignment) abort(403);
+
+        // 2. Ambil nama asli mata pelajaran dari relasi untuk filter soal
+        $subject_name = $assignment->subject->material_name ?? 'N/A';
 
         $class = ClassModel::findOrFail($class_id);
 
+        // 3. Ambil daftar latihan soal berdasarkan nama mapel
         $practices = PracticeQuestion::where('class_id', $class_id)
                         ->where('subject', $subject_name)
                         ->select('week', DB::raw('count(*) as total_soal'))
@@ -56,7 +67,7 @@ class PracticeQuestionController extends Controller
         $handle = fopen($file->getRealPath(), "r");
         fgetcsv($handle, 2000, ";");
 
-        $questionsForSync = []; // ✨ Wadah untuk data yang akan dikirim ke Go
+        $questionsForSync = [];
 
         while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
             if (!isset($row[0]) || empty(trim($row[0]))) continue;
@@ -74,7 +85,6 @@ class PracticeQuestionController extends Controller
                 'explanation'    => $row[6] ?? null,
             ]);
 
-            // ✨ Siapkan data untuk dikirim ke Microservice Go
             $questionsForSync[] = [
                 'practice_question_id' => $q->practice_question_id,
                 'class_id'            => (int)$class_id,
@@ -90,7 +100,6 @@ class PracticeQuestionController extends Controller
             ];
         }
 
-        // ✨ PROSES SYNC: Kirim Bulk ke Go Practice Service (Port 8082)
         try {
             $response = Http::post(env('GO_PRACTICE_URL') . '/practice/sync', $questionsForSync);
             if (!$response->successful()) {
@@ -104,18 +113,13 @@ class PracticeQuestionController extends Controller
         return back()->with('success', 'Latihan soal berhasil diimport dan disinkronkan!');
     }
 
-    /**
-     * ✨ FUNGSI HAPUS PER MINGGU (Dimodifikasi untuk Sync Hapus)
-     */
     public function destroyByWeek($class_id, $subject, $week)
     {
-        // 1. Hapus di Database Laravel
         PracticeQuestion::where('class_id', $class_id)
             ->where('subject', $subject)
             ->where('week', $week)
             ->delete();
 
-        // 2. ✨ Hapus di Microservice Go
         try {
             Http::delete(env('GO_PRACTICE_URL') . "/practice/$class_id/$week", [
                 'subject' => $subject

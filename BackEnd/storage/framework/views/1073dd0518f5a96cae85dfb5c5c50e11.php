@@ -3,7 +3,11 @@
 <?php $__env->startSection('content'); ?>
 <?php
     $totalAssignment = $assignments->count();
-    $activeToday = $assignments->filter(fn($as) => in_array($as->class_id, $jadwalHariIni))->count();
+
+    // Gunakan 'use' agar variabel dari luar bisa dibaca di dalam filter
+    $activeToday = $assignments->filter(function($as) use ($jadwalHariIni) {
+        return in_array($as->class_id, $jadwalHariIni);
+    })->count();
 ?>
 
 <div class="abs-page">
@@ -109,11 +113,11 @@
                                 </td>
 
                                 <td>
-                                    <a href="<?php echo e(route('pengajar.absensi.weeks', [$as->class_id, $as->subject_name])); ?>" class="abs-action">
-                                        Buka Minggu
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </a>
-                                </td>
+                                                    <a href="<?php echo e(route('pengajar.absensi.weeks', [$as->class_id, $as->subject->material_name])); ?>" class="abs-action">
+                        Buka Minggu
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                                                    </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
@@ -431,4 +435,5 @@
     }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\Specta_Academy\BackEnd\resources\views/pengajar/absensi/index.blade.php ENDPATH**/ ?>

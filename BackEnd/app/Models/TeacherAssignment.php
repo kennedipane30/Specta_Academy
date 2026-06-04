@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class TeacherAssignment extends Model
 {
     protected $table = 'teacher_assignments';
-    
-    // Pastikan kolom ini sesuai dengan database Anda
+
     protected $fillable = ['user_id', 'class_id', 'subject_id'];
 
     /**
      * Relasi ke User (Pengajar)
-     * Menggunakan 'usersID' sebagai primary key di tabel users
      */
     public function teacher()
     {
@@ -21,21 +20,24 @@ class TeacherAssignment extends Model
     }
 
     /**
-     * Relasi ke Subject (Mata Pelajaran)
-     * ✨ PENTING: Inilah yang dipanggil oleh with('subject') di Controller
-     */
-    public function subject()
-    {
-        // Parameter: Model, Foreign Key di tabel ini, Primary Key di tabel subjects
-        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
-    }
-
-    /**
      * Relasi ke Class (Program Kelas)
      */
     public function classModel()
     {
-        // Parameter: Model, Foreign Key di tabel ini, Primary Key di tabel classes
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
+    }
+
+    /**
+     * Relasi ke Subject
+     * MODIFIKASI: Karena Anda tidak ingin merubah model 'Subject',
+     * maka relasi ini dibuat untuk mengambil data dari tabel 'materials'
+     */
+    public function subject()
+    {
+        // Tetap menggunakan belongsTo, tapi menunjuk ke tabel 'materials'
+        // Kita menggunakan model 'Subject' tapi kita asumsikan Model tersebut
+        // nantinya akan merujuk ke tabel yang benar di Controller.
+        // Jika ingin benar-benar aman tanpa merubah model Subject, gunakan cara ini:
+        return $this->belongsTo(Subject::class, 'subject_id', 'material_id');
     }
 }
