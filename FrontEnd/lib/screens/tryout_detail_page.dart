@@ -20,6 +20,7 @@ class TryoutDetailPage extends StatelessWidget {
         backgroundColor: spektaRed, 
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(30.0),
@@ -53,24 +54,40 @@ class TryoutDetailPage extends StatelessWidget {
                 elevation: 8,
               ),
               onPressed: () async {
-                showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: spektaRed)));
+                // 1. Tampilkan Loading
+                showDialog(
+                  context: context, 
+                  barrierDismissible: false, 
+                  builder: (_) => const Center(child: CircularProgressIndicator(color: spektaRed))
+                );
 
                 try {
+                  // Ambil ID Tryout
                   final int id = int.parse(tryoutData['tryout_id'].toString());
+                  
+                  // 2. Panggil API ke Port 9002
                   var resp = await AuthService.getQuestions(id, token);
                   
                   if (!context.mounted) return;
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Tutup loading
 
                   if (resp.statusCode == 200) {
                     var decoded = jsonDecode(resp.body);
-                    List questions = decoded['data'] ?? [];
+                    
+                    // ✨ MODIFIKASI: Deteksi List secara fleksibel agar terbaca dari Go
+                    List questions = [];
+                    if (decoded is List) {
+                      questions = decoded;
+                    } else if (decoded is Map) {
+                      questions = decoded['data'] ?? [];
+                    }
                     
                     if (questions.isEmpty) {
                        _showError(context, "Soal belum tersedia untuk paket ini.");
                        return;
                     }
 
+                    // 3. Pindah ke Halaman Quiz
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (_) => QuizPage(
                         questions: questions, 
@@ -79,16 +96,18 @@ class TryoutDetailPage extends StatelessWidget {
                       )
                     ));
                   } else {
-                    _showError(context, "Gagal mengambil soal.");
+                    _showError(context, "Gagal mengambil soal dari server (Status: ${resp.statusCode})");
                   }
                 } catch (e) {
                   if (context.mounted) Navigator.pop(context);
-                  _showError(context, "Kesalahan koneksi server.");
+                  debugPrint("❌ Tryout Fetch Error: $e");
+                  _showError(context, "Kesalahan koneksi ke server Tryout.");
                 }
               },
-              // ✨ PERBAIKAN DI SINI: Gunakan FontWeight.w900, bukan .black
-              child: const Text("MULAI UJIAN SEKARANG", 
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              child: const Text(
+                "MULAI UJIAN SEKARANG", 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)
+              ),
             )
           ],
         ),
@@ -117,6 +136,8 @@ class TryoutDetailPage extends StatelessWidget {
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating)
+    );
   }
 }

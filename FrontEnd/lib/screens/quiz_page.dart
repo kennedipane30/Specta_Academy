@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'dart:convert';
-import 'explanation_page.dart'; // ✨ Pastikan import halaman baru
+import 'explanation_page.dart'; 
 
 class QuizPage extends StatefulWidget {
   final List questions;
@@ -45,14 +45,15 @@ class _QuizPageState extends State<QuizPage> {
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         _showResultDialog(
-          data['score'].toString(), 
-          data['correct']?.toString() ?? "0"
+          (data['score'] ?? "0").toString(), 
+          (data['correct'] ?? "0").toString()
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save score!")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal menyimpan nilai ke server!")));
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
+      debugPrint("❌ Submit Error: $e");
     }
   }
 
@@ -62,13 +63,13 @@ class _QuizPageState extends State<QuizPage> {
       barrierDismissible: false, 
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        title: const Text("Try Out Result 🎓", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Hasil Try Out 🎓", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min, 
           children: [
-            const Text("Your Final Score:"),
+            const Text("Skor Akhir Anda:"),
             Text(score, style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold, color: spektaRed)),
-            Text("Correct: $correct / ${widget.questions.length}", 
+            Text("Benar: $correct / ${widget.questions.length}", 
               style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -76,16 +77,13 @@ class _QuizPageState extends State<QuizPage> {
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)),
             onPressed: () {
-              // ✨ PROSES SINKRONISASI JAWABAN SEBELUM PINDAH KE EXPLANATION PAGE
+              // ✨ MODIFIKASI: Penyesuaian Key ID untuk sinkronisasi ExplanationPage
               for (var i = 0; i < widget.questions.length; i++) {
-                // Ambil question_id dari data soal
-                int qId = widget.questions[i]['question_id'];
+                // Mendukung key question_id atau practice_question_id dari Go
+                var qData = widget.questions[i];
+                int qId = int.parse((qData['question_id'] ?? qData['practice_question_id'] ?? 0).toString());
                 
-                // Ambil jawaban user dari map _myAnswers berdasarkan qId
-                // Jika user tidak menjawab, beri tanda "-"
                 String userChoice = _myAnswers[qId] ?? "-";
-                
-                // Masukkan jawaban tersebut ke dalam list questions agar bisa dibaca di ExplanationPage
                 widget.questions[i]['user_answer'] = userChoice;
               }
 
@@ -102,7 +100,7 @@ class _QuizPageState extends State<QuizPage> {
               Navigator.pop(context); // Tutup dialog
               Navigator.pop(context); // Kembali ke menu sebelumnya
             }, 
-            child: const Text("BACK TO MENU")
+            child: const Text("KEMBALI KE MENU")
           ),
         ],
       )
@@ -112,12 +110,16 @@ class _QuizPageState extends State<QuizPage> {
   @override
   Widget build(BuildContext context) {
     var q = widget.questions[_currentIndex];
+    // Ambil ID secara dinamis
+    int currentQId = int.parse((q['question_id'] ?? q['practice_question_id'] ?? 0).toString());
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Question ${_currentIndex + 1} / ${widget.questions.length}"), 
+        title: Text("Soal ${_currentIndex + 1} / ${widget.questions.length}"), 
         backgroundColor: spektaRed, 
-        foregroundColor: Colors.white
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -131,7 +133,6 @@ class _QuizPageState extends State<QuizPage> {
               padding: const EdgeInsets.all(25), 
               child: Column(
                 children: [
-                  // Box Pertanyaan
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20), 
@@ -140,20 +141,18 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Pilihan Jawaban
-                  _buildOption("A", q['option_a'] ?? "", q['question_id']),
-                  _buildOption("B", q['option_b'] ?? "", q['question_id']),
-                  _buildOption("C", q['option_c'] ?? "", q['question_id']),
-                  _buildOption("D", q['option_d'] ?? "", q['question_id']),
+                  _buildOption("A", q['option_a'] ?? "", currentQId),
+                  _buildOption("B", q['option_b'] ?? "", currentQId),
+                  _buildOption("C", q['option_c'] ?? "", currentQId),
+                  _buildOption("D", q['option_d'] ?? "", currentQId),
                 ]
               )
             )
           ),
           
-          // Navigasi Bottom Bar
           Container(
             padding: const EdgeInsets.all(20), 
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))]
             ),
@@ -176,7 +175,7 @@ class _QuizPageState extends State<QuizPage> {
                       ? _submitQuiz() 
                       : setState(() => _currentIndex++),
                     child: Text(
-                      _currentIndex == widget.questions.length - 1 ? "FINISH" : "NEXT", 
+                      _currentIndex == widget.questions.length - 1 ? "SELESAI" : "BERIKUTNYA", 
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                     ),
                   ),

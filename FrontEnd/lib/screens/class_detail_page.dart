@@ -33,8 +33,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   String status = "none";
   late int basePrice; 
   late Map currentLocalUserData;
-  
-  // ✨ Variabel penampung nama kelas yang dinamis
   String displayClassName = "";
   String description = "";
   List materi = [];
@@ -48,16 +46,13 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi awal dari widget
     currentLocalUserData = widget.userData;
     displayClassName = widget.className;
     basePrice = widget.price; 
-    
     _fetchDetail();
   }
 
   String _getLocalAsset() {
-    // Menentukan gambar berdasarkan ID kelas
     int cid = widget.classId;
     switch (cid) {
       case 1: return 'assets/images/abdi_negara.png';
@@ -68,42 +63,67 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     }
   }
 
-  // lib/screens/class_detail_page.dart
-
+// ✨ PERBAIKAN TOTAL: Mengambil data dari 3 Port secara independen
 Future<void> _fetchDetail() async {
   if (!mounted) return;
   setState(() => isLoading = true);
   
   try {
-    print("DEBUG: Memanggil Gateway untuk Class ID: ${widget.classId}");
-    final response = await AuthService.getClassContent(widget.classId, widget.token);
+    // 1. Ambil Materi (Port 9001)
+    final matRes = await AuthService.getClassContent(widget.classId, widget.token);
     
-    print("DEBUG: Response Status: ${response.statusCode}");
-    print("DEBUG: Response Body: ${response.body}"); // ✨ LIHAT INI DI TERMINAL
+    // 2. Ambil Simulasi Tryout (Port 9002)
+    final tryoutRes = await AuthService.getSimulasi(widget.token, classId: widget.classId);
 
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      
-      if (mounted) {
-        setState(() {
-          // Ambil nama kelas dari API, jika gagal pakai dari widget
-          displayClassName = decoded['program_name'] ?? widget.className;
-          status = decoded['enroll_status'] ?? "none";
-          materi = decoded['materi'] ?? [];
-          tryouts = decoded['tryouts'] ?? [];
-          practiceQuestions = decoded['practice_questions'] ?? [];
-          description = decoded['description'] ?? "";
-          isLoading = false;
-        });
+    // 3. Ambil Latihan Soal (Port 9003)
+    final pracRes = await AuthService.getTryouts(widget.token, classId: widget.classId);
+
+    List fetchedMateri = [];
+    List fetchedTryouts = [];
+    List fetchedPractice = [];
+    String fetchedStatus = "none";
+    String fetchedDesc = "";
+
+    // --- Parsing Port 9001 (Materi) ---
+    if (matRes.statusCode == 200) {
+      final d = jsonDecode(matRes.body);
+      if (d is List) {
+        fetchedMateri = d;
+      } else if (d is Map) {
+        fetchedMateri = d['materi'] ?? d['data'] ?? [];
+        fetchedStatus = d['enroll_status'] ?? "none";
+        fetchedDesc = d['description'] ?? "";
       }
     }
+
+    // --- Parsing Port 9002 (Tryout) ---
+    if (tryoutRes.statusCode == 200) {
+      final d = jsonDecode(tryoutRes.body);
+      fetchedTryouts = d is List ? d : (d['data'] ?? []);
+    }
+
+    // --- Parsing Port 9003 (Latihan Soal) ---
+    if (pracRes.statusCode == 200) {
+      final d = jsonDecode(pracRes.body);
+      fetchedPractice = d is List ? d : (d['data'] ?? []);
+    }
+
+    if (mounted) {
+      setState(() {
+        materi = fetchedMateri;
+        tryouts = fetchedTryouts;
+        practiceQuestions = fetchedPractice;
+        status = fetchedStatus;
+        description = fetchedDesc;
+        isLoading = false;
+      });
+    }
   } catch (e) {
-    print("DEBUG ERROR: $e");
+    debugPrint("❌ Error Fetch Multi-Service: $e");
     if (mounted) setState(() => isLoading = false);
   }
 }
 
-  // --- Navigasi ---
   void _navigateToMaterials() {
     Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectListPage(
       classId: widget.classId, className: displayClassName, token: widget.token, materi: materi,
@@ -111,13 +131,24 @@ Future<void> _fetchDetail() async {
   }
 
   void _navigateToPractice() {
-    if (practiceQuestions.isEmpty) { _showWarningSnack("Latihan soal belum tersedia."); return; }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PracticeSubjectListPage(allExercises: practiceQuestions, token: widget.token)));
+    if (practiceQuestions.isEmpty) { 
+      _showWarningSnack("Latihan soal belum tersedia."); 
+      return; 
+    }
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => PracticeSubjectListPage(
+        allExercises: practiceQuestions, 
+        token: widget.token
+      )
+    ));
   }
 
   void _navigateToTryouts() {
-    if (tryouts.isEmpty) { _showWarningSnack("Tryout belum tersedia."); } 
-    else { Navigator.push(context, MaterialPageRoute(builder: (context) => TryoutDetailPage(tryoutData: tryouts[0], token: widget.token))); }
+    if (tryouts.isEmpty) { 
+      _showWarningSnack("Tryout belum tersedia."); 
+    } else { 
+      Navigator.push(context, MaterialPageRoute(builder: (context) => TryoutDetailPage(tryoutData: tryouts[0], token: widget.token))); 
+    }
   }
 
   void _showWarningSnack(String msg) {
@@ -126,14 +157,16 @@ Future<void> _fetchDetail() async {
 
   @override
   Widget build(BuildContext context) {
-    bool isActive = (status == 'active');
-    
-    // Cek apakah user punya kelas aktif (berdasarkan ID dari profil)
-    dynamic studentClassId = currentLocalUserData['student']?['class_id'];
-    bool isUserEnrolledInThis = studentClassId?.toString() == widget.classId.toString();
+    // Sinkronisasi status terdaftar
+    dynamic userRegisteredClassId = currentLocalUserData['student']?['class_id'];
+    bool isActive = (status == 'active' || userRegisteredClassId?.toString() == widget.classId.toString());
+    bool hasOtherClass = userRegisteredClassId != null && userRegisteredClassId.toString() != widget.classId.toString();
 
-    // Hitung jumlah mapel unik untuk subtitle
-    final subjectsCount = materi.map((e) => e['material_name']).toSet().length;
+    final subjectsCount = materi
+        .map((e) => (e['subject_name'] ?? e['material_name'] ?? e['subject'] ?? '').toString())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -150,9 +183,8 @@ Future<void> _fetchDetail() async {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildStatusBadge(isUserEnrolledInThis),
+                          _buildStatusBadge(isActive),
                           const SizedBox(height: 15),
-                          // ✨ Nama Kelas Dinamis
                           Text(displayClassName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
                           const SizedBox(height: 25),
                           const Text("Tentang Kelas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -165,14 +197,14 @@ Future<void> _fetchDetail() async {
                           _buildFeatureButton(
                             icon: Icons.menu_book_rounded,
                             title: "Materi Video & PDF",
-                            subtitle: materi.isEmpty ? "Materi segera hadir" : "$subjectsCount Mata Pelajaran tersedia",
+                            subtitle: subjectsCount == 0 ? "Materi segera hadir" : "$subjectsCount Mata Pelajaran tersedia",
                             onTap: _navigateToMaterials,
                             isLocked: !isActive,
                           ),
                           _buildFeatureButton(
                             icon: Icons.quiz_rounded,
                             title: "Latihan Soal Mingguan",
-                            subtitle: practiceQuestions.isEmpty ? "Belum tersedia" : "${practiceQuestions.length} Latihan tersedia",
+                            subtitle: practiceQuestions.isEmpty ? "Belum tersedia" : "${practiceQuestions.length} Soal tersedia",
                             onTap: _navigateToPractice,
                             isLocked: !isActive,
                             color: Colors.blue,
@@ -193,7 +225,7 @@ Future<void> _fetchDetail() async {
                 ],
               ),
             ),
-      bottomNavigationBar: isActive ? null : _buildPremiumBottomBar(),
+      bottomNavigationBar: isActive ? null : _buildPremiumBottomBar(hasOtherClass),
     );
   }
 
@@ -206,8 +238,8 @@ Future<void> _fetchDetail() async {
   }
 
   Widget _buildStatusBadge(bool enrolled) {
-    String txt = status == 'active' ? "TERDAFTAR" : "TERSEDIA";
-    Color col = status == 'active' ? Colors.green : Colors.blue;
+    String txt = enrolled ? "TERDAFTAR" : "TERSEDIA";
+    Color col = enrolled ? Colors.green : Colors.blue;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: col.withOpacity(0.5))),
@@ -234,7 +266,7 @@ Future<void> _fetchDetail() async {
     );
   }
 
-  Widget _buildPremiumBottomBar() {
+  Widget _buildPremiumBottomBar(bool hasOtherClass) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)]),
@@ -243,9 +275,15 @@ Future<void> _fetchDetail() async {
           children: [
             Expanded(child: Text(currency.format(basePrice), style: TextStyle(color: spektaRed, fontSize: 20, fontWeight: FontWeight.bold))),
             ElevatedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentConfirmationPage(classId: widget.classId, className: displayClassName, basePrice: basePrice, token: widget.token, userData: currentLocalUserData))), 
-              style: ElevatedButton.styleFrom(backgroundColor: spektaRed, padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
-              child: const Text("DAFTAR SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+              onPressed: hasOtherClass 
+                ? () => _showWarningSnack("Anda sudah memiliki kelas aktif lainnya.")
+                : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentConfirmationPage(classId: widget.classId, className: displayClassName, basePrice: basePrice, token: widget.token, userData: currentLocalUserData))), 
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasOtherClass ? Colors.grey : spektaRed, 
+                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15), 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+              ), 
+              child: Text(hasOtherClass ? "KELAS LAIN AKTIF" : "DAFTAR SEKARANG", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             )
           ]
         )

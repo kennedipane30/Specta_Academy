@@ -31,10 +31,10 @@ return new class extends Migration
 
         // Seeding data - Pastikan ID class 1, 2, 3, 4 sudah ada di tabel classes!
         $data = [
-            1 => ['TIU', 'Psychological Test', 'English', 'Mathematics', 'TWK'],
-            2 => ['TIU', 'Psychological Test', 'Mathematics', 'TWK'],
-            3 => ['Mathematics', 'English', 'Physics', 'Biology', 'Chemistry'],
-            4 => ['Mathematics', 'English', 'Chemistry', 'Biology', 'Physics', 'Psychological Test'],
+            1 => ['TIU', 'Psychological Test', 'Mathematics', 'TWK', 'TKP'],
+            2 => ['TIU', 'Psychological Test', 'Mathematics', 'TWK' , 'TKP' , 'English', 'Fisika' , 'Kimia'],
+            3 => ['Mathematics', 'English', 'Fisika' ,'Biology', 'Chemistry' ,'Kimia'],
+            4 => ['Mathematics', 'English', 'Chemistry', 'Biology', 'Fisika', 'Psychological Test'],
         ];
 
         foreach ($data as $classId => $subjects) {

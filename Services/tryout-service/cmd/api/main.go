@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CORSMiddleware untuk memberikan akses kepada Laravel Gateway & Flutter
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -28,10 +27,8 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	// 1. Inisialisasi Database (specta_tryout)
 	db := config.InitDB()
 	
-	// 2. Jalankan Migrasi Tabel Otomatis
 	db.AutoMigrate(
 		&models.Tryout{}, 
 		&models.Question{}, 
@@ -39,44 +36,38 @@ func main() {
 		&models.TryoutSubmission{},
 	)
 
-	// 3. Dependency Injection (Layer Architecture)
 	repo := repository.NewTryoutRepository(db)
 	uc := usecase.NewTryoutUsecase(repo)
 	handler := http.NewTryoutHandler(uc)
 
-	// 4. Setup Router Gin
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 
-	// Route Cek Status Utama
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "Tryout Service is Running"})
+		c.JSON(200, gin.H{"message": "Tryout Service is Running on Port 9002"})
 	})
 
-	// 5. API Group - Sinkron dengan Gateway Laravel
 	api := r.Group("/api")
 	{
-		// --- ENDPOINT ADMIN & PENGAJAR ---
 		api.POST("/tryouts/sync", handler.SyncTryout) 
 		api.POST("/tryouts/submissions/sync", handler.SyncSubmissions)
-
-		// --- ENDPOINT SISWA (DIPANGGIL MOBILE VIA LARAVEL) ---
 		api.GET("/tryouts", handler.GetTryouts)
 		
-		// Mendukung dua versi route agar tidak terjadi 404
+		// ✨ SINKRONISASI RUTE: Menangani /api/tryouts/1/questions
+		api.GET("/tryouts/:id/questions", handler.GetQuestions)
+		
+		// Backup rute lama
 		api.GET("/questions", handler.GetQuestions)
-		api.GET("/tryouts/questions", handler.GetQuestions) // Alias baru
 	}
 
-	// 6. Konfigurasi Port (Membaca .env atau Default ke 9003)
+	// ✨ MODIFIKASI PORT: Gunakan 9002 (Practice sudah pakai 9003)
 	port := os.Getenv("PORT")
 	if port == "" { 
-		port = "9003" 
+		port = "9002" 
 	}
 	
 	fmt.Println("🚀 Spekta Tryout Service started on port: " + port)
 	
-	// Jalankan Server
 	err := r.Run(":" + port)
 	if err != nil {
 		fmt.Printf("❌ Fatal: Gagal menjalankan server: %v\n", err)

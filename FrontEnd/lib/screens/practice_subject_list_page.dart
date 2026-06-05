@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'practice_week_list_page.dart'; // Pastikan import ini benar
+import 'practice_week_list_page.dart';
 
 class PracticeSubjectListPage extends StatelessWidget {
   final List allExercises;
@@ -15,11 +15,14 @@ class PracticeSubjectListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color spektaRed = Color(0xFF990000);
 
-    // Mengambil daftar subjek unik dari data latihan yang diterima
-// Ubah baris ini agar lebih aman:
+    // ✨ MODIFIKASI: Cek semua kemungkinan key (subject, Subject, subject_name)
     final subjects = allExercises
-        .map((e) => (e['subject'] ?? e['Subject'] ?? 'Unknown').toString())
-        .toSet()
+        .map((e) {
+          var name = e['subject'] ?? e['Subject'] ?? e['subject_name'] ?? '';
+          return name.toString().trim();
+        })
+        .where((name) => name.isNotEmpty) 
+        .toSet() 
         .toList();
 
     return Scaffold(
@@ -31,42 +34,50 @@ class PracticeSubjectListPage extends StatelessWidget {
         ),
         backgroundColor: spektaRed,
         foregroundColor: Colors.white,
+        centerTitle: true,
         elevation: 0,
       ),
       body: subjects.isEmpty 
-      ? const Center(child: Text("Belum ada latihan tersedia."))
+      ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.quiz_outlined, size: 70, color: Colors.grey[300]),
+              const SizedBox(height: 10),
+              const Text("Belum ada latihan tersedia.", style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        )
       : ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: subjects.length,
           itemBuilder: (context, index) {
             final String sName = subjects[index].toString();
             
-            return Card(
-              // ✨ PERBAIKAN 1: Gunakan EdgeInsets.only(bottom: 15)
-              margin: const EdgeInsets.only(bottom: 15), 
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-                side: BorderSide(color: Colors.grey.shade200)
+            return Container(
+              margin: const EdgeInsets.only(bottom: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.all(12),
+                contentPadding: const EdgeInsets.all(15),
                 leading: Container(
-                  width: 45, height: 45,
+                  width: 50, height: 50,
                   decoration: BoxDecoration(
                     color: spektaRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12)
+                    borderRadius: BorderRadius.circular(15)
                   ),
                   child: const Icon(Icons.quiz_rounded, color: spektaRed),
                 ),
                 title: Text(
                   sName, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)
                 ),
                 subtitle: const Text("Lihat tantangan mingguan"),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                 onTap: () {
-                  // ✨ PERBAIKAN 2: Pastikan parameter dikirim lengkap
                   Navigator.push(
                     context, 
                     MaterialPageRoute(

@@ -17,38 +17,36 @@ class SubjectListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color spektaRed = const Color(0xFF990000);
+    const Color spektaRed = Color(0xFF990000);
 
-    // ✨ MODIFIKASI: Logika pengambilan subjek unik yang lebih aman (Case Insensitive)
-    // Ini menangani jika Go mengirim "material_name" atau "MaterialName"
+    // ✨ PERBAIKAN LOGIKA: Mengambil Mata Pelajaran Unik
+// ✨ PERBAIKAN LOGIKA: Ambil mata pelajaran unik
     final subjects = materi
         .map((e) {
-          // Cek semua kemungkinan kunci yang mungkin dikirim oleh Go/Laravel
-          return (e['material_name'] ?? e['MaterialName'] ?? e['subject'] ?? 'Tanpa Nama').toString();
+          // Cek semua kemungkinan key yang dikirim oleh Go
+          return (e['subject_name'] ?? e['material_name'] ?? e['title'] ?? '').toString();
         })
-        .where((name) => name != 'Tanpa Nama') // Filter jika ada data kosong
-        .toSet() // Menghilangkan duplikat agar satu mapel hanya muncul sekali
+        .where((name) => name.isNotEmpty) 
+        .toSet() 
         .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text(
-          "Pilih Mata Pelajaran", 
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)
-        ),
+        title: const Text("Pilih Mata Pelajaran", 
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: spektaRed,
         foregroundColor: Colors.white,
-        elevation: 0,
+        centerTitle: true,
       ),
       body: subjects.isEmpty 
       ? Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.menu_book_outlined, size: 60, color: Colors.grey[300]),
+              Icon(Icons.auto_stories_outlined, size: 70, color: Colors.grey[300]),
               const SizedBox(height: 10),
-              const Text("Belum ada mata pelajaran tersedia.", style: TextStyle(color: Colors.grey)),
+              const Text("Materi pelajaran belum tersedia", style: TextStyle(color: Colors.grey)),
             ],
           )
         )
@@ -63,43 +61,27 @@ class SubjectListPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white, 
                 borderRadius: BorderRadius.circular(20), 
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-                ]
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.all(15),
                 leading: Container(
-                  width: 50, 
-                  height: 50, 
-                  decoration: BoxDecoration(
-                    color: spektaRed.withOpacity(0.1), 
-                    borderRadius: BorderRadius.circular(15)
-                  ), 
-                  child: Center(
-                    child: Text(
-                      "${index + 1}", 
-                      style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold)
-                    )
-                  )
+                  width: 50, height: 50, 
+                  decoration: BoxDecoration(color: spektaRed.withOpacity(0.1), borderRadius: BorderRadius.circular(15)), 
+                  child: const Icon(Icons.menu_book_rounded, color: spektaRed)
                 ),
-                title: Text(
-                  sName, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)
-                ),
-                subtitle: const Text("Klik untuk lihat materi mingguan"),
-                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                title: Text(sName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                subtitle: const Text("Lihat materi 20 minggu"),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                 onTap: () {
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(
-                      builder: (context) => ModuleWeekListPage(
-                        subjectName: sName, 
-                        token: token, 
-                        allMaterials: materi
-                      )
+                  // ➡️ NAVIGASI KE HALAMAN 20 MINGGU
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) => ModuleWeekListPage(
+                      subjectName: sName, 
+                      token: token, 
+                      allMaterials: materi
                     )
-                  );
+                  ));
                 },
               ),
             );
