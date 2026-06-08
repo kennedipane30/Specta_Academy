@@ -14,8 +14,9 @@ return new class extends Migration
             // Merujuk ke student_id pada tabel students
             $table->foreignId('student_id')->constrained('students', 'student_id');
 
-            // Merujuk ke material_id pada tabel materials
-            $table->foreignId('material_id')->constrained('materials', 'material_id');
+            // PERUBAHAN: foreignId diganti menjadi unsignedBigInteger biasa.
+            // Ini akan membuat kolom untuk menyimpan ID, tapi TANPA foreign key (tidak di-constrain).
+            $table->unsignedBigInteger('material_id');
 
             // Merujuk ke usersID pada tabel users
             $table->foreignId('teacher_id')
@@ -35,3 +36,4 @@ return new class extends Migration
         Schema::dropIfExists('dedicated_tutors');
     }
 };
+

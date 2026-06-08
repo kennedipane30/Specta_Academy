@@ -23,10 +23,6 @@ class PracticeQuestionController extends Controller
         return view('pengajar.Latihan.index', compact('assignments'));
     }
 
-    /**
-     * MODIFIKASI: Mengubah pencarian akses agar menggunakan ID
-     * karena URL mengirimkan ID (misal: /pilih/1/1)
-     */
     public function selectPractice($class_id, $subject_id)
     {
         // 1. Cek akses pengajar berdasarkan ID Kelas dan ID Mapel
@@ -65,6 +61,8 @@ class PracticeQuestionController extends Controller
 
         $file = $request->file('file_csv');
         $handle = fopen($file->getRealPath(), "r");
+
+        // Membuang baris pertama (Header/Nama Kolom)
         fgetcsv($handle, 2000, ";");
 
         $questionsForSync = [];
@@ -72,6 +70,7 @@ class PracticeQuestionController extends Controller
         while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
             if (!isset($row[0]) || empty(trim($row[0]))) continue;
 
+            // ✨ MODIFIKASI: Menambahkan 'hint' ($row[6]) dan menggeser 'explanation' ($row[7])
             $q = PracticeQuestion::create([
                 'class_id'       => $class_id,
                 'subject'        => $request->subject,
@@ -82,9 +81,11 @@ class PracticeQuestionController extends Controller
                 'option_c'       => $row[3] ?? '-',
                 'option_d'       => $row[4] ?? '-',
                 'correct_answer' => strtoupper(trim($row[5] ?? 'A')),
-                'explanation'    => $row[6] ?? null,
+                'hint'           => $row[6] ?? null, // <--- TAMBAHAN HINT
+                'explanation'    => $row[7] ?? null, // <--- BERGESER KE INDEX 7
             ]);
 
+            // ✨ MODIFIKASI: Pastikan format payload ke Golang juga memiliki 'hint'
             $questionsForSync[] = [
                 'practice_question_id' => $q->practice_question_id,
                 'class_id'            => (int)$class_id,
@@ -96,7 +97,8 @@ class PracticeQuestionController extends Controller
                 'option_c'            => $row[3] ?? '-',
                 'option_d'            => $row[4] ?? '-',
                 'correct_answer'      => strtoupper(trim($row[5] ?? 'A')),
-                'explanation'         => $row[6] ?? null,
+                'hint'                => $row[6] ?? null, // <--- TAMBAHAN HINT
+                'explanation'         => $row[7] ?? null, // <--- BERGESER KE INDEX 7
             ];
         }
 

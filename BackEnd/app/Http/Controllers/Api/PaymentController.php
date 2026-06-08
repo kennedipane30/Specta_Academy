@@ -10,6 +10,7 @@ use Midtrans\Snap;
 use Midtrans\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -28,26 +29,26 @@ class PaymentController extends Controller
     public function getSnapToken(Request $request)
     {
         $request->validate([
-            'class_id'   => 'required',
+            'class_id'   => 'required|exists:classes,class_id',
             'promo_code' => 'nullable|string',
         ]);
 
-        $user = auth()->user();
+        $user = Auth::user();
         if (!$user) {
-            return response()->json(['message' => 'Sesi login berakhir'], 401);
+            return response()->json(['message' => 'Session expired. Please login again.'], 401);
         }
 
-        // Ambil data kelas
+        // Get class data
         $class = ClassModel::find($request->class_id);
         if (!$class) {
-            return response()->json(['message' => 'Program tidak ditemukan'], 404);
+            return response()->json(['message' => 'Program not found'], 404);
         }
 
         $basePrice  = (int) $class->price;
         $finalPrice = $basePrice;
         $appliedPromoCode = null;
 
-        // LOGIKA PROMO (FIXED & PERCENT)
+        // PROMO LOGIC (FIXED & PERCENT)
         if ($request->filled('promo_code')) {
             $promoCode = strtoupper(trim($request->promo_code));
             $today = Carbon::today()->toDateString();
@@ -61,8 +62,8 @@ class PaymentController extends Controller
             if ($promo) {
                 $isValid = ($today >= $promo->start_date && $today <= $promo->end_date) && ($promo->quota > 0);
                 if ($isValid) {
-                    $discountAmount = ($promo->discount_type == 'percent') 
-                        ? ($basePrice * $promo->discount_percent) / 100 
+                    $discountAmount = ($promo->discount_type == 'percent')
+                        ? ($basePrice * $promo->discount_percent) / 100
                         : (int) $promo->discount_percent;
 
                     $finalPrice = max(1000, $basePrice - $discountAmount);
@@ -118,12 +119,12 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Midtrans Error: " . $e->getMessage());
-            return response()->json(['message' => 'Gagal membuat transaksi'], 500);
+            return response()->json(['message' => 'Failed to create transaction'], 500);
         }
     }
 
     /**
-     * ✨ 2. HANDLE NOTIFICATION (CALLBACK DARI MIDTRANS)
+     * ✨ 2. HANDLE NOTIFICATION (CALLBACK FROM MIDTRANS)
      */
     public function handleNotification(Request $request)
     {
@@ -134,40 +135,40 @@ class PaymentController extends Controller
 
             $payment = DB::table('payments')->where('order_id', $order_id)->first();
             if (!$payment) {
-                return response()->json(['message' => 'Order tidak ditemukan'], 404);
+                return response()->json(['message' => 'Order not found'], 404);
             }
 
             if ($transaction == 'settlement' || $transaction == 'capture') {
-                
+
                 $expiresAt = now()->addDays(140)->endOfDay();
 
                 DB::transaction(function () use ($order_id, $notif, $payment, $expiresAt) {
-                    
-                    // 1. Update status tabel payment
+
+                    // 1. Update payment table status
                     DB::table('payments')->where('order_id', $order_id)->update([
                         'status'       => 'success',
                         'payment_type' => $notif->payment_type,
                         'updated_at'   => now(),
                     ]);
 
-                    // 2. Berikan akses kelas di tabel enrollments
+                    // 2. Grant class access in enrollments table
                     DB::table('enrollments')->updateOrInsert(
                         ['user_id' => $payment->user_id, 'class_id' => $payment->class_id],
                         [
-                            'status'     => 'active', 
-                            'expires_at' => $expiresAt, 
-                            'updated_at' => now(), 
+                            'status'     => 'active',
+                            'expires_at' => $expiresAt,
+                            'updated_at' => now(),
                             'created_at' => now()
                         ]
                     );
 
-                    // ✨ 3. SINKRONISASI KE TABEL STUDENTS (PENTING UNTUK FLUTTER)
-                    // Baris ini membuat aplikasi Flutter tahu user sudah punya kelas aktif
+                    // ✨ 3. SYNC TO STUDENTS TABLE (IMPORTANT FOR FLUTTER)
+                    // This line lets Flutter app know the user has an active class
                     DB::table('students')
                         ->where('user_id', $payment->user_id)
                         ->update(['class_id' => $payment->class_id]);
 
-                    // 4. Kurangi kuota promo jika ada
+                    // 4. Reduce promo quota if applied
                     if ($payment->promo_code) {
                         DB::table('promotions')
                             ->where('code', $payment->promo_code)

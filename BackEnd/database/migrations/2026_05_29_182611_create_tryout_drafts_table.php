@@ -14,8 +14,8 @@ return new class extends Migration
             $table->id();
             $table->integer('class_id');
 
-            // Kolom user_id dihapus dari sini karena akan ditambahkan
-            // oleh file migrasi: 2026_05_29_191101_add_user_id_to_tryout_drafts_table.php
+            // PERUBAHAN: Kolom user_id dimasukkan langsung ke sini (diletakkan setelah class_id)
+            $table->unsignedBigInteger('user_id')->nullable();
 
             $table->string('subject_name');
             $table->text('question');

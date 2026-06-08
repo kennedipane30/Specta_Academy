@@ -3,8 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; // Tambahkan ini
-use Illuminate\Support\Facades\Hash; // Tambahkan ini
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 return new class extends Migration
 {
@@ -27,10 +27,14 @@ return new class extends Migration
         // 2. BUAT TABEL USERS
         Schema::create('users', function (Blueprint $table) {
             $table->id('usersID');
-            $table->string('name')->unique();
+            $table->string('name');
             $table->string('email')->unique();
             $table->string('phone');
             $table->string('password');
+
+            // ✨ MODIFIKASI: Tambahkan kolom photo disini (Boleh kosong/nullable)
+            $table->string('photo')->nullable();
+
             $table->boolean('is_verified')->default(false);
             $table->foreignId('role_id')->constrained('roles', 'rolesID');
             $table->timestamps();
@@ -43,6 +47,7 @@ return new class extends Migration
                 'email' => 'admin@gmail.com',
                 'phone' => '08123456789',
                 'password' => Hash::make('password123'),
+                'photo' => null, // Set null default
                 'is_verified' => true,
                 'role_id' => 1,
                 'created_at' => now(), 'updated_at' => now()
@@ -52,6 +57,7 @@ return new class extends Migration
                 'email' => 'guru@gmail.com',
                 'phone' => '08123456788',
                 'password' => Hash::make('password123'),
+                'photo' => null, // Set null default
                 'is_verified' => true,
                 'role_id' => 2,
                 'created_at' => now(), 'updated_at' => now()

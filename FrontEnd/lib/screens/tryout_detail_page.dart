@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
-import 'quiz_page.dart';
-import '../services/auth_service.dart';
 import 'dart:convert';
+import '../services/auth_service.dart';
+import 'quiz_page.dart';
+import 'explanation_page.dart';
 
 class TryoutDetailPage extends StatelessWidget {
   final Map tryoutData;
   final String token;
+  final bool isDone;
+  // ✨ MODIFIKASI 1: Tambahkan parameter userId
+  final int userId; 
 
-  const TryoutDetailPage({super.key, required this.tryoutData, required this.token});
+  const TryoutDetailPage({
+    super.key, 
+    required this.tryoutData, 
+    required this.token,
+    required this.userId, // ✨ MODIFIKASI 1: Wajib diisi agar bisa diteruskan
+    this.isDone = false, 
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +38,7 @@ class TryoutDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              tryoutData['title'] ?? "Tryout Simulation", 
+              tryoutData['title'] ?? tryoutData['name'] ?? "Tryout Simulation", 
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: spektaRed)
             ),
             const SizedBox(height: 25),
@@ -48,24 +58,22 @@ class TryoutDetailPage extends StatelessWidget {
             
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: spektaRed, 
+                backgroundColor: isDone ? Colors.green : spektaRed,
                 minimumSize: const Size(double.infinity, 60),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 elevation: 8,
               ),
               onPressed: () async {
-                // 1. Tampilkan Loading
                 showDialog(
                   context: context, 
                   barrierDismissible: false, 
-                  builder: (_) => const Center(child: CircularProgressIndicator(color: spektaRed))
+                  builder: (_) => Center(child: CircularProgressIndicator(color: isDone ? Colors.green : spektaRed))
                 );
 
                 try {
-                  // Ambil ID Tryout
-                  final int id = int.parse(tryoutData['tryout_id'].toString());
+                  final dynamic rawId = tryoutData['tryout_id'] ?? tryoutData['id'] ?? tryoutData['ID'] ?? 0;
+                  final int id = int.parse(rawId.toString());
                   
-                  // 2. Panggil API ke Port 9002
                   var resp = await AuthService.getQuestions(id, token);
                   
                   if (!context.mounted) return;
@@ -74,7 +82,6 @@ class TryoutDetailPage extends StatelessWidget {
                   if (resp.statusCode == 200) {
                     var decoded = jsonDecode(resp.body);
                     
-                    // ✨ MODIFIKASI: Deteksi List secara fleksibel agar terbaca dari Go
                     List questions = [];
                     if (decoded is List) {
                       questions = decoded;
@@ -87,26 +94,42 @@ class TryoutDetailPage extends StatelessWidget {
                        return;
                     }
 
-                    // 3. Pindah ke Halaman Quiz
-                    Navigator.pushReplacement(context, MaterialPageRoute(
-                      builder: (_) => QuizPage(
-                        questions: questions, 
-                        tryoutId: id, 
-                        token: token
-                      )
-                    ));
+                    if (isDone) {
+                      // JIKA SUDAH SELESAI -> Masuk ke Pembahasan
+                      Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => ExplanationPage(questions: questions)
+                      ));
+                    } else {
+                      // JIKA BELUM SELESAI -> Masuk Ujian
+                      Navigator.pushReplacement(context, MaterialPageRoute(
+                        builder: (_) => QuizPage(
+                          questions: questions, 
+                          tryoutId: id, 
+                          token: token,
+                          userId: userId, // ✨ MODIFIKASI 2: Teruskan userId ke QuizPage
+                        )
+                      ));
+                    }
+
                   } else {
                     _showError(context, "Gagal mengambil soal dari server (Status: ${resp.statusCode})");
                   }
                 } catch (e) {
                   if (context.mounted) Navigator.pop(context);
-                  debugPrint("❌ Tryout Fetch Error: $e");
+                  debugPrint("❌ Tryout Error: $e");
                   _showError(context, "Kesalahan koneksi ke server Tryout.");
                 }
               },
-              child: const Text(
-                "MULAI UJIAN SEKARANG", 
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(isDone ? Icons.check_circle_outline : Icons.play_arrow_rounded, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Text(
+                    isDone ? "LIHAT PEMBAHASAN" : "MULAI UJIAN SEKARANG", 
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)
+                  ),
+                ],
               ),
             )
           ],
@@ -136,8 +159,6 @@ class TryoutDetailPage extends StatelessWidget {
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating)
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating));
   }
 }

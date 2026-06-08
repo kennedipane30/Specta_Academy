@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:fl_chart/fl_chart.dart'; 
 import '../services/auth_service.dart';
-import 'announcement_detail_page.dart';
 
 class ReportPage extends StatefulWidget {
   final String token;
-  final Map userData;
-  final VoidCallback onGoToHome; // ✨ Tambahkan callback untuk balik ke Home
+  final Map userData; 
+  final VoidCallback onGoToHome;
 
   const ReportPage({
     super.key, 
-    required this.token, 
+    required this.token,
     required this.userData,
-    required this.onGoToHome, // ✨ Wajib diisi
+    required this.onGoToHome,
   });
 
   @override
@@ -22,219 +21,264 @@ class ReportPage extends StatefulWidget {
 }
 
 class _ReportPageState extends State<ReportPage> {
-  final Color spektaRed = const Color(0xFF990000);
+  bool isLoading = true;
   
-  // State untuk Data Dinamis
-  List<double> dynamicScores = [];
-  double avgScore = 0.0;
-  double maxScore = 0.0;
-  bool isChartLoading = true;
+  List announcements = [];
+  List<FlSpot> chartData = []; 
+  List<String> tryoutTitles = []; 
 
   @override
   void initState() {
     super.initState();
-    _loadAllData();
+    _fetchReportData();
   }
 
-  Future<void> _loadAllData() async {
-    await _fetchChartData();
+  String _fixImageUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    if (!path.startsWith('/')) path = '/$path';
+    return 'http://10.0.2.2:8000/storage$path';
   }
 
-  // FUNGSI AMBIL DATA NILAI DARI API
-  Future<void> _fetchChartData() async {
+  // ✨ PERBAIKAN: Gunakan fungsi tangguh untuk mencari User ID
+  int _getUserId() {
     try {
-      final resp = await AuthService.getLearningReport(widget.token);
-      if (resp.statusCode == 200) {
-        List<dynamic> data = jsonDecode(resp.body)['data'];
-        
-        if (data.isNotEmpty) {
-          List<double> scores = data.map((item) => double.parse(item['score'].toString())).toList();
-          
-          setState(() {
-            dynamicScores = scores;
-            avgScore = scores.reduce((a, b) => a + b) / scores.length;
-            maxScore = scores.reduce((a, b) => a > b ? a : b);
-            isChartLoading = false;
-          });
-        } else {
-          setState(() => isChartLoading = false);
-        }
+      var data = widget.userData;
+      if (data.containsKey('data') && data['data'] is Map) {
+        var inner = data['data'];
+        if (inner['id'] != null) return int.parse(inner['id'].toString());
+        if (inner['usersID'] != null) return int.parse(inner['usersID'].toString());
+        if (inner['user_id'] != null) return int.parse(inner['user_id'].toString());
+      }
+      if (data.containsKey('usersID') && data['usersID'] != null) return int.parse(data['usersID'].toString());
+      if (data.containsKey('user_id') && data['user_id'] != null) return int.parse(data['user_id'].toString());
+      if (data.containsKey('user') && data['user'] != null) {
+        if (data['user'].containsKey('id')) return int.parse(data['user']['id'].toString());
+        if (data['user'].containsKey('usersID')) return int.parse(data['user']['usersID'].toString());
+      }
+      if (data.containsKey('student') && data['student'] != null) {
+        if (data['student'].containsKey('user_id')) return int.parse(data['student']['user_id'].toString());
+      }
+      if (data.containsKey('id') && data['id'] != null) return int.parse(data['id'].toString());
+    } catch (e) {
+      debugPrint("❌ Gagal parse ID: $e");
+    }
+    return 0;
+  }
+
+  Future<void> _fetchReportData() async {
+    try {
+      final annRes = await AuthService.getAnnouncements(widget.token).catchError((_) => http.Response('[]', 500));
+      
+      // Ambil ID User dengan fungsi baru
+      int currentUserId = _getUserId();
+      debugPrint("📊 Mengambil riwayat untuk User ID: $currentUserId");
+
+      final reportRes = await AuthService.getTryoutHistory(widget.token, currentUserId);
+
+      if (mounted) {
+        setState(() {
+          // Parsing Pengumuman
+          if (annRes.statusCode == 200) {
+            final annDecoded = jsonDecode(annRes.body);
+            announcements = annDecoded is List ? annDecoded : (annDecoded['data'] ?? []);
+          }
+
+          // Parsing Riwayat Nilai
+          if (reportRes.statusCode == 200) {
+            final decoded = jsonDecode(reportRes.body);
+            List history = decoded is List ? decoded : (decoded['data'] ?? []);
+            
+            chartData.clear();
+            tryoutTitles.clear();
+            
+            if (history.isNotEmpty) {
+              // Balik urutan agar data terlama di kiri, terbaru di kanan
+              history = history.reversed.toList();
+              int count = history.length > 7 ? 7 : history.length;
+              
+              for (var i = 0; i < count; i++) {
+                double score = double.parse((history[i]['score'] ?? 0).toString());
+                chartData.add(FlSpot(i.toDouble(), score));
+                
+                // Gunakan 'title' sesuai JSON response dari Golang
+                String title = history[i]['title'] ?? history[i]['tryout_name'] ?? 'TO ${i+1}';
+                tryoutTitles.add(title.length > 6 ? '${title.substring(0,6)}...' : title);
+              }
+            }
+          }
+          isLoading = false;
+        });
       }
     } catch (e) {
-      debugPrint("Chart Error: $e");
-      setState(() => isChartLoading = false);
+      debugPrint("❌ Error Fetching Report: $e");
+      if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  // FUNGSI AMBIL PENGUMUMAN
-  Future<List<dynamic>> fetchAnnouncements() async {
-    final resp = await AuthService.getAnnouncements(widget.token);
-    if (resp.statusCode == 200) {
-      return jsonDecode(resp.body)['data'] ?? [];
-    }
-    return [];
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color spektaRed = Color(0xFF990000);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFB),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        // ✨ TAMPILAN HEADER YANG LEBIH PENDEK & RAPI
-        title: const Text("Learning Report", 
-          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 18)),
+        title: const Text("Learning Report", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: spektaRed,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        // ✨ TAMBAHKAN IKON PANAH KEMBALI
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-          onPressed: widget.onGoToHome, // Balik ke Tab Home
-        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader("Pengumuman Terbaru", Icons.campaign_rounded),
-              _buildAnnouncementSection(),
+      body: isLoading 
+        ? const Center(child: CircularProgressIndicator(color: spektaRed))
+        : RefreshIndicator(
+            onRefresh: _fetchReportData,
+            color: spektaRed,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.campaign_rounded, color: spektaRed),
+                      SizedBox(width: 10),
+                      Text("Pengumuman Terbaru", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  if (announcements.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.network(
+                        _fixImageUrl(announcements[0]['image_url'] ?? announcements[0]['image'] ?? ''),
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 180, width: double.infinity,
+                          color: Colors.grey[200],
+                          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
+                        ),
+                      ),
+                    )
+                  else 
+                    Container(
+                      height: 180, width: double.infinity,
+                      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(15)),
+                      child: const Center(child: Text("Tidak ada pengumuman", style: TextStyle(color: Colors.grey))),
+                    ),
 
-              const SizedBox(height: 30),
-              
-              _buildSectionHeader("Statistik Belajar (7 Terakhir)", Icons.auto_graph_rounded),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text("Grafik hasil perkembangan nilai kamu", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ),
-              const SizedBox(height: 20),
-              
-              // TAMPILKAN CHART DINAMIS
-              _buildLineChartCard(),
+                  const SizedBox(height: 40),
 
-              const SizedBox(height: 25),
-              _buildScoreSummary(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_graph_rounded, color: spektaRed),
+                      SizedBox(width: 10),
+                      Text("Statistik Belajar (7 Terakhir)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  const Text("Grafik hasil perkembangan nilai kamu", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 20),
 
-  // --- WIDGET PENGUMUMAN ---
-  Widget _buildAnnouncementSection() {
-    return FutureBuilder<List<dynamic>>(
-      future: fetchAnnouncements(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("Tidak ada pengumuman"));
-
-        return CarouselSlider(
-          options: CarouselOptions(height: 180, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.88),
-          items: snapshot.data!.map((item) {
-            String imgUrl = (item['image'] ?? '').toString().replaceAll('127.0.0.1', '10.0.2.2');
-            if (!imgUrl.startsWith('http')) imgUrl = "http://10.0.2.2:8000/storage/$imgUrl";
-
-            return InkWell(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AnnouncementDetailPage(data: item))),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  image: DecorationImage(image: NetworkImage(imgUrl), fit: BoxFit.cover),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))],
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
-  // --- WIDGET CHART DINAMIS ---
-  Widget _buildLineChartCard() {
-    if (isChartLoading) return const SizedBox(height: 250, child: Center(child: CircularProgressIndicator()));
-    if (dynamicScores.isEmpty) {
-      return Container(
-        height: 200, margin: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
-        child: const Center(child: Text("Belum ada data nilai.", style: TextStyle(color: Colors.grey))),
-      );
-    }
-
-    return Container(
-      height: 250, margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.fromLTRB(10, 25, 25, 10),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24)],
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: const FlGridData(show: true, drawVerticalLine: false),
-          titlesData: FlTitlesData(
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  return Text("Ke-${value.toInt() + 1}", style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold));
-                },
+                  Container(
+                    height: 250,
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(15, 30, 20, 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]
+                    ),
+                    child: chartData.isEmpty
+                      ? const Center(child: Text("Belum ada data nilai.", style: TextStyle(color: Colors.grey)))
+                      : LineChart(
+                          LineChartData(
+                            gridData: FlGridData(
+                              show: true, 
+                              drawVerticalLine: false, 
+                              getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey[200]!, strokeWidth: 1)
+                            ),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 30,
+                                  getTitlesWidget: (value, meta) {
+                                    int index = value.toInt();
+                                    if (index >= 0 && index < tryoutTitles.length) {
+                                      // Agar text rapi
+                                      return SideTitleWidget(
+                                        axisSide: meta.axisSide,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(top: 8.0),
+                                          child: Text(tryoutTitles[index], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                        ),
+                                      );
+                                    }
+                                    return const Text('');
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 40,
+                                  getTitlesWidget: (value, meta) => SideTitleWidget(
+                                    axisSide: meta.axisSide, 
+                                    child: Text("${value.toInt()}", style: const TextStyle(fontSize: 10, color: Colors.grey))
+                                  ),
+                                ),
+                              ),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            minX: 0,
+                            // ✨ FIX: Cegah error FlChart jika data hanya 1 buah
+                            maxX: chartData.length > 1 ? (chartData.length - 1).toDouble() : 1.0,
+                            minY: 0,
+                            maxY: 100, 
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: chartData.length == 1 
+                                    ? [chartData[0], FlSpot(1.0, chartData[0].y)] // Buat garis lurus jika data cuma 1
+                                    : chartData,
+                                isCurved: true,
+                                color: spektaRed,
+                                barWidth: 3,
+                                isStrokeCapRound: true,
+                                dotData: const FlDotData(show: true),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  color: spektaRed.withOpacity(0.15),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  if (chartData.isEmpty)
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: widget.onGoToHome, 
+                        icon: const Icon(Icons.arrow_back, color: spektaRed), 
+                        label: const Text("Kembali ke Beranda", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold))
+                      ),
+                    ),
+                    
+                  const SizedBox(height: 50),
+                ],
               ),
             ),
           ),
-          borderData: FlBorderData(show: false),
-          minX: 0, maxX: (dynamicScores.length - 1).toDouble(), minY: 0, maxY: 100,
-          lineBarsData: [
-            LineChartBarData(
-              spots: dynamicScores.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-              isCurved: true, color: spektaRed, barWidth: 5, isStrokeCapRound: true,
-              dotData: const FlDotData(show: true),
-              belowBarData: BarAreaData(show: true, gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [spektaRed.withOpacity(0.2), spektaRed.withOpacity(0.0)],
-              )),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScoreSummary() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          _statCard("Nilai Tertinggi", maxScore.toStringAsFixed(0)),
-          const SizedBox(width: 15),
-          _statCard("Rata-rata", avgScore.toStringAsFixed(1)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 25, 24, 8),
-      child: Row(children: [Icon(icon, color: spektaRed, size: 20), const SizedBox(width: 8), Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))]),
-    );
-  }
-
-  Widget _statCard(String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.grey[100]!)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label.toUpperCase(), style: TextStyle(fontSize: 10, color: Colors.grey[500], fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 18, color: spektaRed, fontWeight: FontWeight.w900)),
-        ]),
-      ),
     );
   }
 }

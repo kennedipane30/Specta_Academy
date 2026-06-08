@@ -23,6 +23,10 @@ return new class extends Migration
             $table->string('option_c');
             $table->string('option_d');
             $table->string('correct_answer');
+
+            // ✨ MODIFIKASI BARU: Menambahkan kolom hint untuk menyimpan Kata Kunci
+            $table->text('hint')->nullable();
+
             $table->text('explanation')->nullable();
             $table->timestamps();
         });

@@ -4,7 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Api\pengajar\DedicatedTutorController;
 use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\TryoutController; 
+use App\Http\Controllers\Api\TryoutController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\NotificationController;
@@ -45,13 +45,19 @@ Route::middleware('auth:sanctum')->group(function () {
             ->where('user_id', $user->usersID)
             ->where('status', 'active')
             ->first();
-            
+
         if ($activeEnrollment) {
             if ($user->student) $user->student->class_id = $activeEnrollment->class_id;
             $user->active_class_id = $activeEnrollment->class_id;
         }
         return response()->json($user);
     });
+
+    // ✅ ENDPOINT KHUSUS PROFILE (untuk Mobile App - Format lengkap dengan joined_date & enrolled_classes)
+    Route::get('/profile', [AuthController::class, 'getProfile']);
+
+    // ✅ UPLOAD FOTO PROFIL
+    Route::post('/profile/photo', [AuthController::class, 'updatePhoto']);
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
     Route::get('/banners', [BannerController::class, 'index']);
@@ -64,16 +70,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // ✅ QUESTION BANK HUB (Fitur Berbagi Soal Siswa)
     // ============================================================
     Route::prefix('question-bank')->group(function () {
-        Route::get('/', [QuestionBankController::class, 'index']);       
-        Route::post('/upload', [QuestionBankController::class, 'store']); 
+        Route::get('/', [QuestionBankController::class, 'index']);
+        Route::post('/upload', [QuestionBankController::class, 'store']);
     });
 
     // ✅ NOTIFICATION SYSTEM
     Route::prefix('notifications')->group(function () {
-        Route::get('/', [NotificationController::class, 'index']);                    
-        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);   
-        Route::post('/mark-all-read', [NotificationController::class, 'markAllRead']); 
-        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);      
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllRead']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
     });
 
     // ✅ KATALOG KELAS
@@ -88,24 +94,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ✅ JADWAL SYSTEM
     Route::prefix('schedules')->group(function () {
-        Route::get('/today', [ScheduleController::class, 'today']); 
-        Route::get('/all', [ScheduleController::class, 'index']);   
+        Route::get('/today', [ScheduleController::class, 'today']);
+        Route::get('/all', [ScheduleController::class, 'index']);
     });
 
     // ✅ TRYOUT SYSTEM
     Route::prefix('tryouts')->group(function () {
-        Route::get('/', [TryoutController::class, 'index']);           
-        Route::get('/history', [TryoutController::class, 'history']);  
-        Route::get('/my', [TryoutController::class, 'history']);       
-        Route::get('/questions', [TryoutController::class, 'questions']); 
-        Route::get('/{id}/questions', [TryoutController::class, 'questions']); 
-        Route::post('/{id}/submit', [TryoutController::class, 'submit']);      
+        Route::get('/', [TryoutController::class, 'index']);
+        Route::get('/history', [TryoutController::class, 'history']);
+        Route::get('/my', [TryoutController::class, 'history']);
+        Route::get('/questions', [TryoutController::class, 'questions']);
+        Route::get('/{id}/questions', [TryoutController::class, 'questions']);
+        Route::post('/{id}/submit', [TryoutController::class, 'submit']);
         Route::get('/results/{id}', [TryoutController::class, 'results']);
     });
 
     // ✅ KHUSUS ROLE SISWA
     Route::middleware('role:siswa')->group(function () {
-        
+
         // Report Grafik Belajar
         Route::get('/learning-report', function(Request $request) {
             $data = TryoutResult::where('user_id', $request->user()->usersID)
@@ -120,21 +126,21 @@ Route::middleware('auth:sanctum')->group(function () {
         // Materi Belajar berdasarkan Kelas
         Route::get('/materials', function (Request $request) {
             return response()->json([
-                'status' => 'success', 
+                'status' => 'success',
                 'data' => Material::where('class_id', $request->class_id)->orderBy('week', 'asc')->get()
             ]);
         });
-        
+
         Route::post('/class/content', [AuthController::class, 'getClassContent']);
 
         // ============================================================
         // ✅ DEDICATED TUTOR (Request & Sisa Kuota)
         // ============================================================
         // Endpoint untuk mengambil Riwayat, Daftar Topik, dan Info Sisa Kuota
-        Route::get('/tutor/history', [DedicatedTutorController::class, 'index']); 
-        
+        Route::get('/tutor/history', [DedicatedTutorController::class, 'index']);
+
         // Endpoint untuk mengirim Request Sesi Tutor Baru
-        Route::post('/tutor/submit', [DedicatedTutorController::class, 'store']); 
+        Route::post('/tutor/submit', [DedicatedTutorController::class, 'store']);
     });
 
     // ✅ UTILITY ROUTES (Payment, Promo, Logout)

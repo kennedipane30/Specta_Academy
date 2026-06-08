@@ -4,18 +4,19 @@ import 'practice_week_list_page.dart';
 class PracticeSubjectListPage extends StatelessWidget {
   final List allExercises;
   final String token;
+  // userId dihapus dari sini
 
   const PracticeSubjectListPage({
     super.key, 
     required this.allExercises, 
-    required this.token
+    required this.token,
   });
 
   @override
   Widget build(BuildContext context) {
     const Color spektaRed = Color(0xFF990000);
 
-    // ✨ MODIFIKASI: Cek semua kemungkinan key (subject, Subject, subject_name)
+    // Cek semua kemungkinan key (subject, Subject, subject_name)
     final subjects = allExercises
         .map((e) {
           var name = e['subject'] ?? e['Subject'] ?? e['subject_name'] ?? '';

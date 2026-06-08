@@ -1,9 +1,12 @@
 package http
 
 import (
-	"net/http" // ✨ Sekarang digunakan untuk http.StatusOK, dll
+	"encoding/json" 
+	"net/http"
+	"strconv"
 	"tryout-service/internal/models"
 	"tryout-service/internal/usecase"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,15 +18,11 @@ func NewTryoutHandler(uc usecase.TryoutUsecase) *TryoutHandler {
 	return &TryoutHandler{uc}
 }
 
-// Struct untuk bungkusan data dari Laravel
 type SyncRequest struct {
 	Tryout    models.Tryout     `json:"tryout"`
 	Questions []models.Question `json:"questions"`
 }
 
-/**
- * 1. SINKRONISASI PAKET SOAL
- */
 func (h *TryoutHandler) SyncTryout(c *gin.Context) {
 	var req SyncRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,9 +38,6 @@ func (h *TryoutHandler) SyncTryout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Paket Tryout Berhasil Masuk ke Go"})
 }
 
-/**
- * 2. SINKRONISASI HASIL/NILAI SISWA
- */
 func (h *TryoutHandler) SyncSubmissions(c *gin.Context) {
 	var s models.TryoutSubmission
 	if err := c.ShouldBindJSON(&s); err != nil {
@@ -57,12 +53,15 @@ func (h *TryoutHandler) SyncSubmissions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Riwayat berhasil disimpan di Go"})
 }
 
-/**
- * 3. AMBIL DAFTAR TRYOUT
- */
 func (h *TryoutHandler) GetTryouts(c *gin.Context) {
 	classID := c.Query("class_id")
-	data, err := h.uc.GetTryouts(classID)
+	userID := c.Query("user_id")
+
+	if userID == "" {
+		userID = "0"
+	}
+
+	data, err := h.uc.GetTryouts(classID, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Gagal mengambil daftar tryout"})
 		return
@@ -70,11 +69,7 @@ func (h *TryoutHandler) GetTryouts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
 }
 
-/**
- * 4. AMBIL DAFTAR SOAL (SAAT UJIAN DIMULAI)
- */
 func (h *TryoutHandler) GetQuestions(c *gin.Context) {
-	// Mendukung ambil ID dari path (:id) atau query (?tryout_id=)
 	tryoutID := c.Param("id")
 	if tryoutID == "" {
 		tryoutID = c.Query("tryout_id")
@@ -91,6 +86,59 @@ func (h *TryoutHandler) GetQuestions(c *gin.Context) {
 		return
 	}
 
-	// Mengembalikan list soal langsung agar Flutter bisa membaca sebagai List
 	c.JSON(http.StatusOK, data)
+}
+
+func (h *TryoutHandler) SubmitTryout(c *gin.Context) {
+	var req struct {
+		TryoutID int               `json:"tryout_id"`
+		UserID   int               `json:"user_id"`
+		Answers  map[string]string `json:"answers"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format data jawaban salah"})
+		return
+	}
+
+	tryoutIDStr := strconv.Itoa(req.TryoutID)
+	score, correctCount, err := h.uc.CalculateScore(tryoutIDStr, req.Answers)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung nilai ujian"})
+		return
+	}
+
+	answersJSONBytes, _ := json.Marshal(req.Answers)
+
+	submission := models.TryoutSubmission{
+		TryoutID: uint(req.TryoutID),
+		UserID:   uint(req.UserID),
+		Score:    float64(score),
+		Answers:  string(answersJSONBytes), 
+	}
+	h.uc.SyncSubmissions(submission)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"score":   score,
+		"correct": correctCount,
+		"message": "Nilai berhasil disimpan di database",
+	})
+}
+
+// ✨ FUNGSI BARU: Untuk mengambil riwayat Tryout bagi Report Page
+func (h *TryoutHandler) GetHistory(c *gin.Context) {
+	userID := c.Query("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	data, err := h.uc.GetHistory(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil riwayat"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
 }

@@ -7,14 +7,14 @@
 @php
     $announcementCollection = method_exists($announcements, 'getCollection') ? $announcements->getCollection() : collect($announcements);
     $totalAnnouncement = method_exists($announcements, 'total') ? $announcements->total() : $announcementCollection->count();
-    $latestAnnouncement = $announcementCollection->sortByDesc('created_at')->first();
 @endphp
 
 <div class="an-page">
 
+    {{-- HEADER --}}
     <section class="an-header">
-        <div>
-            <span>Promosi & Informasi</span>
+        <div class="an-header-text">
+            <span class="an-kicker">Promosi & Informasi</span>
             <h1>Management Announcement</h1>
             <p>Buat, kelola, dan publikasikan pengumuman untuk pengguna Spekta Academy.</p>
         </div>
@@ -25,6 +25,7 @@
         </a>
     </section>
 
+    {{-- ALERTS --}}
     @if(session('success'))
         <div class="an-alert success">
             <i class="fa-solid fa-circle-check"></i>
@@ -49,56 +50,30 @@
         </div>
     @endif
 
+    {{-- STATISTIK (DIBUAT FULL 2 KOLOM) --}}
     <section class="an-stats">
         <div class="an-stat-card">
             <div class="an-stat-icon">
                 <i class="fa-solid fa-bullhorn"></i>
             </div>
-            <p>Total Pengumuman</p>
-            <h2>{{ number_format($totalAnnouncement) }}</h2>
-            <div class="an-stat-meta">
-                <span class="info">Publikasi</span>
-                <small>semua data</small>
+            <div class="an-stat-info">
+                <p>Total Pengumuman</p>
+                <h2>{{ number_format($totalAnnouncement) }}</h2>
             </div>
         </div>
 
         <div class="an-stat-card">
-            <div class="an-stat-icon">
+            <div class="an-stat-icon success-icon">
                 <i class="fa-solid fa-calendar-day"></i>
             </div>
-            <p>Bulan Ini</p>
-            <h2>{{ number_format($announcementCollection->filter(fn($item) => $item->created_at && $item->created_at->isCurrentMonth())->count()) }}</h2>
-            <div class="an-stat-meta">
-                <span class="success">Aktif</span>
-                <small>posting terbaru</small>
-            </div>
-        </div>
-
-        <div class="an-stat-card">
-            <div class="an-stat-icon">
-                <i class="fa-solid fa-image"></i>
-            </div>
-            <p>Dengan Gambar</p>
-            <h2>{{ number_format($announcementCollection->filter(fn($item) => !empty($item->image))->count()) }}</h2>
-            <div class="an-stat-meta">
-                <span class="info">Media</span>
-                <small>cover image</small>
-            </div>
-        </div>
-
-        <div class="an-stat-card">
-            <div class="an-stat-icon">
-                <i class="fa-solid fa-clock"></i>
-            </div>
-            <p>Terakhir Dibuat</p>
-            <h2>{{ $latestAnnouncement?->created_at ? $latestAnnouncement->created_at->diffForHumans(null, true) : '-' }}</h2>
-            <div class="an-stat-meta">
-                <span class="warning">Update</span>
-                <small>pengumuman</small>
+            <div class="an-stat-info">
+                <p>Bulan Ini</p>
+                <h2>{{ number_format($announcementCollection->filter(fn($item) => $item->created_at && $item->created_at->isCurrentMonth())->count()) }}</h2>
             </div>
         </div>
     </section>
 
+    {{-- MAIN FORM & PREVIEW --}}
     <section class="an-main-grid">
 
         <div class="an-form-panel" id="announcementForm">
@@ -107,68 +82,51 @@
                     <h2>Create New Announcement</h2>
                     <p>Isi judul, gambar sampul, dan deskripsi pengumuman yang akan ditampilkan.</p>
                 </div>
-
-                <div class="an-heading-icon">
-                    <i class="fa-solid fa-bullhorn"></i>
-                </div>
             </div>
 
             <form action="{{ route('admin.announcement.store') }}" method="POST" enctype="multipart/form-data" class="an-form">
                 @csrf
 
-                <div class="an-input-group">
+                <div class="an-input-group full">
                     <label>Announcement Title</label>
-                    <div>
+                    <div class="an-input-wrap">
                         <i class="fa-solid fa-heading"></i>
-                        <input
-                            type="text"
-                            name="title"
-                            value="{{ old('title') }}"
-                            placeholder="Enter headline..."
-                            required
-                        >
+                        <input type="text" name="title" value="{{ old('title') }}" placeholder="Enter headline..." required>
                     </div>
                 </div>
 
-                <div class="an-input-group">
+                <div class="an-input-group full">
                     <label>Cover Image</label>
-                    <div>
+                    <div class="an-input-wrap">
                         <i class="fa-solid fa-upload"></i>
-                        <input
-                            type="file"
-                            name="image"
-                            id="announcementImageInput"
-                            accept="image/*"
-                            required
-                        >
+                        <input type="file" name="image" id="announcementImageInput" accept="image/*" required>
                     </div>
                 </div>
 
                 <div class="an-input-group full">
                     <label>Full Description</label>
-                    <textarea
-                        name="description"
-                        rows="5"
-                        placeholder="Write the announcement details here..."
-                        required
-                    >{{ old('description') }}</textarea>
+                    <div class="an-input-wrap no-icon">
+                        <textarea name="description" rows="5" placeholder="Write the announcement details here..." required>{{ old('description') }}</textarea>
+                    </div>
                 </div>
 
-                <button type="submit" class="an-submit">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    Publish Announcement Now
-                </button>
+                <div class="an-form-action">
+                    <button type="submit" class="an-submit-btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Publish Announcement Now
+                    </button>
+                </div>
             </form>
         </div>
 
         <aside class="an-preview-panel">
-            <div class="an-preview-heading">
-                <h3>Preview Cover</h3>
+            <div class="an-panel-heading">
+                <h2>Preview Cover</h2>
                 <p>Pratinjau gambar pengumuman yang akan diunggah.</p>
             </div>
 
             <div class="an-preview-image" id="announcementPreviewBox">
-                <div>
+                <div class="an-preview-empty">
                     <i class="fa-solid fa-image"></i>
                     <span>Preview gambar akan tampil di sini</span>
                 </div>
@@ -182,6 +140,7 @@
 
     </section>
 
+    {{-- LIST PENGUMUMAN --}}
     <section class="an-list-panel">
         <div class="an-panel-heading">
             <div>
@@ -210,7 +169,7 @@
 
                     <div class="an-card-body">
                         <h3>{{ $row->title }}</h3>
-                        <p>{{ \Illuminate\Support\Str::limit($row->description, 150) }}</p>
+                        <p>{{ \Illuminate\Support\Str::limit($row->description, 120) }}</p>
 
                         <div class="an-card-meta">
                             <span>
@@ -228,9 +187,8 @@
                             <form action="{{ route('admin.announcement.destroy', $row->announcement_id) }}" method="POST" onsubmit="return confirm('Hapus pengumuman ini secara permanen?')">
                                 @csrf
                                 @method('DELETE')
-
                                 <button type="submit" class="delete">
-                                    <i class="fa-solid fa-trash"></i>
+                                    <i class="fa-solid fa-trash-can"></i>
                                     Delete
                                 </button>
                             </form>
@@ -239,9 +197,9 @@
                 </article>
             @empty
                 <div class="an-empty">
-                    <i class="fa-solid fa-bullhorn"></i>
+                    <div class="an-empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
                     <strong>Belum ada pengumuman.</strong>
-                    <span>Buat pengumuman pertama melalui form di atas.</span>
+                    <p>Buat pengumuman pertama Anda melalui form di atas.</p>
                 </div>
             @endforelse
         </div>
@@ -256,606 +214,455 @@
 </div>
 
 <script>
-    const announcementImageInput = document.getElementById('announcementImageInput');
-    const announcementPreviewBox = document.getElementById('announcementPreviewBox');
+    document.addEventListener('DOMContentLoaded', function () {
+        const announcementImageInput = document.getElementById('announcementImageInput');
+        const announcementPreviewBox = document.getElementById('announcementPreviewBox');
 
-    if (announcementImageInput && announcementPreviewBox) {
-        announcementImageInput.addEventListener('change', function () {
-            const file = this.files[0];
+        if (announcementImageInput && announcementPreviewBox) {
+            announcementImageInput.addEventListener('change', function () {
+                const file = this.files[0];
 
-            if (!file) return;
+                if (!file) {
+                    announcementPreviewBox.innerHTML = `
+                        <div class="an-preview-empty">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Preview gambar akan tampil di sini</span>
+                        </div>`;
+                    return;
+                }
 
-            const reader = new FileReader();
-
-            reader.onload = function (event) {
-                announcementPreviewBox.innerHTML = `<img src="${event.target.result}" alt="Preview Announcement">`;
-            };
-
-            reader.readAsDataURL(file);
-        });
-    }
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    announcementPreviewBox.innerHTML = `<img src="${event.target.result}" alt="Preview Announcement" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    });
 </script>
 
 <style>
+    /* BASE LAYOUT */
     .an-page {
         width: 100%;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #334155;
     }
 
+    /* HEADER */
     .an-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 22px;
-        margin-bottom: 22px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        gap: 20px;
     }
-
-    .an-header span {
+    .an-kicker {
         display: block;
         color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .18em;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
-
     .an-header h1 {
-        margin: 0 0 7px;
-        color: #111827;
-        font-size: 26px;
+        margin: 0 0 8px;
+        color: #0f172a;
+        font-size: 28px;
         font-weight: 900;
-        letter-spacing: -0.03em;
-        text-transform: uppercase;
+        letter-spacing: -0.02em;
     }
-
     .an-header p {
         margin: 0;
-        color: #6b7280;
-        font-size: 13px;
-        font-weight: 600;
+        color: #64748b;
+        font-size: 14px;
     }
-
     .an-primary-btn {
-        min-height: 46px;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         background: #d90429;
         color: #fff;
         border-radius: 12px;
-        padding: 0 18px;
-        font-size: 12px;
-        font-weight: 900;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .22);
-        white-space: nowrap;
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
+    }
+    .an-primary-btn:hover {
+        background: #b80222;
+        transform: translateY(-1px);
     }
 
+    /* ALERTS */
     .an-alert {
-        border-radius: 16px;
-        padding: 15px 17px;
-        margin-bottom: 18px;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
         display: flex;
         gap: 12px;
         align-items: flex-start;
-        font-size: 13px;
-        font-weight: 800;
+        font-size: 14px;
     }
+    .an-alert.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .an-alert.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .an-alert strong { display: block; margin-bottom: 4px; font-weight: 700;}
+    .an-alert ul { margin: 4px 0 0; padding-left: 20px; }
 
-    .an-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
-
-    .an-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
-
-    .an-alert strong {
-        display: block;
-        margin-bottom: 3px;
-    }
-
-    .an-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
-
+    /* STATS (2 KOLOM PENUH) */
     .an-stats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: 22px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
     }
-
-    .an-stat-card,
-    .an-form-panel,
-    .an-preview-panel,
-    .an-list-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        box-shadow: 0 14px 35px rgba(15, 23, 42, .05);
-    }
-
     .an-stat-card {
-        border-radius: 20px;
-        padding: 22px;
-        min-height: 150px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
     }
-
     .an-stat-icon {
-        width: 42px;
-        height: 42px;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
         display: grid;
         place-items: center;
-        background: #ffe8ee;
+        font-size: 24px;
+        background: #fef2f2;
         color: #d90429;
-        border-radius: 15px;
-        margin-bottom: 16px;
     }
-
-    .an-stat-card p {
-        margin: 0 0 8px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: .08em;
+    .success-icon { background: #ecfdf5; color: #059669; }
+    .an-stat-info p {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-
-    .an-stat-card h2 {
-        margin: 0 0 14px;
+    .an-stat-info h2 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 800;
         color: #0f172a;
-        font-size: 31px;
-        font-weight: 900;
         line-height: 1;
-        letter-spacing: -0.04em;
     }
 
-    .an-stat-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .an-stat-meta span {
-        height: 23px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 8px;
-        padding: 0 9px;
-        font-size: 10px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .an-stat-meta .success {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .an-stat-meta .warning {
-        background: #ffedd5;
-        color: #ea580c;
-    }
-
-    .an-stat-meta .info {
-        background: #dbeafe;
-        color: #2563eb;
-    }
-
-    .an-stat-meta small {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
+    /* MAIN GRID (FORM & PREVIEW) */
     .an-main-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 390px;
-        gap: 22px;
+        grid-template-columns: minmax(0, 1fr) 350px;
+        gap: 24px;
         align-items: start;
-        margin-bottom: 22px;
+        margin-bottom: 24px;
     }
-
-    .an-form-panel,
-    .an-preview-panel,
-    .an-list-panel {
-        border-radius: 22px;
-        padding: 22px;
+    .an-form-panel, .an-preview-panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
     }
-
+    .an-preview-panel {
+        position: sticky;
+        top: 24px;
+    }
     .an-panel-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        margin-bottom: 22px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f1f5f9;
     }
-
-    .an-panel-heading h2,
-    .an-preview-heading h3 {
-        margin: 0;
-        color: #111827;
+    .an-panel-heading h2 {
+        margin: 0 0 6px;
         font-size: 18px;
-        font-weight: 900;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .an-panel-heading p {
+        margin: 0;
+        font-size: 13px;
+        color: #64748b;
     }
 
-    .an-panel-heading p,
-    .an-preview-heading p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.5;
-    }
-
-    .an-heading-icon {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border-radius: 16px;
-        background: #ffe8ee;
-        color: #d90429;
-        flex-shrink: 0;
-    }
-
+    /* FORM STYLES */
     .an-form {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
+        gap: 20px;
     }
-
-    .an-input-group.full,
-    .an-submit {
-        grid-column: 1 / -1;
-    }
-
     .an-input-group label {
         display: block;
         margin-bottom: 8px;
-        color: #374151;
-        font-size: 11px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
     }
-
-    .an-input-group div {
+    .an-input-wrap {
         position: relative;
+        display: flex;
     }
-
-    .an-input-group i {
+    .an-input-wrap i {
         position: absolute;
-        left: 15px;
+        left: 14px;
         top: 50%;
         transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 13px;
+        color: #94a3b8;
+        font-size: 14px;
     }
-
-    .an-input-group input,
-    .an-input-group textarea {
+    .an-input-wrap input,
+    .an-input-wrap textarea {
         width: 100%;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
         background: #f8fafc;
-        outline: none;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 700;
+        font-size: 14px;
+        color: #1e293b;
         font-family: inherit;
+        outline: none;
+        transition: all 0.2s;
     }
-
-    .an-input-group input {
-        height: 48px;
-        padding: 0 15px 0 42px;
+    .an-input-wrap input {
+        height: 46px;
+        padding: 0 14px 0 40px;
     }
-
-    .an-input-group input[type="file"] {
-        padding-top: 13px;
+    .an-input-wrap input[type="file"] {
+        padding-top: 11px;
     }
-
-    .an-input-group textarea {
+    .an-input-wrap.no-icon textarea {
+        padding: 12px 14px;
         resize: vertical;
-        padding: 14px 15px;
-        line-height: 1.5;
     }
-
-    .an-input-group input:focus,
-    .an-input-group textarea:focus {
+    .an-input-wrap input:focus,
+    .an-input-wrap textarea:focus {
         background: #fff;
-        border-color: #fecdd3;
-        box-shadow: 0 0 0 4px rgba(217, 4, 41, .08);
+        border-color: #d90429;
+        box-shadow: 0 0 0 3px rgba(217, 4, 41, 0.1);
     }
-
-    .an-submit {
-        height: 50px;
-        border: none;
-        border-radius: 14px;
-        background: linear-gradient(90deg, #d90429, #ef233c);
+    .an-form-action {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+    .an-submit-btn {
+        background: #d90429;
         color: #fff;
+        border: none;
+        padding: 14px 28px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        gap: 10px;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
-        cursor: pointer;
-        font-family: inherit;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .20);
-        margin-top: 4px;
+        gap: 8px;
+        transition: background 0.2s;
+        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
     }
+    .an-submit-btn:hover { background: #b80222; transform: translateY(-1px);}
 
-    .an-preview-panel {
-        position: sticky;
-        top: 20px;
-    }
-
-    .an-preview-heading {
-        margin-bottom: 18px;
-    }
-
+    /* PREVIEW PANEL STYLES */
     .an-preview-image {
         width: 100%;
-        height: 230px;
-        border-radius: 18px;
-        border: 1px dashed #d1d5db;
+        height: 220px;
+        border-radius: 12px;
+        border: 2px dashed #cbd5e1;
         background: #f8fafc;
-        overflow: hidden;
         display: grid;
         place-items: center;
-        text-align: center;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 800;
+        margin-bottom: 16px;
     }
-
-    .an-preview-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+    .an-preview-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 600;
     }
-
-    .an-preview-image i {
-        display: block;
-        color: #d90429;
-        font-size: 30px;
+    .an-preview-empty i {
+        font-size: 32px;
         margin-bottom: 8px;
+        color: #cbd5e1;
     }
-
     .an-preview-note {
-        margin-top: 16px;
         display: flex;
         gap: 10px;
-        padding: 14px;
-        border-radius: 14px;
-        background: #fff7f9;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
+        padding: 12px 16px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #1e40af;
+        font-size: 12px;
         line-height: 1.5;
     }
+    .an-preview-note i { margin-top: 2px; }
 
-    .an-preview-note i {
-        color: #d90429;
-        margin-top: 2px;
+    /* LIST PANEL & CARDS */
+    .an-list-panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
     }
-
     .an-card-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
     }
-
     .an-card {
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
         background: #fff;
         overflow: hidden;
-        transition: .2s ease;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-
     .an-card:hover {
-        border-color: #fecdd3;
-        box-shadow: 0 16px 35px rgba(15, 23, 42, .07);
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
         transform: translateY(-2px);
     }
-
     .an-card-image {
-        height: 205px;
+        height: 160px;
         background: #f8fafc;
         position: relative;
         overflow: hidden;
+        border-bottom: 1px solid #e2e8f0;
     }
-
     .an-card-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: .4s ease;
     }
-
-    .an-card:hover .an-card-image img {
-        transform: scale(1.05);
-    }
-
     .an-no-image {
         width: 100%;
         height: 100%;
-        display: grid;
-        place-items: center;
-        color: #9ca3af;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #94a3b8;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 700;
     }
-
+    .an-no-image i { font-size: 28px; margin-bottom: 8px; color: #cbd5e1; }
     .an-date-badge {
         position: absolute;
-        left: 14px;
-        bottom: 14px;
-        height: 30px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0 12px;
-        background: rgba(17, 24, 39, .82);
+        bottom: 12px;
+        left: 12px;
+        background: rgba(15, 23, 42, 0.85);
         color: #fff;
-        font-size: 10px;
-        font-weight: 900;
-        backdrop-filter: blur(8px);
-    }
-
-    .an-card-body {
-        padding: 20px;
-    }
-
-    .an-card-body h3 {
-        margin: 0 0 9px;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        line-height: 1.35;
-        text-transform: uppercase;
-    }
-
-    .an-card-body p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.55;
-        min-height: 58px;
-    }
-
-    .an-card-meta {
-        margin-top: 14px;
-        padding-top: 14px;
-        border-top: 1px solid #edf0f4;
-        color: #9ca3af;
+        padding: 4px 12px;
+        border-radius: 8px;
         font-size: 11px;
         font-weight: 800;
+        backdrop-filter: blur(4px);
     }
-
-    .an-card-meta span {
-        display: inline-flex;
+    .an-card-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+    .an-card-body h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.4;
+    }
+    .an-card-body p {
+        margin: 0;
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.6;
+        flex-grow: 1;
+    }
+    .an-card-meta {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #f1f5f9;
+        font-size: 12px;
+        color: #94a3b8;
+        font-weight: 600;
+        display: flex;
         align-items: center;
-        gap: 7px;
     }
+    .an-card-meta span { display: flex; align-items: center; gap: 6px; }
 
     .an-actions {
-        margin-top: 16px;
         display: flex;
         gap: 10px;
+        margin-top: 16px;
     }
-
-    .an-actions form {
-        flex: 1;
-        margin: 0;
-    }
-
-    .an-actions a,
-    .an-actions button {
+    .an-actions form { flex: 1; margin: 0; }
+    .an-actions a, .an-actions button {
         width: 100%;
-        height: 40px;
+        height: 38px;
         border: none;
-        border-radius: 13px;
+        border-radius: 10px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        font-size: 11px;
-        font-weight: 900;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    .an-actions .edit {
-        flex: 1;
-        background: #ffedd5;
-        color: #ea580c;
-    }
-
-    .an-actions .delete {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .an-empty {
-        grid-column: 1 / -1;
-        padding: 45px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
         font-size: 12px;
         font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: none;
+        transition: background 0.2s;
     }
+    .an-actions .edit { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+    .an-actions .edit:hover { background: #e2e8f0; }
+    .an-actions .delete { background: #fef2f2; color: #dc2626; }
+    .an-actions .delete:hover { background: #fecaca; }
 
-    .an-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
+    /* EMPTY STATE */
+    .an-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        border: 1px dashed #cbd5e1;
+    }
+    .an-empty-icon {
+        width: 64px;
+        height: 64px;
+        background: #fff;
+        border-radius: 50%;
         display: grid;
         place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
+        font-size: 24px;
+        color: #94a3b8;
+        margin: 0 auto 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
+    .an-empty strong { display: block; font-size: 16px; color: #1e293b; margin-bottom: 4px;}
+    .an-empty p { margin: 0; font-size: 14px; color: #64748b; }
 
-    .an-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
+    .an-pagination { margin-top: 24px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+        .an-card-grid { grid-template-columns: repeat(2, 1fr); }
     }
-
-    .an-pagination {
-        margin-top: 18px;
-    }
-
-    @media (max-width: 1450px) {
-        .an-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .an-main-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .an-preview-panel {
-            position: static;
-        }
-
-        .an-card-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
     @media (max-width: 900px) {
-        .an-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .an-stats,
-        .an-card-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .an-form {
-            grid-template-columns: 1fr;
-        }
+        .an-header { flex-direction: column; align-items: flex-start; }
+        .an-stats { grid-template-columns: 1fr; }
+        .an-main-grid { grid-template-columns: 1fr; }
+        .an-preview-panel { position: static; }
+        .an-card-grid { grid-template-columns: 1fr; }
+        .an-form-action { justify-content: flex-start; }
+        .an-submit-btn { width: 100%; justify-content: center;}
     }
 </style>
 @endsection

@@ -13,9 +13,19 @@ return new class extends Migration
             // Merujuk ke tabel classes dan class_id
             $table->foreignId('class_id')->constrained('classes', 'class_id')->onDelete('cascade');
 
-            $table->string('image_banner');
+            // 1. PERUBAHAN: Ditambah ->nullable() agar boleh kosong
+            $table->string('image_banner')->nullable();
+
             $table->string('code')->unique();
+
+            // 2. TAMBAHAN DARI FILE KEDUA (diletakkan setelah code)
+            $table->string('discount_type')->default('percent');
+
             $table->integer('discount_percent');
+
+            // 3. TAMBAHAN DARI FILE KEDUA (diletakkan setelah discount_percent)
+            $table->integer('quota')->default(0);
+
             $table->date('start_date');
             $table->date('end_date');
             $table->boolean('is_active')->default(true);

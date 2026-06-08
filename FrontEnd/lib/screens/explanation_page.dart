@@ -5,7 +5,6 @@ class ExplanationPage extends StatelessWidget {
 
   const ExplanationPage({super.key, required this.questions});
 
-  // Warna utama Spekta Academy
   static const Color primaryRed = Color(0xFF9C0412); 
 
   @override
@@ -19,7 +18,6 @@ class ExplanationPage extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        // Menambahkan tombol kembali standar agar user bisa kembali ke list riwayat
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
@@ -33,7 +31,6 @@ class ExplanationPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final q = questions[index];
               
-              // ✨ LOGIKA PENGECEKAN JAWABAN
               String userAnswer = (q['user_answer'] ?? '-').toString().trim().toUpperCase();
               String correctAnswer = (q['correct_answer'] ?? '-').toString().trim().toUpperCase();
               
@@ -72,7 +69,6 @@ class ExplanationPage extends StatelessWidget {
                             style: const TextStyle(fontWeight: FontWeight.w900, color: primaryRed, fontSize: 11)),
                         ),
                         
-                        // Badge Status Benar/Salah
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -92,37 +88,15 @@ class ExplanationPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // Teks Pertanyaan
+                    // Teks Pertanyaan (Gambar Sudah Dihapus)
                     Text(q['question'] ?? 'Pertanyaan tidak ditemukan.', 
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, height: 1.6, color: Color(0xFF2D3142))),
-                    
-                    // Gambar Pertanyaan (Jika Ada)
-                    if (q['question_image'] != null && q['question_image'] != "")
-                      Padding(
-                        padding: const EdgeInsets.only(top: 15),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: Image.network(
-                            "http://10.0.2.2:8000/storage/tryout/images/${q['question_image']}",
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(child: CircularProgressIndicator());
-                            },
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              padding: const EdgeInsets.all(10),
-                              color: Colors.grey.shade100,
-                              child: const Text("Gambar tidak dapat dimuat", style: TextStyle(fontSize: 10)),
-                            ),
-                          ),
-                        ),
-                      ),
                     
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Divider(color: Color(0xFFF1F3F9), thickness: 1.5),
                     ),
 
-                    // Info Jawaban User vs Kunci
                     Row(
                       children: [
                         _buildAnswerCircle("Jawaban Kamu", userAnswer, isCorrect ? Colors.green : Colors.red),
@@ -169,7 +143,6 @@ class ExplanationPage extends StatelessWidget {
             },
           ),
       
-      // Tombol Selesai yang mengambang di bawah
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
         decoration: BoxDecoration(

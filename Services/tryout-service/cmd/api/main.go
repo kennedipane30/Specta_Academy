@@ -17,7 +17,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Authorization, Accept")
-		
+
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
@@ -28,12 +28,12 @@ func CORSMiddleware() gin.HandlerFunc {
 
 func main() {
 	db := config.InitDB()
-	
+
+	// HANYA MIGRATE TABEL YANG DIPERLUKAN
 	db.AutoMigrate(
-		&models.Tryout{}, 
-		&models.Question{}, 
-		&models.TryoutResult{}, 
-		&models.TryoutSubmission{},
+		&models.Tryout{},
+		&models.Question{},
+		&models.TryoutSubmission{}, 
 	)
 
 	repo := repository.NewTryoutRepository(db)
@@ -49,25 +49,24 @@ func main() {
 
 	api := r.Group("/api")
 	{
-		api.POST("/tryouts/sync", handler.SyncTryout) 
+		api.POST("/tryouts/sync", handler.SyncTryout)
 		api.POST("/tryouts/submissions/sync", handler.SyncSubmissions)
 		api.GET("/tryouts", handler.GetTryouts)
-		
-		// ✨ SINKRONISASI RUTE: Menangani /api/tryouts/1/questions
 		api.GET("/tryouts/:id/questions", handler.GetQuestions)
-		
-		// Backup rute lama
+		api.POST("/tryouts/:id/submit", handler.SubmitTryout)
 		api.GET("/questions", handler.GetQuestions)
+		
+		// ✨ MODIFIKASI: Menambahkan rute Endpoint untuk mengambil riwayat Tryout
+		api.GET("/tryouts/history", handler.GetHistory)
 	}
 
-	// ✨ MODIFIKASI PORT: Gunakan 9002 (Practice sudah pakai 9003)
 	port := os.Getenv("PORT")
-	if port == "" { 
-		port = "9002" 
+	if port == "" {
+		port = "9002"
 	}
-	
+
 	fmt.Println("🚀 Spekta Tryout Service started on port: " + port)
-	
+
 	err := r.Run(":" + port)
 	if err != nil {
 		fmt.Printf("❌ Fatal: Gagal menjalankan server: %v\n", err)

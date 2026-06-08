@@ -5,12 +5,13 @@ class PracticeWeekListPage extends StatelessWidget {
   final String subjectName;
   final List allExercises;
   final String token;
+  // userId dihapus dari sini
 
   const PracticeWeekListPage({
     super.key, 
     required this.subjectName, 
     required this.allExercises, 
-    required this.token
+    required this.token,
   });
 
   @override
@@ -34,7 +35,7 @@ class PracticeWeekListPage extends StatelessWidget {
         itemBuilder: (context, index) {
           int weekNumber = index + 1;
 
-          // ✨ MODIFIKASI: Filter lebih fleksibel untuk port 9003
+          // Filter lebih fleksibel untuk port 9003
           List weekSoals = allExercises.where((e) {
             final String dbSubject = (e['subject'] ?? e['Subject'] ?? e['subject_name'] ?? '').toString().toLowerCase().trim();
             final String dbWeek = (e['week'] ?? e['Week'] ?? '').toString();
@@ -63,7 +64,10 @@ class PracticeWeekListPage extends StatelessWidget {
               subtitle: Text(isAvailable ? "${weekSoals.length} Soal Tersedia" : "Belum tersedia"),
               trailing: Icon(Icons.arrow_forward_ios, size: 14, color: isAvailable ? Colors.blue : Colors.grey),
               onTap: isAvailable 
-                ? () => Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeQuizPage(questions: weekSoals)))
+                ? () => Navigator.push(context, MaterialPageRoute(builder: (c) => PracticeQuizPage(
+                    questions: weekSoals,
+                    token: token,   
+                  )))
                 : null,
             ),
           );

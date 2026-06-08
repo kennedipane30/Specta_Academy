@@ -14,13 +14,23 @@ class User extends Authenticatable
     protected $table = 'users';
     protected $primaryKey = 'usersID'; // Kunci utama sesuai PostgreSQL Anda
 
+    // ✨ MODIFIKASI: Tambahkan 'photo' ke dalam array fillable
     protected $fillable = [
-        'name', 'email', 'phone', 'role_id', 'password', 'is_verified',
+        'name', 'email', 'phone', 'role_id', 'password', 'is_verified', 'photo'
     ];
 
     protected $hidden = [
         'password', 'remember_token',
     ];
+
+    // ✨ MODIFIKASI: Tambahkan appends agar photo_url otomatis terkirim ke API mobile
+    protected $appends = ['photo_url'];
+
+    // ✨ MODIFIKASI: Fungsi pembuat link URL foto secara otomatis
+    public function getPhotoUrlAttribute()
+    {
+        return $this->photo ? asset('storage/' . $this->photo) : null;
+    }
 
     public function student()
     {
@@ -35,7 +45,7 @@ class User extends Authenticatable
     public function classes()
     {
         return $this->belongsToMany(ClassModel::class, 'enrollments', 'user_id', 'class_id')
-                    ->withPivot('status') 
+                    ->withPivot('status')
                     ->withTimestamps();
     }
 

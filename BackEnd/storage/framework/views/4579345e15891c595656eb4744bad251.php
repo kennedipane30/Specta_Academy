@@ -72,21 +72,6 @@
             <small class="ss-stat-sub">vs bulan lalu</small>
         </div>
 
-        <div class="ss-stat-card">
-            <div class="ss-stat-top">
-                <div class="ss-stat-icon purple">
-                    <i class="fa-solid fa-book-open"></i>
-                </div>
-                <span class="ss-stat-badge blue">Aktif</span>
-            </div>
-            <p class="ss-stat-label">Kelas Aktif</p>
-            <h2 class="ss-stat-val"><?php echo e(number_format($kelasAktif ?? 0)); ?></h2>
-            <div class="ss-stat-bar">
-                <div class="ss-stat-bar-fill purple" style="width:80%"></div>
-            </div>
-            <small class="ss-stat-sub">program siswa</small>
-        </div>
-
     </section>
 
     
@@ -107,36 +92,8 @@
                     >
                 </div>
 
-                <div class="ss-select-wrap">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <select name="class_id" onchange="this.form.submit()">
-                        <option value="">Semua Kelas</option>
-                        <?php $__currentLoopData = $classes ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $classItem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($classItem->class_id); ?>"
-                                <?php echo e(request('class_id') == $classItem->class_id ? 'selected' : ''); ?>>
-                                <?php echo e($classItem->program_name); ?>
-
-                            </option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                </div>
-
-                <div class="ss-select-wrap">
-                    <i class="fa-solid fa-filter"></i>
-                    <select name="status" onchange="this.form.submit()">
-                        <option value="">Semua Status</option>
-                        <option value="pending"  <?php echo e(request('status') === 'pending'  ? 'selected' : ''); ?>>Pending</option>
-                        <option value="active"   <?php echo e(request('status') === 'active'   ? 'selected' : ''); ?>>Aktif</option>
-                        <option value="expired"  <?php echo e(request('status') === 'expired'  ? 'selected' : ''); ?>>Expired</option>
-                    </select>
-                </div>
-
                 <button type="submit" class="ss-btn-search">
                     <i class="fa-solid fa-magnifying-glass"></i> Cari
-                </button>
-
-                <button type="button" onclick="window.print()" class="ss-btn-export">
-                    <i class="fa-solid fa-download"></i> Export
                 </button>
             </form>
 
@@ -150,8 +107,6 @@
                             <th>Program</th>
                             <th>Status</th>
                             <th>Tanggal Daftar</th>
-                            <th>Nilai Rata-Rata</th>
-                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,7 +116,6 @@
                                 $latestEnrollment= ($latestEnrollmentMap ?? collect())->get($s->usersID);
                                 $activeClass     = $latestEnrollment?->class;
                                 $status          = $latestEnrollment?->status ?? 'registered';
-                                $avgScore        = ($avgScoreMap ?? collect())[$s->usersID] ?? null;
 
                                 $statusMap = [
                                     'active'     => ['label' => 'Aktif',      'cls' => 'active'],
@@ -218,44 +172,10 @@
                                     <?php echo e($s->created_at?->translatedFormat('d M Y') ?? '-'); ?>
 
                                 </td>
-
-                                
-                                <td>
-                                    <?php if($avgScore !== null): ?>
-                                        <div class="ss-score">
-                                            <span class="ss-score-val <?php echo e($avgScore >= 75 ? 'good' : ($avgScore >= 50 ? 'mid' : 'low')); ?>">
-                                                <?php echo e(number_format($avgScore, 1)); ?>
-
-                                            </span>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="ss-muted">—</span>
-                                    <?php endif; ?>
-                                </td>
-
-                                
-                                <td>
-                                    <div class="ss-actions">
-                                        <button type="button" class="ss-act view" title="Lihat Detail">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </button>
-
-                                        <?php if($latestEnrollment && $latestEnrollment->status === 'pending'): ?>
-                                            <a href="<?php echo e(route('admin.siswa.form_aktivasi', $latestEnrollment->enrollment_id)); ?>"
-                                               class="ss-act approve" title="Aktivasi">
-                                                <i class="fa-solid fa-circle-check"></i>
-                                            </a>
-                                        <?php endif; ?>
-
-                                        <button type="button" class="ss-act more" title="Lainnya">
-                                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                                        </button>
-                                    </div>
-                                </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="7">
+                                <td colspan="5">
                                     <div class="ss-empty">
                                         <div class="ss-empty-icon">
                                             <i class="fa-solid fa-user-slash"></i>
@@ -312,65 +232,6 @@
             </div>
 
         </div>
-
-        
-        <aside class="ss-side">
-
-            
-            <div class="ss-side-card">
-                <div class="ss-side-card-head">
-                    <h3>Distribusi Program</h3>
-                    <span><?php echo e($totalDistribusi ?? 0); ?> siswa</span>
-                </div>
-                <div class="ss-program-list">
-                    <?php $__empty_1 = true; $__currentLoopData = $distribusiProgram ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $program): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                        <?php
-                            $pct = ($totalDistribusi ?? 0) > 0
-                                ? round(($program->total / $totalDistribusi) * 100)
-                                : 0;
-                            $barColors = ['#D90429','#7C3AED','#0369A1','#15803D'];
-                            $bc = $barColors[$index % 4];
-                        ?>
-                        <div class="ss-prog-row">
-                            <div class="ss-prog-meta">
-                                <span class="ss-prog-dot" style="background:<?php echo e($bc); ?>"></span>
-                                <span class="ss-prog-name"><?php echo e($program->program_name); ?></span>
-                                <strong class="ss-prog-pct"><?php echo e($pct); ?>%</strong>
-                            </div>
-                            <div class="ss-prog-track">
-                                <div class="ss-prog-fill" style="width:<?php echo e($pct); ?>%; background:<?php echo e($bc); ?>"></div>
-                            </div>
-                        </div>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                        <div class="ss-side-empty">Belum ada data distribusi.</div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            
-            <div class="ss-side-card">
-                <div class="ss-side-card-head">
-                    <h3>Aktivitas Terbaru</h3>
-                </div>
-                <div class="ss-activity-list">
-                    <?php $__empty_1 = true; $__currentLoopData = $aktivitasTerbaru ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $act): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                        <div class="ss-act-row">
-                            <div class="ss-act-icon">
-                                <i class="fa-solid <?php echo e($act['icon']); ?>"></i>
-                            </div>
-                            <div class="ss-act-body">
-                                <strong><?php echo e($act['title']); ?></strong>
-                                <span><?php echo e($act['description']); ?></span>
-                            </div>
-                            <small class="ss-act-time"><?php echo e($act['time']->diffForHumans()); ?></small>
-                        </div>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                        <div class="ss-side-empty">Belum ada aktivitas.</div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-        </aside>
 
     </section>
 
@@ -464,7 +325,7 @@
 /* ── Stat Cards ───────────────────────────────────────────── */
 .ss-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
+    grid-template-columns: repeat(3, minmax(0,1fr)); /* Diubah menjadi 3 kolom */
     gap: 18px;
     margin-bottom: 26px;
 }
@@ -500,7 +361,6 @@
 .ss-stat-icon.red    { background: #fff1f2; color: #d90429; }
 .ss-stat-icon.green  { background: #dcfce7; color: #16a34a; }
 .ss-stat-icon.blue   { background: #dbeafe; color: #2563eb; }
-.ss-stat-icon.purple { background: #ede9fe; color: #7c3aed; }
 
 .ss-stat-badge {
     height: 22px;
@@ -547,7 +407,6 @@
 }
 .ss-stat-bar-fill.green  { background: #16a34a; }
 .ss-stat-bar-fill.blue   { background: #2563eb; }
-.ss-stat-bar-fill.purple { background: #7c3aed; }
 
 .ss-stat-sub {
     font-size: 11px;
@@ -557,10 +416,7 @@
 
 /* ── Main Grid ────────────────────────────────────────────── */
 .ss-main-grid {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) 300px;
-    gap: 22px;
-    align-items: start;
+    display: block;
     margin-bottom: 22px;
 }
 
@@ -614,40 +470,6 @@
     box-shadow: 0 0 0 3px rgba(217,4,41,.08);
 }
 
-.ss-select-wrap {
-    position: relative;
-}
-.ss-select-wrap > i {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 11px;
-    pointer-events: none;
-    z-index: 1;
-}
-.ss-select-wrap select {
-    height: 42px;
-    padding: 0 14px 0 34px;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #f8fafc;
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: border-color .15s, box-shadow .15s;
-}
-.ss-select-wrap select:focus {
-    background: #fff;
-    border-color: #fca5a5;
-    box-shadow: 0 0 0 3px rgba(217,4,41,.08);
-}
-
 .ss-btn-search {
     height: 42px;
     padding: 0 16px;
@@ -665,25 +487,6 @@
     transition: background .15s;
 }
 .ss-btn-search:hover { background: #b80222; }
-
-.ss-btn-export {
-    height: 42px;
-    padding: 0 16px;
-    background: #fff;
-    color: #374151;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    white-space: nowrap;
-    font-family: inherit;
-    transition: border-color .15s;
-}
-.ss-btn-export:hover { border-color: #d90429; color: #d90429; }
 
 /* table */
 .ss-table-wrap { overflow-x: auto; border-radius: 14px; }
@@ -812,46 +615,8 @@
     font-size: 12px;
 }
 
-/* score */
-.ss-score-val {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 46px;
-    height: 24px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 800;
-}
-.ss-score-val.good { background: #dcfce7; color: #16a34a; }
-.ss-score-val.mid  { background: #fef9c3; color: #a16207; }
-.ss-score-val.low  { background: #fee2e2; color: #dc2626; }
-
 /* muted */
 .ss-muted { color: #d1d5db; font-size: 16px; }
-
-/* actions */
-.ss-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.ss-act {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: transform .12s;
-}
-.ss-act:hover { transform: scale(1.1); }
-.ss-act.view    { background: #dbeafe; color: #2563eb; }
-.ss-act.approve { background: #dcfce7; color: #16a34a; }
-.ss-act.more    { background: #f3f4f6; color: #6b7280; }
 
 /* empty */
 .ss-empty {
@@ -931,150 +696,18 @@
 .ss-page-btn.disabled { opacity: .4; pointer-events: none; }
 .ss-page-dots { color: #9ca3af; font-size: 13px; }
 
-/* ── Sidebar ──────────────────────────────────────────────── */
-.ss-side { display: grid; gap: 18px; }
-
-.ss-side-card {
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: 22px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(15,23,42,.04);
-}
-
-.ss-side-card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-}
-.ss-side-card-head h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 900;
-    color: #0f172a;
-}
-.ss-side-card-head span {
-    font-size: 11px;
-    font-weight: 700;
-    color: #9ca3af;
-}
-
-/* program list */
-.ss-program-list { display: grid; gap: 14px; }
-
-.ss-prog-row { display: grid; gap: 6px; }
-
-.ss-prog-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ss-prog-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 99px;
-    flex-shrink: 0;
-}
-
-.ss-prog-name {
-    flex: 1;
-    font-size: 12px;
-    font-weight: 700;
-    color: #374151;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ss-prog-pct {
-    font-size: 13px;
-    font-weight: 900;
-    color: #111827;
-    white-space: nowrap;
-}
-
-.ss-prog-track {
-    height: 5px;
-    background: #f1f5f9;
-    border-radius: 99px;
-    overflow: hidden;
-}
-.ss-prog-fill {
-    height: 100%;
-    border-radius: 99px;
-    transition: width .6s ease;
-}
-
-/* activity list */
-.ss-activity-list { display: grid; gap: 14px; }
-
-.ss-act-row {
-    display: grid;
-    grid-template-columns: 36px minmax(0,1fr) auto;
-    gap: 10px;
-    align-items: center;
-}
-
-.ss-act-icon {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    background: #fff1f2;
-    color: #d90429;
-    border-radius: 11px;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.ss-act-body strong {
-    display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #111827;
-}
-.ss-act-body span {
-    display: block;
-    font-size: 11px;
-    color: #6b7280;
-    font-weight: 600;
-    margin-top: 2px;
-}
-
-.ss-act-time {
-    font-size: 10px;
-    color: #9ca3af;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.ss-side-empty {
-    padding: 20px;
-    text-align: center;
-    background: #f8fafc;
-    border-radius: 12px;
-    color: #9ca3af;
-    font-size: 12px;
-    font-weight: 600;
-}
-
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1280px) {
     .ss-stats               { grid-template-columns: repeat(2,1fr); }
-    .ss-main-grid           { grid-template-columns: 1fr; }
-    .ss-side                { grid-template-columns: repeat(2,1fr); }
 }
 
 @media (max-width: 768px) {
     .ss-header              { flex-direction: column; gap: 14px; }
     .ss-stats               { grid-template-columns: 1fr; }
-    .ss-side                { grid-template-columns: 1fr; }
     .ss-toolbar             { flex-direction: column; }
-    .ss-select-wrap select  { width: 100%; }
     .ss-pagination          { flex-direction: column; align-items: flex-start; }
 }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/siswa/index.blade.php ENDPATH**/ ?>

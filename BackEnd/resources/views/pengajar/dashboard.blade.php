@@ -7,12 +7,11 @@
 @php
     $teacher = Auth::user();
     $jadwalUtama = $jadwalMendatang->first();
-    $tutorUtama = $jadwalTutor->first();
 @endphp
 
 <div class="td-page">
 
-    {{-- HERO --}}
+    {{-- HERO SECTION --}}
     <section class="td-hero">
         <div class="td-hero-content">
             <div class="td-kicker">
@@ -23,21 +22,16 @@
             <h1>Selamat Datang, {{ $teacher->name }}!</h1>
 
             <p>
-                Pantau agenda mengajar, materi, latihan, tryout, dan sesi dedicated tutor dalam satu dashboard pengajar.
+                Pantau agenda mengajar, kelola materi, dan pantau aktivitas kelas Anda dalam satu dashboard terpusat.
             </p>
 
             <div class="td-hero-tags">
-                <span>
+                <span class="tag-today">
                     <i class="fa-solid fa-calendar-day"></i>
                     {{ number_format($jadwalHariIni) }} Jadwal Hari Ini
                 </span>
 
-                <span>
-                    <i class="fa-solid fa-headset"></i>
-                    {{ number_format($tutorHariIni) }} Tutor Hari Ini
-                </span>
-
-                <span>
+                <span class="tag-class">
                     <i class="fa-solid fa-layer-group"></i>
                     {{ number_format($totalKelas) }} Kelas Diampu
                 </span>
@@ -57,1091 +51,611 @@
                 @if($jadwalUtama)
                     <strong>{{ $jadwalUtama->title }}</strong>
                     <small>
-                        {{ \Carbon\Carbon::parse($jadwalUtama->date)->translatedFormat('d M Y') }},
+                        <i class="fa-regular fa-clock"></i>
                         {{ substr($jadwalUtama->start_time, 0, 5) }} WIB
-                    </small>
-                @elseif($tutorUtama)
-                    <strong>Dedicated Tutor</strong>
-                    <small>
-                        {{ \Carbon\Carbon::parse($tutorUtama->date)->translatedFormat('d M Y') }},
-                        {{ substr($tutorUtama->time, 0, 5) }} WIB
                     </small>
                 @else
                     <strong>Tidak ada agenda</strong>
-                    <small>Belum ada jadwal terdekat</small>
+                    <small>Belum ada jadwal kelas terdekat</small>
                 @endif
             </div>
         </div>
     </section>
 
-    {{-- STATS --}}
+    {{-- STATS SECTION --}}
     <section class="td-stats">
         <div class="td-stat-card">
-            <div class="td-stat-icon">
+            <div class="td-stat-icon icon-class">
                 <i class="fa-solid fa-layer-group"></i>
             </div>
-            <p>Kelas Diampu</p>
-            <h2>{{ number_format($totalKelas) }}</h2>
-            <div class="td-stat-meta">
-                <span class="info">Program</span>
-                <small>aktif</small>
+            <div class="td-stat-info">
+                <p>Kelas Diampu</p>
+                <h2>{{ number_format($totalKelas) }}</h2>
             </div>
         </div>
 
         <div class="td-stat-card">
-            <div class="td-stat-icon">
+            <div class="td-stat-icon icon-subject">
                 <i class="fa-solid fa-book-open-reader"></i>
             </div>
-            <p>Mata Pelajaran</p>
-            <h2>{{ number_format($totalMapel) }}</h2>
-            <div class="td-stat-meta">
-                <span class="success">Mapel</span>
-                <small>diampu</small>
+            <div class="td-stat-info">
+                <p>Mata Pelajaran</p>
+                <h2>{{ number_format($totalMapel) }}</h2>
             </div>
         </div>
 
         <div class="td-stat-card">
-            <div class="td-stat-icon">
+            <div class="td-stat-icon icon-material">
                 <i class="fa-solid fa-file-lines"></i>
             </div>
-            <p>Materi Diupload</p>
-            <h2>{{ number_format($totalMateri) }}</h2>
-            <div class="td-stat-meta">
-                <span class="info">Materi</span>
-                <small>tersimpan</small>
+            <div class="td-stat-info">
+                <p>Materi Diupload</p>
+                <h2>{{ number_format($totalMateri) }}</h2>
             </div>
         </div>
 
         <div class="td-stat-card">
-            <div class="td-stat-icon">
+            <div class="td-stat-icon icon-exercise">
                 <i class="fa-solid fa-clipboard-question"></i>
             </div>
-            <p>Latihan Soal</p>
-            <h2>{{ number_format($totalLatihan) }}</h2>
-            <div class="td-stat-meta">
-                <span class="warning">Latihan</span>
-                <small>dibuat</small>
+            <div class="td-stat-info">
+                <p>Latihan Soal</p>
+                <h2>{{ number_format($totalLatihan) }}</h2>
             </div>
         </div>
 
         <div class="td-stat-card">
-            <div class="td-stat-icon">
+            <div class="td-stat-icon icon-tryout">
                 <i class="fa-solid fa-stopwatch"></i>
             </div>
-            <p>Tryout Dibuat</p>
-            <h2>{{ number_format($totalTryout) }}</h2>
-            <div class="td-stat-meta">
-                <span class="info">Tryout</span>
-                <small>soal</small>
+            <div class="td-stat-info">
+                <p>Tryout Dibuat</p>
+                <h2>{{ number_format($totalTryout) }}</h2>
             </div>
         </div>
     </section>
 
     {{-- QUICK ACTIONS --}}
     <section class="td-action-strip">
-        <a href="{{ route('pengajar.materi.index') }}">
-            <div><i class="fa-solid fa-upload"></i></div>
-            <section>
+        <a href="{{ route('pengajar.materi.index') }}" class="action-card">
+            <div class="action-icon"><i class="fa-solid fa-upload"></i></div>
+            <div class="action-text">
                 <strong>Upload Materi</strong>
                 <span>Tambah materi pembelajaran</span>
-            </section>
-            <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            <i class="fa-solid fa-chevron-right action-arrow"></i>
         </a>
 
-        <a href="{{ route('pengajar.tryout.index') }}">
-            <div><i class="fa-solid fa-stopwatch"></i></div>
-            <section>
+        <a href="{{ route('pengajar.tryout.index') }}" class="action-card">
+            <div class="action-icon"><i class="fa-solid fa-stopwatch"></i></div>
+            <div class="action-text">
                 <strong>Buat Tryout</strong>
-                <span>Kelola soal tryout</span>
-            </section>
-            <i class="fa-solid fa-chevron-right"></i>
+                <span>Kelola soal evaluasi</span>
+            </div>
+            <i class="fa-solid fa-chevron-right action-arrow"></i>
         </a>
 
-        <a href="{{ route('pengajar.latihan.index') }}">
-            <div><i class="fa-solid fa-clipboard-question"></i></div>
-            <section>
+        <a href="{{ route('pengajar.latihan.index') }}" class="action-card">
+            <div class="action-icon"><i class="fa-solid fa-clipboard-question"></i></div>
+            <div class="action-text">
                 <strong>Latihan Soal</strong>
-                <span>Upload latihan siswa</span>
-            </section>
-            <i class="fa-solid fa-chevron-right"></i>
+                <span>Upload tugas harian</span>
+            </div>
+            <i class="fa-solid fa-chevron-right action-arrow"></i>
         </a>
 
-        <a href="{{ route('pengajar.absensi.index') }}">
-            <div><i class="fa-solid fa-user-check"></i></div>
-            <section>
-                <strong>Absensi</strong>
-                <span>Isi dan lihat rekap</span>
-            </section>
-            <i class="fa-solid fa-chevron-right"></i>
+        <a href="{{ route('pengajar.absensi.index') }}" class="action-card">
+            <div class="action-icon"><i class="fa-solid fa-user-check"></i></div>
+            <div class="action-text">
+                <strong>Absensi Kelas</strong>
+                <span>Isi & lihat kehadiran</span>
+            </div>
+            <i class="fa-solid fa-chevron-right action-arrow"></i>
         </a>
     </section>
 
-    {{-- MAIN GRID --}}
-    <section class="td-main-grid">
+    {{-- MAIN CONTENT (FULL WIDTH) --}}
+    <section class="td-main-content">
 
-        {{-- LEFT --}}
-        <div class="td-left-column">
-
-            {{-- SCHEDULE --}}
-            <section class="td-panel">
-                <div class="td-panel-heading">
-                    <div>
-                        <span>Teaching Schedule</span>
-                        <h2>Jadwal Mengajar Terdekat</h2>
-                        <p>Agenda kelas reguler yang sudah ditetapkan oleh admin.</p>
-                    </div>
-
-                    <a href="{{ route('pengajar.absensi.index') }}">Absensi</a>
+        {{-- REGULAR SCHEDULE PANEL --}}
+        <div class="td-panel">
+            <div class="td-panel-heading">
+                <div class="heading-text">
+                    <span class="panel-kicker">Teaching Schedule</span>
+                    <h2>Jadwal Kelas Reguler</h2>
+                    <p>Agenda kelas reguler yang sudah ditetapkan oleh admin akademik.</p>
                 </div>
+                <a href="{{ route('pengajar.absensi.index') }}" class="btn-outline-primary">
+                    Cek Absensi
+                </a>
+            </div>
 
-                <div class="td-schedule-list">
-                    @forelse($jadwalMendatang as $item)
-                        @php
-                            $isToday = \Carbon\Carbon::parse($item->date)->isToday();
-                            $dateObj = \Carbon\Carbon::parse($item->date);
-                        @endphp
+            <div class="td-schedule-list">
+                @forelse($jadwalMendatang as $item)
+                    @php
+                        $isToday = \Carbon\Carbon::parse($item->date)->isToday();
+                        $dateObj = \Carbon\Carbon::parse($item->date);
+                    @endphp
 
-                        <article class="td-schedule-item {{ $isToday ? 'today' : '' }}">
-                            <div class="td-date-mini">
-                                <strong>{{ $dateObj->format('d') }}</strong>
-                                <span>{{ $dateObj->translatedFormat('M') }}</span>
-                            </div>
+                    <article class="td-schedule-item {{ $isToday ? 'is-today' : '' }}">
+                        <div class="td-date-badge">
+                            <strong>{{ $dateObj->format('d') }}</strong>
+                            <span>{{ $dateObj->translatedFormat('M') }}</span>
+                        </div>
 
-                            <div class="td-schedule-info">
+                        <div class="td-schedule-details">
+                            <div class="schedule-head">
                                 <h3>{{ $item->title }}</h3>
-                                <p>{{ $item->class->program_name ?? 'Program Kelas' }}</p>
-                                <div>
-                                    <span>
-                                        <i class="fa-regular fa-clock"></i>
-                                        {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }} WIB
-                                    </span>
-
-                                    <span>
-                                        <i class="fa-regular fa-calendar"></i>
-                                        {{ $dateObj->translatedFormat('l') }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="td-schedule-status">
                                 @if($isToday)
-                                    <span class="live">Hari Ini</span>
+                                    <span class="badge-live">Hari Ini</span>
                                 @else
-                                    <span>Terjadwal</span>
+                                    <span class="badge-scheduled">Terjadwal</span>
                                 @endif
                             </div>
-                        </article>
-                    @empty
-                        <div class="td-empty">
-                            <i class="fa-regular fa-calendar-xmark"></i>
-                            <strong>Belum ada jadwal kelas.</strong>
-                            <span>Jadwal mengajar akan muncul setelah admin membuat jadwal kelas.</span>
-                        </div>
-                    @endforelse
-                </div>
-            </section>
+                            <p class="program-name">{{ $item->class->program_name ?? 'Program Kelas' }}</p>
 
-            {{-- ASSIGNMENTS --}}
-            <section class="td-panel">
-                <div class="td-panel-heading">
-                    <div>
-                        <span>My Teaching Subjects</span>
-                        <h2>Kelas & Mata Pelajaran Saya</h2>
-                        <p>Daftar program dan mapel yang menjadi tanggung jawab Anda.</p>
-                    </div>
-                </div>
-
-                <div class="td-assignment-grid">
-                    @forelse($assignments as $assign)
-                        <article class="td-assignment-card">
-                            <div class="td-assignment-icon">
-                                <i class="fa-solid fa-book-open-reader"></i>
-                            </div>
-
-                            <div>
-                                <h3>{{ $assign->subject_name }}</h3>
-                                <p>{{ $assign->classModel->program_name ?? 'Program Kelas' }}</p>
-                            </div>
-
-                            <div class="td-assignment-actions">
-                            <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
-                                Materi
-                            </a>
-
-                            <a href="{{ route('pengajar.tryout.create', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
-                                Tryout
-                            </a>
-
-                            <a href="{{ route('pengajar.latihan.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}">
-                                Latihan
-                            </a>
-                        </div>
-                        </article>
-                    @empty
-                        <div class="td-empty">
-                            <i class="fa-solid fa-book-open"></i>
-                            <strong>Belum ada penugasan materi.</strong>
-                            <span>Admin perlu menugaskan pengajar pada menu Penugasan Materi.</span>
-                        </div>
-                    @endforelse
-                </div>
-            </section>
-        </div>
-
-        {{-- RIGHT --}}
-        <aside class="td-right-column">
-
-            {{-- TUTOR --}}
-            <section class="td-side-panel">
-                <div class="td-side-heading">
-                    <span>Private Session</span>
-                    <h2>Dedicated Tutor</h2>
-                </div>
-
-                <div class="td-tutor-list">
-                    @forelse($jadwalTutor as $tutor)
-                        @php
-                            $studentName = $tutor->student->user->name ?? 'Siswa';
-                            $initial = strtoupper(substr($studentName, 0, 1));
-                        @endphp
-
-                        <article class="td-tutor-item">
-                            <div class="td-tutor-avatar">
-                                {{ $initial }}
-                            </div>
-
-                            <div>
-                                <h3>{{ $studentName }}</h3>
-                                <p>{{ $tutor->material->title ?? $tutor->material->material_name ?? 'Materi Privat' }}</p>
+                            <div class="schedule-meta">
                                 <span>
-                                    {{ \Carbon\Carbon::parse($tutor->date)->translatedFormat('d M Y') }},
-                                    {{ substr($tutor->time, 0, 5) }} WIB
+                                    <i class="fa-regular fa-clock"></i>
+                                    {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }} WIB
+                                </span>
+                                <span>
+                                    <i class="fa-regular fa-calendar"></i>
+                                    {{ $dateObj->translatedFormat('l') }}
                                 </span>
                             </div>
-                        </article>
-                    @empty
-                        <div class="td-empty small">
-                            <i class="fa-solid fa-headset"></i>
-                            <strong>Belum ada tutor.</strong>
-                            <span>Sesi tutor yang sudah dikonfirmasi akan muncul di sini.</span>
                         </div>
-                    @endforelse
-                </div>
-            </section>
+                    </article>
+                @empty
+                    <div class="td-empty-state">
+                        <div class="empty-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
+                        <strong>Belum ada jadwal mengajar.</strong>
+                        <p>Jadwal akan muncul setelah admin akademik mempublikasikan jadwal kelas.</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
 
-            {{-- MATERI --}}
-            <section class="td-side-panel">
-                <div class="td-side-heading">
-                    <span>Latest Material</span>
-                    <h2>Materi Terbaru</h2>
+        {{-- DEDICATED TUTOR PANEL (MENGGANTIKAN PANEL SEBELUMNYA) --}}
+        <div class="td-panel">
+            <div class="td-panel-heading">
+                <div class="heading-text">
+                    <span class="panel-kicker" style="color: #059669;">Private Session</span>
+                    <h2>Jadwal Dedicated Tutor</h2>
+                    <p>Sesi privat yang diajukan oleh siswa dan telah disetujui/dikonfirmasi oleh admin untuk Anda.</p>
                 </div>
+            </div>
 
-                <div class="td-material-list">
-                    @forelse($materiTerbaru as $materi)
-                        <article>
-                            <div>
-                                <i class="fa-solid fa-file-lines"></i>
+            <div class="td-tutor-grid">
+                @forelse($jadwalTutor as $tutor)
+                    @php
+                        $studentName = $tutor->student->user->name ?? 'Nama Siswa';
+                        $subjectName = $tutor->material->title ?? $tutor->material->material_name ?? 'Materi Privat Umum';
+                        $dateObj = \Carbon\Carbon::parse($tutor->date);
+                        $isTodayTutor = $dateObj->isToday();
+                    @endphp
+
+                    <article class="td-tutor-card {{ $isTodayTutor ? 'is-today' : '' }}">
+                        <div class="tutor-header">
+                            <div class="student-avatar">
+                                {{ strtoupper(substr($studentName, 0, 1)) }}
                             </div>
-
-                            <section>
-                                <h3>{{ $materi->title ?? $materi->material_name ?? 'Materi' }}</h3>
-                                <p>{{ $materi->class->program_name ?? 'Program Kelas' }}</p>
-                                <span>{{ $materi->created_at ? $materi->created_at->diffForHumans() : '-' }}</span>
-                            </section>
-                        </article>
-                    @empty
-                        <div class="td-empty small">
-                            <i class="fa-solid fa-file-circle-plus"></i>
-                            <strong>Belum ada materi.</strong>
-                            <span>Materi yang Anda upload akan tampil di sini.</span>
-                        </div>
-                    @endforelse
-                </div>
-            </section>
-
-            {{-- ACTIVITY --}}
-            <section class="td-side-panel">
-                <div class="td-side-heading">
-                    <span>Recent Activity</span>
-                    <h2>Aktivitas Terbaru</h2>
-                </div>
-
-                <div class="td-activity-list">
-                    @forelse($aktivitasTerbaru as $activity)
-                        <article>
-                            <div>
-                                <i class="fa-solid {{ $activity['icon'] }}"></i>
+                            <div class="student-info">
+                                <h3>{{ $studentName }}</h3>
+                                @if($isTodayTutor)
+                                    <span class="badge-tutor today">Hari Ini</span>
+                                @else
+                                    <span class="badge-tutor">Terkonfirmasi</span>
+                                @endif
                             </div>
-
-                            <section>
-                                <h3>{{ $activity['title'] }}</h3>
-                                <p>{{ $activity['subtitle'] }}</p>
-                                <span>{{ $activity['time'] ? $activity['time']->diffForHumans() : '-' }}</span>
-                            </section>
-                        </article>
-                    @empty
-                        <div class="td-empty small">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                            <strong>Belum ada aktivitas.</strong>
-                            <span>Aktivitas pengajar akan muncul otomatis.</span>
                         </div>
-                    @endforelse
-                </div>
-            </section>
 
-        </aside>
+                        <div class="tutor-body">
+                            <p class="subject-title">{{ $subjectName }}</p>
+
+                            <div class="tutor-meta-box">
+                                <div>
+                                    <i class="fa-regular fa-calendar"></i>
+                                    <span>{{ $dateObj->translatedFormat('l, d M Y') }}</span>
+                                </div>
+                                <div>
+                                    <i class="fa-regular fa-clock"></i>
+                                    <span>{{ substr($tutor->time, 0, 5) }} WIB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <div class="td-empty-state">
+                        <div class="empty-icon"><i class="fa-solid fa-headset"></i></div>
+                        <strong>Belum ada jadwal Dedicated Tutor.</strong>
+                        <p>Jika ada permintaan tutor dari siswa yang disetujui admin untuk Anda, jadwalnya akan muncul di sini.</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
 
     </section>
 
 </div>
 
 <style>
+    /* BASE SETUP */
     .td-page {
         width: 100%;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #1e293b;
     }
 
+    /* HERO SECTION */
     .td-hero {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(120deg, #cf002b 0%, #85001d 48%, #182033 100%);
+        background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
         color: #fff;
         border-radius: 24px;
-        padding: 34px 36px;
-        margin-bottom: 22px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 270px;
+        padding: 40px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 28px;
-        box-shadow: 0 18px 38px rgba(134, 0, 24, .22);
+        gap: 30px;
+        box-shadow: 0 10px 25px -5px rgba(185, 28, 28, 0.3);
     }
-
     .td-hero::before {
         content: "";
         position: absolute;
-        width: 360px;
-        height: 360px;
-        right: -150px;
-        top: -170px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.10);
+        width: 300px;
+        height: 300px;
+        right: -100px;
+        top: -100px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
     }
 
-    .td-hero::after {
-        content: "";
-        position: absolute;
-        width: 230px;
-        height: 230px;
-        right: 90px;
-        bottom: -150px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.07);
-    }
-
-    .td-hero-content,
-    .td-today-panel {
+    .td-hero-content {
         position: relative;
         z-index: 2;
+        max-width: 600px;
     }
-
     .td-kicker {
         display: inline-flex;
         align-items: center;
-        gap: 9px;
-        min-height: 28px;
-        padding: 0 11px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.16);
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.15);
         margin-bottom: 16px;
     }
-
     .td-kicker span {
-        color: rgba(255,255,255,.88);
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .14em;
-        text-transform: uppercase;
-    }
-
-    .td-kicker i {
         font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-
     .td-hero h1 {
-        margin: 0 0 10px;
-        color: #fff;
-        font-size: 34px;
-        font-weight: 900;
-        line-height: 1.08;
-        letter-spacing: -0.045em;
+        margin: 0 0 12px;
+        font-size: 32px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
     }
-
     .td-hero p {
-        margin: 0;
-        max-width: 770px;
-        color: rgba(255,255,255,.88);
+        margin: 0 0 24px;
         font-size: 14px;
-        font-weight: 600;
-        line-height: 1.65;
+        line-height: 1.6;
+        opacity: 0.9;
     }
 
     .td-hero-tags {
         display: flex;
+        gap: 12px;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 22px;
     }
-
     .td-hero-tags span {
-        min-height: 34px;
-        display: inline-flex;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
         align-items: center;
         gap: 8px;
-        padding: 0 13px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.14);
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
     }
+    .tag-today { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .tag-class { background: rgba(255, 255, 255, 0.15); color: #fff; }
 
+    /* TODAY PANEL IN HERO */
     .td-today-panel {
-        justify-self: end;
-        width: 255px;
-        border-radius: 24px;
-        padding: 20px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.18);
-        backdrop-filter: blur(14px);
+        position: relative;
+        z-index: 2;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        padding: 24px;
+        border-radius: 20px;
+        min-width: 250px;
     }
-
     .td-date-box {
         background: #fff;
-        color: #111827;
-        border-radius: 20px;
-        padding: 18px;
+        color: #0f172a;
+        padding: 20px;
+        border-radius: 16px;
         text-align: center;
-        margin-bottom: 14px;
-        box-shadow: 0 12px 28px rgba(15,23,42,.16);
+        margin-bottom: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
+    .td-date-box span { display: block; font-size: 11px; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .td-date-box strong { display: block; font-size: 42px; font-weight: 900; line-height: 1;}
+    .td-date-box small { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-top: 4px;}
 
-    .td-date-box span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .1em;
-        margin-bottom: 8px;
-    }
+    .td-next-info span { display: block; font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+    .td-next-info strong { display: block; font-size: 14px; font-weight: 700; line-height: 1.4; margin-bottom: 2px;}
+    .td-next-info small { display: flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.9); }
 
-    .td-date-box strong {
-        display: block;
-        font-size: 44px;
-        font-weight: 900;
-        line-height: 1;
-        letter-spacing: -0.06em;
-    }
-
-    .td-date-box small {
-        display: block;
-        margin-top: 7px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 800;
-    }
-
-    .td-next-info span {
-        display: block;
-        color: rgba(255,255,255,.7);
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        margin-bottom: 5px;
-    }
-
-    .td-next-info strong {
-        display: block;
-        color: #fff;
-        font-size: 13px;
-        font-weight: 900;
-        line-height: 1.4;
-    }
-
-    .td-next-info small {
-        display: block;
-        color: rgba(255,255,255,.78);
-        font-size: 11px;
-        font-weight: 700;
-        margin-top: 5px;
-    }
-
+    /* STATS STRIP */
     .td-stats {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: 22px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
     }
-
-    .td-stat-card,
-    .td-action-strip,
-    .td-panel,
-    .td-side-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        box-shadow: 0 14px 35px rgba(15,23,42,.05);
-    }
-
     .td-stat-card {
-        border-radius: 20px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
         padding: 20px;
-        min-height: 145px;
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        transition: transform 0.2s;
     }
+    .td-stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
 
     .td-stat-icon {
-        width: 42px;
-        height: 42px;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        background: #ffe8ee;
-        color: #d90429;
-        border-radius: 15px;
-        margin-bottom: 14px;
+        font-size: 20px;
+        flex-shrink: 0;
     }
+    .icon-class { background: #eff6ff; color: #2563eb; }
+    .icon-subject { background: #fef2f2; color: #dc2626; }
+    .icon-material { background: #f0fdf4; color: #16a34a; }
+    .icon-exercise { background: #fff7ed; color: #ea580c; }
+    .icon-tryout { background: #faf5ff; color: #9333ea; }
 
-    .td-stat-card p {
-        margin: 0 0 8px;
-        color: #6b7280;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
+    .td-stat-info p { margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+    .td-stat-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1; }
 
-    .td-stat-card h2 {
-        margin: 0 0 13px;
-        color: #0f172a;
-        font-size: 31px;
-        font-weight: 900;
-        line-height: 1;
-        letter-spacing: -0.04em;
-    }
-
-    .td-stat-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .td-stat-meta span {
-        height: 23px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 8px;
-        padding: 0 9px;
-        font-size: 10px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .td-stat-meta .success {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .td-stat-meta .warning {
-        background: #ffedd5;
-        color: #ea580c;
-    }
-
-    .td-stat-meta .info {
-        background: #dbeafe;
-        color: #2563eb;
-    }
-
-    .td-stat-meta small {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-    }
-
+    /* QUICK ACTIONS */
     .td-action-strip {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1px;
-        border-radius: 20px;
-        overflow: hidden;
-        margin-bottom: 22px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
     }
-
-    .td-action-strip a {
-        min-height: 92px;
-        display: grid;
-        grid-template-columns: 44px 1fr 14px;
-        align-items: center;
-        gap: 14px;
-        padding: 18px;
-        color: inherit;
+    .action-card {
         background: #fff;
-        transition: .2s ease;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: inherit;
+        text-decoration: none;
+        transition: all 0.2s;
     }
-
-    .td-action-strip a:hover {
-        background: #fff7f9;
+    .action-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        background: #f8fafc;
     }
-
-    .td-action-strip a > div {
+    .action-icon {
         width: 44px;
         height: 44px;
+        background: #fef2f2;
+        color: #b91c1c;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        border-radius: 14px;
-        background: #ffe8ee;
-        color: #d90429;
+        font-size: 18px;
+        flex-shrink: 0;
     }
+    .action-text { flex-grow: 1; }
+    .action-text strong { display: block; font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 2px;}
+    .action-text span { display: block; font-size: 12px; color: #64748b; }
+    .action-arrow { color: #cbd5e1; font-size: 12px; transition: transform 0.2s;}
+    .action-card:hover .action-arrow { transform: translateX(4px); color: #b91c1c;}
 
-    .td-action-strip strong {
-        display: block;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 900;
+    /* MAIN PANELS */
+    .td-main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
     }
-
-    .td-action-strip span {
-        display: block;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        margin-top: 3px;
+    .td-panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
-
-    .td-action-strip a > i {
-        color: #64748b;
-        font-size: 11px;
-    }
-
-    .td-main-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 365px;
-        gap: 22px;
-        align-items: start;
-    }
-
-    .td-left-column,
-    .td-right-column {
-        display: grid;
-        gap: 22px;
-    }
-
-    .td-panel,
-    .td-side-panel {
-        border-radius: 22px;
-        padding: 22px;
-    }
-
     .td-panel-heading {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 18px;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f1f5f9;
     }
+    .panel-kicker { display: block; font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;}
+    .heading-text h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: #0f172a; }
+    .heading-text p { margin: 0; font-size: 13px; color: #64748b; }
 
-    .td-panel-heading span,
-    .td-side-heading span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-
-    .td-panel-heading h2,
-    .td-side-heading h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: -0.02em;
-    }
-
-    .td-panel-heading p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
+    .btn-outline-primary {
+        padding: 8px 16px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #334155;
+        border-radius: 8px;
+        font-size: 13px;
         font-weight: 600;
-        line-height: 1.5;
+        text-decoration: none;
+        transition: all 0.2s;
     }
+    .btn-outline-primary:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
 
-    .td-panel-heading a {
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        padding: 0 13px;
-        border-radius: 11px;
-        background: #fff1f2;
-        color: #d90429;
-        font-size: 11px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
+    /* SCHEDULE LIST (REGULAR) */
     .td-schedule-list {
         display: grid;
-        gap: 14px;
-    }
-
-    .td-schedule-item {
-        display: grid;
-        grid-template-columns: 70px minmax(0, 1fr) 105px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 16px;
-        align-items: center;
-        padding: 15px;
-        border: 1px solid #edf0f4;
-        border-radius: 18px;
-        background: #fff;
-        transition: .2s ease;
     }
-
-    .td-schedule-item:hover {
-        border-color: #fecdd3;
-        box-shadow: 0 12px 28px rgba(15,23,42,.06);
-        transform: translateY(-2px);
-    }
-
-    .td-schedule-item.today {
-        background: linear-gradient(90deg, #fff7f9, #fff);
-        border-color: #fecdd3;
-    }
-
-    .td-date-mini {
-        width: 64px;
-        height: 64px;
-        border-radius: 17px;
-        background: #111827;
-        color: #fff;
-        display: grid;
-        place-items: center;
-        align-content: center;
-    }
-
-    .td-date-mini strong {
-        display: block;
-        font-size: 23px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .td-date-mini span {
-        display: block;
-        margin-top: 4px;
-        color: #fda4af;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .td-schedule-info h3 {
-        margin: 0;
-        color: #111827;
-        font-size: 14px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .td-schedule-info p {
-        margin: 4px 0 10px;
-        color: #d90429;
-        font-size: 11px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .td-schedule-info div {
+    .td-schedule-item {
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .td-schedule-info span {
-        display: inline-flex;
         align-items: center;
-        gap: 6px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-    }
-
-    .td-schedule-status {
-        justify-self: end;
-    }
-
-    .td-schedule-status span {
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0 10px;
-        background: #dbeafe;
-        color: #2563eb;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .td-schedule-status .live {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .td-assignment-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .td-assignment-card {
-        border: 1px solid #edf0f4;
-        border-radius: 18px;
-        padding: 17px;
-        background: #fff;
-        display: grid;
-        grid-template-columns: 48px 1fr;
-        gap: 13px;
-        align-items: start;
-    }
-
-    .td-assignment-icon {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border-radius: 15px;
-        background: #ffe8ee;
-        color: #d90429;
-    }
-
-    .td-assignment-card h3 {
-        margin: 0;
-        color: #111827;
-        font-size: 14px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .td-assignment-card p {
-        margin: 4px 0 12px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        line-height: 1.45;
-    }
-
-    .td-assignment-actions {
-        grid-column: 1 / -1;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .td-assignment-actions a {
-        height: 30px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0 10px;
-        background: #f8fafc;
-        color: #374151;
-        font-size: 10px;
-        font-weight: 900;
-    }
-
-    .td-side-heading {
-        margin-bottom: 17px;
-    }
-
-    .td-tutor-list,
-    .td-material-list,
-    .td-activity-list {
-        display: grid;
-        gap: 12px;
-    }
-
-    .td-tutor-item {
-        display: grid;
-        grid-template-columns: 44px 1fr;
-        gap: 12px;
-        padding: 13px;
+        gap: 16px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
         border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid #edf0f4;
+        background: #fff;
+        transition: all 0.2s;
     }
+    .td-schedule-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transform: translateY(-2px);}
+    .td-schedule-item.is-today { border-color: #fecaca; background: #fffcfc; }
 
-    .td-tutor-avatar {
+    .td-date-badge {
+        width: 60px;
+        height: 60px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .td-schedule-item.is-today .td-date-badge { background: #fee2e2; border-color: #fecaca; color: #dc2626;}
+    .td-date-badge strong { font-size: 20px; font-weight: 800; line-height: 1; color: #0f172a;}
+    .td-schedule-item.is-today .td-date-badge strong { color: #b91c1c; }
+    .td-date-badge span { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 2px;}
+    .td-schedule-item.is-today .td-date-badge span { color: #dc2626; }
+
+    .td-schedule-details { flex-grow: 1; }
+    .schedule-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;}
+    .schedule-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
+    .badge-live { font-size: 10px; font-weight: 700; background: #dcfce7; color: #059669; padding: 2px 8px; border-radius: 6px; }
+    .badge-scheduled { font-size: 10px; font-weight: 600; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 6px; }
+
+    .program-name { margin: 0 0 10px; font-size: 12px; color: #b91c1c; font-weight: 600;}
+    .schedule-meta { display: flex; gap: 12px; font-size: 12px; color: #64748b; }
+    .schedule-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* DEDICATED TUTOR GRID */
+    .td-tutor-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+    }
+    .td-tutor-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.2s;
+    }
+    .td-tutor-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transform: translateY(-2px);}
+    .td-tutor-card.is-today { border-color: #a7f3d0; background: #f0fdf4; }
+
+    .tutor-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .td-tutor-card.is-today .tutor-header { border-color: #d1fae5; }
+
+    .student-avatar {
         width: 44px;
         height: 44px;
+        border-radius: 12px;
+        background: #dbeafe;
+        color: #1d4ed8;
         display: grid;
         place-items: center;
-        border-radius: 15px;
-        background: #dbeafe;
-        color: #2563eb;
-        font-weight: 900;
-    }
-
-    .td-tutor-item h3,
-    .td-material-list h3,
-    .td-activity-list h3 {
-        margin: 0;
-        color: #111827;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .td-tutor-item p,
-    .td-material-list p,
-    .td-activity-list p {
-        margin: 4px 0 4px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-
-    .td-tutor-item span,
-    .td-material-list span,
-    .td-activity-list span {
-        color: #9ca3af;
-        font-size: 10px;
+        font-size: 16px;
         font-weight: 800;
     }
+    .student-info h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;}
+    .badge-tutor { font-size: 10px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; }
+    .badge-tutor.today { background: #10b981; color: #fff; font-weight: 700;}
 
-    .td-material-list article,
-    .td-activity-list article {
-        display: grid;
-        grid-template-columns: 42px 1fr;
-        gap: 12px;
-        padding: 13px;
-        border-radius: 16px;
-        border: 1px solid #edf0f4;
-        background: #fff;
+    .tutor-body .subject-title {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
     }
-
-    .td-material-list article > div,
-    .td-activity-list article > div {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 13px;
-        background: #ffe8ee;
-        color: #d90429;
-    }
-
-    .td-empty {
-        padding: 34px;
-        text-align: center;
+    .tutor-meta-box {
+        display: flex;
+        gap: 16px;
         background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
     }
+    .td-tutor-card.is-today .tutor-meta-box { background: #fff; border-color: #a7f3d0; }
+    .tutor-meta-box div { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 500;}
+    .tutor-meta-box div i { color: #94a3b8; }
+    .td-tutor-card.is-today .tutor-meta-box div i { color: #059669; }
 
-    .td-empty.small {
-        padding: 25px;
+    /* EMPTY STATES */
+    .td-empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        border: 1px dashed #cbd5e1;
     }
-
-    .td-empty i {
+    .empty-icon {
         width: 56px;
         height: 56px;
-        margin: 0 auto 14px;
+        background: #fff;
+        border-radius: 50%;
         display: grid;
         place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
+        font-size: 24px;
+        color: #94a3b8;
+        margin: 0 auto 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    .td-empty-state strong { display: block; font-size: 15px; color: #1e293b; margin-bottom: 6px; }
+    .td-empty-state p { margin: 0; font-size: 13px; color: #64748b; }
 
-    .td-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+        .td-stats { grid-template-columns: repeat(3, 1fr); }
+        .td-action-strip { grid-template-columns: repeat(2, 1fr); }
     }
-
-    .td-empty span {
-        display: block;
-        line-height: 1.55;
+    @media (max-width: 900px) {
+        .td-hero { flex-direction: column; align-items: flex-start; }
+        .td-today-panel { width: 100%; max-width: 100%; }
+        .td-stats { grid-template-columns: repeat(2, 1fr); }
     }
-
-    @media (max-width: 1500px) {
-        .td-stats {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .td-main-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .td-right-column {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
-
-    @media (max-width: 1100px) {
-        .td-hero {
-            grid-template-columns: 1fr;
-        }
-
-        .td-today-panel {
-            justify-self: start;
-            width: 100%;
-            max-width: 270px;
-        }
-
-        .td-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .td-action-strip {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .td-right-column {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @media (max-width: 760px) {
-        .td-hero {
-            padding: 28px;
-        }
-
-        .td-hero h1 {
-            font-size: 27px;
-        }
-
-        .td-stats,
-        .td-action-strip,
-        .td-assignment-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .td-schedule-item {
-            grid-template-columns: 1fr;
-        }
-
-        .td-schedule-status {
-            justify-self: start;
-        }
+    @media (max-width: 600px) {
+        .td-stats { grid-template-columns: 1fr; }
+        .td-action-strip { grid-template-columns: 1fr; }
+        .td-schedule-list, .td-tutor-grid { grid-template-columns: 1fr; }
+        .td-panel-heading { flex-direction: column; gap: 16px; align-items: flex-start; }
     }
 </style>
 @endsection

@@ -6,19 +6,16 @@
 @section('content')
 <div class="bn-page">
 
+    {{-- HEADER --}}
     <section class="bn-header">
-        <div>
-            <span>Promosi & Informasi</span>
+        <div class="bn-header-text">
+            <span class="bn-kicker">Promosi & Informasi</span>
             <h1>Banner Management</h1>
             <p>Kelola banner carousel untuk homepage mobile Spekta Academy.</p>
         </div>
-
-        <a href="{{ route('admin.banners.create') }}" class="bn-primary-btn">
-            <i class="fa-solid fa-plus"></i>
-            Tambah Banner
-        </a>
     </section>
 
+    {{-- ALERTS --}}
     @if(session('success'))
         <div class="bn-alert success">
             <i class="fa-solid fa-circle-check"></i>
@@ -26,56 +23,18 @@
         </div>
     @endif
 
-    <section class="bn-stats">
-        <div class="bn-stat-card">
-            <div class="bn-stat-icon">
-                <i class="fa-solid fa-images"></i>
-            </div>
-            <p>Total Banner</p>
-            <h2>{{ number_format($banners->total() ?? $banners->count()) }}</h2>
-            <div class="bn-stat-meta">
-                <span class="info">Carousel</span>
-                <small>homepage mobile</small>
-            </div>
+    {{-- TOTAL BANNER SUMMARY STRIP --}}
+    <section class="bn-summary-strip">
+        <div class="bn-summary-icon">
+            <i class="fa-solid fa-images"></i>
         </div>
-
-        <div class="bn-stat-card">
-            <div class="bn-stat-icon">
-                <i class="fa-solid fa-toggle-on"></i>
-            </div>
-            <p>Banner Aktif</p>
-            <h2>{{ number_format($banners->where('is_active', true)->count()) }}</h2>
-            <div class="bn-stat-meta">
-                <span class="success">Aktif</span>
-                <small>ditampilkan</small>
-            </div>
-        </div>
-
-        <div class="bn-stat-card">
-            <div class="bn-stat-icon">
-                <i class="fa-solid fa-toggle-off"></i>
-            </div>
-            <p>Banner Nonaktif</p>
-            <h2>{{ number_format($banners->where('is_active', false)->count()) }}</h2>
-            <div class="bn-stat-meta">
-                <span class="warning">Nonaktif</span>
-                <small>disembunyikan</small>
-            </div>
-        </div>
-
-        <div class="bn-stat-card">
-            <div class="bn-stat-icon">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
-            <p>Urutan Tertinggi</p>
-            <h2>{{ number_format($banners->max('order_position') ?? 0) }}</h2>
-            <div class="bn-stat-meta">
-                <span class="info">Order</span>
-                <small>posisi banner</small>
-            </div>
+        <div class="bn-summary-info">
+            <p>Total Keseluruhan Banner</p>
+            <h2>{{ number_format($banners->total() ?? $banners->count()) }} <span>Banner Carousel</span></h2>
         </div>
     </section>
 
+    {{-- MAIN CONTENT --}}
     <section class="bn-main-grid">
 
         <div class="bn-list-panel">
@@ -85,9 +44,9 @@
                     <p>Atur banner promosi yang muncul pada aplikasi mobile.</p>
                 </div>
 
-                <a href="{{ route('admin.banners.create') }}" class="bn-small-action">
+                <a href="{{ route('admin.banners.create') }}" class="bn-primary-btn">
                     <i class="fa-solid fa-plus"></i>
-                    Tambah
+                    Tambah Banner Baru
                 </a>
             </div>
 
@@ -141,8 +100,8 @@
 
                             <div class="bn-meta-grid">
                                 <div>
-                                    <span>Link</span>
-                                    <strong>{{ $banner->link ?: '-' }}</strong>
+                                    <span>Link Tujuan</span>
+                                    <strong>{{ $banner->link ?: 'Tidak ada link' }}</strong>
                                 </div>
 
                                 <div>
@@ -151,7 +110,7 @@
                                 </div>
 
                                 <div>
-                                    <span>Dibuat</span>
+                                    <span>Tanggal Dibuat</span>
                                     <strong>{{ $banner->created_at?->translatedFormat('d M Y') ?? '-' }}</strong>
                                 </div>
                             </div>
@@ -162,12 +121,11 @@
                                     Edit
                                 </a>
 
-                                <form action="{{ route('admin.banners.destroy', $banner) }}" method="POST" onsubmit="return confirm('Hapus banner ini?')">
+                                <form action="{{ route('admin.banners.destroy', $banner) }}" method="POST" onsubmit="return confirm('Hapus banner ini secara permanen?')">
                                     @csrf
                                     @method('DELETE')
-
                                     <button type="submit" class="delete">
-                                        <i class="fa-solid fa-trash"></i>
+                                        <i class="fa-solid fa-trash-can"></i>
                                         Hapus
                                     </button>
                                 </form>
@@ -176,10 +134,10 @@
                     </article>
                 @empty
                     <div class="bn-empty">
-                        <i class="fa-solid fa-images"></i>
+                        <div class="bn-empty-icon"><i class="fa-solid fa-images"></i></div>
                         <strong>Belum ada banner.</strong>
-                        <span>Tambahkan banner pertama untuk carousel homepage mobile.</span>
-                        <a href="{{ route('admin.banners.create') }}">Tambah Banner Pertama</a>
+                        <p>Tambahkan banner pertama untuk carousel homepage mobile Anda.</p>
+                        <a href="{{ route('admin.banners.create') }}" class="bn-primary-btn" style="margin-top: 15px;">Tambah Banner Pertama</a>
                     </div>
                 @endforelse
             </div>
@@ -191,644 +149,358 @@
             @endif
         </div>
 
-        <aside class="bn-side-panel">
-            <div class="bn-side-card">
-                <h3>Ringkasan Banner</h3>
-
-                <div class="bn-summary-list">
-                    <div>
-                        <span><i class="dot red"></i>Total Banner</span>
-                        <strong>{{ number_format($banners->total() ?? $banners->count()) }}</strong>
-                    </div>
-
-                    <div>
-                        <span><i class="dot green"></i>Banner Aktif</span>
-                        <strong>{{ number_format($banners->where('is_active', true)->count()) }}</strong>
-                    </div>
-
-                    <div>
-                        <span><i class="dot gray"></i>Banner Nonaktif</span>
-                        <strong>{{ number_format($banners->where('is_active', false)->count()) }}</strong>
-                    </div>
-
-                    <div>
-                        <span><i class="dot blue"></i>Urutan Tertinggi</span>
-                        <strong>{{ number_format($banners->max('order_position') ?? 0) }}</strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bn-side-card">
-                <h3>Aksi Cepat</h3>
-
-                <div class="bn-quick-list">
-                    <a href="{{ route('admin.banners.create') }}">
-                        <div>
-                            <i class="fa-solid fa-plus"></i>
-                        </div>
-                        <span>Tambah Banner</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-
-                    <a href="{{ route('admin.promo.index') }}">
-                        <div>
-                            <i class="fa-solid fa-tags"></i>
-                        </div>
-                        <span>Kelola Promo</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-
-                    <a href="{{ route('admin.announcement.index') }}">
-                        <div>
-                            <i class="fa-solid fa-bullhorn"></i>
-                        </div>
-                        <span>Pengumuman</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
-        </aside>
-
     </section>
 </div>
 
 <style>
+    /* BASE LAYOUT */
     .bn-page {
         width: 100%;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #334155;
     }
 
+    /* HEADER */
     .bn-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 22px;
-        margin-bottom: 22px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        gap: 20px;
     }
-
-    .bn-header span {
+    .bn-kicker {
         display: block;
         color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .18em;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
-
     .bn-header h1 {
-        margin: 0 0 7px;
-        color: #111827;
-        font-size: 26px;
+        margin: 0 0 8px;
+        color: #0f172a;
+        font-size: 28px;
         font-weight: 900;
-        letter-spacing: -0.03em;
+        letter-spacing: -0.02em;
     }
-
     .bn-header p {
         margin: 0;
-        color: #6b7280;
-        font-size: 13px;
-        font-weight: 600;
+        color: #64748b;
+        font-size: 14px;
     }
 
+    /* PRIMARY BUTTON */
     .bn-primary-btn {
-        min-height: 46px;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         background: #d90429;
         color: #fff;
         border-radius: 12px;
-        padding: 0 18px;
-        font-size: 12px;
-        font-weight: 900;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .22);
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
         white-space: nowrap;
     }
+    .bn-primary-btn:hover {
+        background: #b80222;
+        transform: translateY(-1px);
+    }
 
+    /* ALERTS */
     .bn-alert {
-        border-radius: 16px;
-        padding: 15px 17px;
-        margin-bottom: 18px;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
         display: flex;
         gap: 12px;
         align-items: center;
-        font-size: 13px;
-        font-weight: 800;
+        font-size: 14px;
+        font-weight: 700;
     }
+    .bn-alert.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 
-    .bn-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
-
-    .bn-stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: 22px;
-    }
-
-    .bn-stat-card,
-    .bn-list-panel,
-    .bn-side-card {
+    /* SUMMARY STRIP (TOTAL BANNER) */
+    .bn-summary-strip {
         background: #fff;
-        border: 1px solid #edf0f4;
-        box-shadow: 0 14px 35px rgba(15, 23, 42, .05);
-    }
-
-    .bn-stat-card {
-        border-radius: 20px;
-        padding: 22px;
-        min-height: 150px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px 30px;
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
     }
-
-    .bn-stat-icon {
-        width: 42px;
-        height: 42px;
+    .bn-summary-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
         display: grid;
         place-items: center;
-        background: #ffe8ee;
+        font-size: 28px;
+        background: #fff1f2;
         color: #d90429;
-        border-radius: 15px;
-        margin-bottom: 16px;
+        flex-shrink: 0;
     }
-
-    .bn-stat-card p {
-        margin: 0 0 8px;
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: .08em;
+    .bn-summary-info p {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-
-    .bn-stat-card h2 {
-        margin: 0 0 14px;
-        color: #0f172a;
-        font-size: 31px;
+    .bn-summary-info h2 {
+        margin: 0;
+        font-size: 32px;
         font-weight: 900;
+        color: #0f172a;
         line-height: 1;
-        letter-spacing: -0.04em;
-    }
-
-    .bn-stat-meta {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 8px;
     }
-
-    .bn-stat-meta span {
-        height: 23px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 8px;
-        padding: 0 9px;
-        font-size: 10px;
-        font-weight: 900;
-        white-space: nowrap;
+    .bn-summary-info h2 span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #94a3b8;
     }
 
-    .bn-stat-meta .success {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .bn-stat-meta .warning {
-        background: #ffedd5;
-        color: #ea580c;
-    }
-
-    .bn-stat-meta .info {
-        background: #dbeafe;
-        color: #2563eb;
-    }
-
-    .bn-stat-meta small {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
+    /* MAIN PANEL (FULL WIDTH) */
     .bn-main-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 330px;
-        gap: 22px;
-        align-items: start;
+        display: block;
+        margin-bottom: 24px;
     }
-
     .bn-list-panel {
-        border-radius: 22px;
-        padding: 22px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
     }
-
     .bn-panel-heading {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        margin-bottom: 18px;
-    }
-
-    .bn-panel-heading h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-    }
-
-    .bn-panel-heading p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .bn-small-action {
-        display: inline-flex;
         align-items: center;
-        gap: 8px;
-        height: 38px;
-        padding: 0 13px;
-        border-radius: 11px;
-        background: #fff1f2;
-        color: #d90429;
-        font-size: 11px;
-        font-weight: 900;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #f1f5f9;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .bn-panel-heading h2 {
+        margin: 0 0 6px;
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .bn-panel-heading p {
+        margin: 0;
+        font-size: 14px;
+        color: #64748b;
     }
 
+    /* BANNER LIST & CARDS */
     .bn-banner-list {
         display: grid;
-        gap: 16px;
+        gap: 20px;
     }
-
     .bn-banner-card {
         display: grid;
-        grid-template-columns: 310px minmax(0, 1fr);
-        gap: 18px;
-        padding: 14px;
-        border: 1px solid #edf0f4;
-        border-radius: 18px;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 24px;
+        padding: 20px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
         background: #fff;
-        transition: .2s ease;
+        transition: all 0.2s ease;
     }
-
     .bn-banner-card:hover {
-        border-color: #fecdd3;
-        box-shadow: 0 14px 30px rgba(15, 23, 42, .06);
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
         transform: translateY(-2px);
     }
 
+    /* CARD IMAGE */
     .bn-banner-image {
-        height: 170px;
-        border-radius: 15px;
+        height: 180px;
+        border-radius: 12px;
         overflow: hidden;
         position: relative;
         background: #f8fafc;
+        border: 1px solid #f1f5f9;
     }
-
     .bn-banner-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
     }
-
     .bn-no-image {
         width: 100%;
         height: 100%;
-        display: grid;
-        place-items: center;
-        color: #9ca3af;
-        font-size: 12px;
-        font-weight: 800;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 600;
     }
-
     .bn-no-image i {
-        font-size: 28px;
-        color: #d90429;
-        margin-bottom: 6px;
+        font-size: 32px;
+        color: #cbd5e1;
+        margin-bottom: 8px;
     }
-
     .bn-image-badge {
         position: absolute;
         top: 12px;
         left: 12px;
-        min-width: 34px;
-        height: 28px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: rgba(17, 24, 39, .82);
+        padding: 4px 12px;
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.85);
         color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-        backdrop-filter: blur(8px);
+        font-size: 12px;
+        font-weight: 800;
+        backdrop-filter: blur(4px);
     }
 
+    /* CARD CONTENT */
     .bn-banner-content {
-        min-width: 0;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        gap: 14px;
     }
-
     .bn-banner-title-row {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 14px;
+        gap: 20px;
     }
-
     .bn-banner-title-row h3 {
-        margin: 0 0 7px;
-        color: #111827;
-        font-size: 16px;
-        font-weight: 900;
+        margin: 0 0 8px;
+        color: #0f172a;
+        font-size: 18px;
+        font-weight: 800;
     }
-
     .bn-banner-title-row p {
         margin: 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.5;
+        color: #475569;
+        font-size: 13px;
+        line-height: 1.6;
     }
 
+    /* STATUS BADGE */
     .bn-status {
         flex-shrink: 0;
-        height: 27px;
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0 10px;
-        font-size: 10px;
-        font-weight: 900;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
+    .bn-status.active { background: #dcfce7; color: #16a34a; }
+    .bn-status.inactive { background: #f1f5f9; color: #64748b; }
 
-    .bn-status.active {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .bn-status.inactive {
-        background: #f3f4f6;
-        color: #6b7280;
-    }
-
+    /* META INFO GRID */
     .bn-meta-grid {
         display: grid;
-        grid-template-columns: 1.4fr .6fr .8fr;
-        gap: 12px;
-        padding: 13px;
-        border-radius: 14px;
+        grid-template-columns: 1.5fr 1fr 1fr;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 12px;
         background: #f8fafc;
+        margin: 16px 0;
     }
-
     .bn-meta-grid span {
         display: block;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .05em;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
         margin-bottom: 4px;
     }
-
     .bn-meta-grid strong {
         display: block;
-        color: #111827;
-        font-size: 12px;
-        font-weight: 800;
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
+    /* CARD ACTIONS */
     .bn-actions {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 9px;
+        gap: 10px;
     }
-
-    .bn-actions form {
-        margin: 0;
-    }
-
-    .bn-actions a,
-    .bn-actions button {
-        height: 36px;
+    .bn-actions form { margin: 0; }
+    .bn-actions a, .bn-actions button {
+        height: 40px;
         border: none;
-        border-radius: 11px;
+        border-radius: 10px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        padding: 0 13px;
-        font-size: 11px;
-        font-weight: 900;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    .bn-actions .edit {
-        background: #ffedd5;
-        color: #ea580c;
-    }
-
-    .bn-actions .delete {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .bn-side-panel {
-        display: grid;
-        gap: 22px;
-    }
-
-    .bn-side-card {
-        border-radius: 22px;
-        padding: 20px;
-    }
-
-    .bn-side-card h3 {
-        margin: 0 0 18px;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-    }
-
-    .bn-summary-list {
-        display: grid;
-        gap: 14px;
-    }
-
-    .bn-summary-list div {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        color: #374151;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .bn-summary-list span {
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-    }
-
-    .bn-summary-list strong {
-        color: #111827;
-        font-weight: 900;
-    }
-
-    .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 999px;
-        display: inline-block;
-    }
-
-    .dot.red { background: #d90429; }
-    .dot.green { background: #16a34a; }
-    .dot.gray { background: #9ca3af; }
-    .dot.blue { background: #2563eb; }
-
-    .bn-quick-list {
-        display: grid;
-        gap: 12px;
-    }
-
-    .bn-quick-list a {
-        display: grid;
-        grid-template-columns: 42px 1fr 12px;
-        gap: 12px;
-        align-items: center;
-        padding: 12px;
-        border: 1px solid #edf0f4;
-        border-radius: 15px;
-        color: inherit;
-        transition: .2s ease;
-    }
-
-    .bn-quick-list a:hover {
-        background: #fff7f9;
-        border-color: #fecdd3;
-    }
-
-    .bn-quick-list div {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 13px;
-        background: #ffe8ee;
-        color: #d90429;
-    }
-
-    .bn-quick-list span {
-        color: #111827;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .bn-quick-list a > i {
-        color: #64748b;
-        font-size: 11px;
-    }
-
-    .bn-empty {
-        padding: 45px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
+        padding: 0 16px;
         font-size: 12px;
         font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: none;
+        transition: background 0.2s;
     }
+    .bn-actions .edit { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+    .bn-actions .edit:hover { background: #e2e8f0; }
+    .bn-actions .delete { background: #fef2f2; color: #dc2626; }
+    .bn-actions .delete:hover { background: #fecaca; }
 
-    .bn-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
+    /* EMPTY STATE */
+    .bn-empty {
+        text-align: center;
+        padding: 80px 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        border: 1px dashed #cbd5e1;
+    }
+    .bn-empty-icon {
+        width: 72px;
+        height: 72px;
+        background: #fff;
+        border-radius: 50%;
         display: grid;
         place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
+        font-size: 28px;
+        color: #94a3b8;
+        margin: 0 auto 20px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
+    .bn-empty strong { display: block; font-size: 18px; color: #0f172a; margin-bottom: 6px;}
+    .bn-empty p { margin: 0; font-size: 14px; color: #64748b; }
 
-    .bn-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
+    .bn-pagination { margin-top: 24px; }
 
-    .bn-empty span {
-        display: block;
-        margin-bottom: 16px;
-    }
-
-    .bn-empty a {
-        display: inline-flex;
-        align-items: center;
-        height: 40px;
-        padding: 0 15px;
-        border-radius: 12px;
-        background: #d90429;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-    }
-
-    .bn-pagination {
-        margin-top: 18px;
-    }
-
-    @media (max-width: 1450px) {
-        .bn-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .bn-main-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .bn-side-panel {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @media (max-width: 900px) {
-        .bn-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .bn-stats,
-        .bn-side-panel {
-            grid-template-columns: 1fr;
-        }
-
-        .bn-banner-card {
-            grid-template-columns: 1fr;
-        }
-
-        .bn-meta-grid {
-            grid-template-columns: 1fr;
-        }
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+        .bn-header { flex-direction: column; align-items: flex-start; }
+        .bn-summary-strip { flex-direction: column; text-align: center; gap: 12px; padding: 20px;}
+        .bn-summary-info h2 { justify-content: center;}
+        .bn-banner-card { grid-template-columns: 1fr; }
+        .bn-banner-image { height: 200px; }
+        .bn-meta-grid { grid-template-columns: 1fr; gap: 12px; }
+        .bn-panel-heading { flex-direction: column; align-items: stretch;}
+        .bn-primary-btn { justify-content: center; }
     }
 </style>
 @endsection

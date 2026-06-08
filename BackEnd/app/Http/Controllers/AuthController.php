@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\{User, Student, OtpCode, Enrollment, Material, Schedule, Tryout, Question, TryoutResult, PracticeQuestion, ClassModel};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\{Hash, Validator, DB, Auth, Mail, Log, Http};
+use Illuminate\Support\Facades\{Hash, Validator, DB, Auth, Mail, Log, Http, Storage};
 use App\Mail\OtpMail;
 use Carbon\Carbon;
 
@@ -262,5 +262,93 @@ public function getClassContent(Request $request): JsonResponse {
                     ->get();
 
         return response()->json(['status' => 'success', 'data' => $schedules]);
+    }
+
+    /**
+     * GET PROFILE (Dinamis untuk Halaman Akun)
+     */
+   public function getProfile(Request $request): JsonResponse {
+    $user = Auth::user();
+
+    // Ambil data student
+    $student = DB::table('students')->where('user_id', $user->usersID)->first();
+
+    $enrolledClasses = [];
+    $joinedDate = '-';
+
+    if ($student) {
+        // Format tanggal bergabung
+        if ($student->created_at) {
+            $joinedDate = Carbon::parse($student->created_at)->translatedFormat('d F Y');
+        }
+
+        // Ambil kelas dari tabel 'classes'
+        if ($student->class_id) {
+            $classData = DB::table('classes')->where('class_id', $student->class_id)->first();
+
+            // Debug log
+            Log::info('Student class_id: ' . $student->class_id);
+            if ($classData) {
+                Log::info('Class found: ' . $classData->program_name);
+                $enrolledClasses[] = [
+                    'id' => $classData->class_id,
+                    'program_name' => $classData->program_name
+                ];
+            } else {
+                Log::warning('No class found for class_id: ' . $student->class_id);
+            }
+        } else {
+            Log::warning('Student has no class_id for user: ' . $user->usersID);
+        }
+    } else {
+        Log::warning('No student record found for user: ' . $user->usersID);
+    }
+
+    // Ambil role name
+    $roleName = DB::table('roles')->where('rolesID', $user->role_id)->value('name') ?? 'STUDENT';
+
+    return response()->json([
+        'status' => 'success',
+        'user' => [
+            'id' => $user->usersID,
+            'name' => $user->name,
+            'email' => $user->email,
+            'photo_url' => $user->photo_url,
+            'role' => strtoupper($roleName),
+            'joined_date' => $joinedDate,
+            'enrolled_classes' => $enrolledClasses
+        ]
+    ]);
+}
+
+    /**
+     * UPLOAD FOTO PROFIL
+     */
+    public function updatePhoto(Request $request): JsonResponse {
+        $request->validate(['photo' => 'required|image|mimes:jpeg,png,jpg|max:2048']);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama jika ada
+            if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+                Storage::disk('public')->delete($user->photo);
+            }
+
+            // Simpan foto baru
+            $path = $request->file('photo')->store('profile_photos', 'public');
+
+            // Update database
+            $user->update(['photo' => $path]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Foto berhasil diperbarui',
+                'photo_url' => $user->photo_url
+            ]);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Tidak ada gambar'], 400);
     }
 }

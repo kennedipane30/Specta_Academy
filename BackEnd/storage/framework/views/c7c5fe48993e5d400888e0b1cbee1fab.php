@@ -1,38 +1,20 @@
+<?php $__env->startSection('title', 'Manajemen Materi'); ?>
+
 <?php $__env->startSection('content'); ?>
 <div class="cp-page">
 
     
-    <section class="cp-header">
-        <div>
-            <span class="cp-tagline">
-                SPEKTA COURSE MANAGER
-            </span>
-            <h1 class="cp-title">
-                Kelola Materi: <?php echo e($subject_name); ?>
-
-            </h1>
-            <p class="cp-subtitle">
-                Program: <strong><?php echo e($class->program_name); ?></strong>
-            </p>
-        </div>
-
-        <a href="<?php echo e(route('pengajar.materi.index')); ?>" class="cp-back-btn">
-            <i class="fa-solid fa-arrow-left"></i> Kembali
-        </a>
-    </section>
-
-    
     <?php if(session('success')): ?>
-        <div style="padding: 15px; background: #dcfce7; color: #15803d; border-radius: 12px; margin-bottom: 20px; font-weight: 700;">
-            <i class="fa-solid fa-check-circle"></i> <?php echo e(session('success')); ?>
-
+        <div class="cp-alert success">
+            <i class="fa-solid fa-check-circle"></i>
+            <span><?php echo e(session('success')); ?></span>
         </div>
     <?php endif; ?>
 
     <?php if(session('error')): ?>
-        <div style="padding: 15px; background: #fee2e2; color: #dc2626; border-radius: 12px; margin-bottom: 20px; font-weight: 700;">
-            <i class="fa-solid fa-circle-exclamation"></i> <?php echo e(session('error')); ?>
-
+        <div class="cp-alert error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span><?php echo e(session('error')); ?></span>
         </div>
     <?php endif; ?>
 
@@ -45,33 +27,41 @@
 
         <form action="<?php echo e(route('pengajar.materi.store', $class->class_id)); ?>" method="POST" enctype="multipart/form-data">
             <?php echo csrf_field(); ?>
-            
+
             <!-- 🔥 PENTING: material_name dikirim agar subject_name di Go tidak kosong -->
             <input type="hidden" name="material_name" value="<?php echo e($subject_name); ?>">
 
             <div class="cp-form-grid">
-                <div>
+                <div class="cp-input-group">
                     <label>Minggu Ke</label>
-                    <select name="week" id="input-week" class="cp-input" required>
-                        <?php for($i=1; $i<=20; $i++): ?>
-                            <option value="<?php echo e($i); ?>">Minggu <?php echo e($i); ?></option>
-                        <?php endfor; ?>
-                    </select>
+                    <div class="cp-input-wrap">
+                        <select name="week" id="input-week" required>
+                            <?php for($i=1; $i<=20; $i++): ?>
+                                <option value="<?php echo e($i); ?>">Minggu <?php echo e($i); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
+                <div class="cp-input-group">
                     <label>Judul Materi</label>
-                    <input id="input-title" type="text" name="title" class="cp-input" placeholder="Contoh: Pengenalan Umum" required>
+                    <div class="cp-input-wrap">
+                        <input id="input-title" type="text" name="title" placeholder="Contoh: Pengenalan Umum" required>
+                    </div>
                 </div>
 
-                <div>
-                    <label>Upload PDF (Kosongkan jika hanya ubah judul)</label>
-                    <input type="file" name="file_pdf" class="cp-input" accept=".pdf">
+                <div class="cp-input-group">
+                    <label>Upload PDF (Opsional saat ubah judul)</label>
+                    <div class="cp-input-wrap file-wrap">
+                        <input type="file" name="file_pdf" accept=".pdf">
+                    </div>
                 </div>
 
-                <button type="submit" class="cp-btn">
-                    <i class="fa-solid fa-save"></i> Simpan
-                </button>
+                <div class="cp-action-wrap">
+                    <button type="submit" class="cp-btn-submit">
+                        <i class="fa-solid fa-save"></i> Simpan
+                    </button>
+                </div>
             </div>
         </form>
     </section>
@@ -80,6 +70,7 @@
     <section class="cp-card">
         <div class="cp-card-head">
             <h2>Daftar Materi</h2>
+            <p>Daftar seluruh materi pembelajaran yang telah diunggah untuk mata pelajaran ini.</p>
         </div>
 
         <div class="table-responsive">
@@ -88,7 +79,7 @@
                     <tr>
                         <th>Minggu</th>
                         <th>Judul Materi</th>
-                        <th>File</th>
+                        <th>Status File</th>
                         <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
@@ -107,29 +98,29 @@
                         </td>
                         <td>
                             <?php if($item->file_path): ?>
-                            <a target="_blank" href="<?php echo e(asset('storage/'.$item->file_path)); ?>" class="badge-file">
-                                <i class="fa-solid fa-file-pdf"></i> PDF Tersedia
-                            </a>
+                                <a target="_blank" href="<?php echo e(asset('storage/'.$item->file_path)); ?>" class="badge-file">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF Tersedia
+                                </a>
                             <?php else: ?>
-                            <span style="color: #94a3b8; font-size: 12px;">Tanpa File</span>
+                                <span class="badge-empty">Tanpa File</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <div class="action-group">
                                 <?php if($item->file_path): ?>
-                                <a href="<?php echo e(asset('storage/'.$item->file_path)); ?>" download class="btn-icon blue">
-                                    <i class="fa-solid fa-download"></i>
-                                </a>
+                                    <a href="<?php echo e(asset('storage/'.$item->file_path)); ?>" download class="btn-icon blue" title="Download PDF">
+                                        <i class="fa-solid fa-download"></i>
+                                    </a>
                                 <?php endif; ?>
 
-                                <button type="button" onclick="fillEditForm('<?php echo e($item->title); ?>', '<?php echo e($item->week); ?>')" class="btn-icon dark">
+                                <button type="button" onclick="fillEditForm('<?php echo e($item->title); ?>', '<?php echo e($item->week); ?>')" class="btn-icon dark" title="Edit Materi">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
 
-                                <form method="POST" action="<?php echo e(route('pengajar.materi.destroy', $item->material_id)); ?>" onsubmit="return confirm('Hapus materi ini? Data di aplikasi HP juga akan terhapus.')">
+                                <form method="POST" action="<?php echo e(route('pengajar.materi.destroy', $item->material_id)); ?>" onsubmit="return confirm('Hapus materi ini? Data di aplikasi peserta didik juga akan terhapus.')" style="margin: 0;">
                                     <?php echo csrf_field(); ?>
                                     <?php echo method_field('DELETE'); ?>
-                                    <button class="btn-icon red">
+                                    <button type="submit" class="btn-icon red" title="Hapus Materi">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
@@ -138,8 +129,12 @@
                     </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
-                        <td colspan="4" class="empty-state" style="text-align: center; padding: 40px; color: #94a3b8;">
-                            Belum ada materi untuk mata pelajaran ini.
+                        <td colspan="4">
+                            <div class="cp-empty-state">
+                                <i class="fa-regular fa-folder-open"></i>
+                                <strong>Belum ada materi.</strong>
+                                <span>Silakan unggah materi pertama melalui form di atas.</span>
+                            </div>
                         </td>
                     </tr>
                     <?php endif; ?>
@@ -148,113 +143,6 @@
         </div>
     </section>
 </div>
-
-<style>
-    :root {
-        --red: #d90429;
-        --dark: #0f172a;
-        --gray: #64748b;
-    }
-
-    .cp-page { padding: 24px; }
-
-    /* HEADER */
-    .cp-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-
-    .cp-title { font-size: 42px; font-weight: 900; margin: 10px 0; }
-    .cp-tagline { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: #64748b; }
-    .cp-subtitle { color: #475569; }
-
-    .cp-back-btn {
-        padding: 12px 18px;
-        background: white;
-        border-radius: 12px;
-        text-decoration: none;
-        color: #111827;
-        font-weight: 700;
-        border: 1px solid #e2e8f0;
-        transition: .3s;
-    }
-
-    .cp-back-btn:hover { background: #111827; color: white; }
-
-    /* CARD */
-    .cp-card {
-        background: white;
-        padding: 30px;
-        border-radius: 24px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,.05);
-    }
-
-    .cp-card-head { margin-bottom: 25px; }
-    .cp-card-head h2 { font-size: 30px; font-weight: 800; margin-bottom: 10px; }
-
-    /* FORM */
-    .cp-form-grid {
-        display: grid;
-        grid-template-columns: 1fr 2fr 2fr auto;
-        gap: 18px;
-        align-items: end;
-    }
-
-    .cp-input {
-        width: 100%;
-        padding: 14px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
-    }
-
-    .cp-btn {
-        height: 50px;
-        padding: 0 25px;
-        border: none;
-        background: var(--red);
-        color: white;
-        font-weight: 800;
-        border-radius: 12px;
-        cursor: pointer;
-    }
-
-    .cp-btn:hover { background: #b00322; }
-
-    /* TABLE */
-    .cp-table { width: 100%; border-collapse: collapse; }
-    .cp-table th { padding: 18px; font-size: 12px; color: #94a3b8; text-transform: uppercase; text-align: left; }
-    .cp-table td { padding: 22px 18px; border-top: 1px solid #f1f5f9; }
-    .cp-table tr:hover { background: #fafafa; }
-
-    /* BADGE */
-    .badge-week { padding: 8px 12px; background: #f8fafc; border-radius: 10px; font-weight: 800; font-size: 12px; }
-    .badge-file { display: inline-flex; gap: 8px; padding: 8px 14px; background: #ecfdf5; color: #10b981; border-radius: 10px; text-decoration: none; font-weight: 800; }
-    .badge-file:hover { background: #10b981; color: white; }
-
-    .materi-info strong { display: block; font-size: 15px; }
-    .materi-info small { color: #94a3b8; }
-
-    /* ACTION */
-    .action-group { display: flex; justify-content: flex-end; gap: 8px; }
-    .btn-icon { width: 40px; height: 40px; border: none; border-radius: 10px; display: grid; place-items: center; cursor: pointer; }
-    .blue { background: #e0f2fe; color: #0284c7; }
-    .dark { background: #111827; color: white; }
-    .red { background: #fee2e2; color: #dc2626; }
-    .btn-icon:hover { transform: translateY(-2px); }
-
-    /* RESPONSIVE */
-    @media(max-width:900px){
-        .cp-form-grid { grid-template-columns: 1fr; }
-        .cp-table { min-width: 700px; }
-        .table-responsive { overflow: auto; }
-    }
-</style>
 
 <script>
     function fillEditForm(title, week) {
@@ -267,5 +155,260 @@
         document.getElementById('input-title').focus();
     }
 </script>
+
+<style>
+    /* BASE LAYOUT */
+    .cp-page {
+        padding: 24px 0;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #334155;
+    }
+
+    /* ALERTS */
+    .cp-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .cp-alert.success {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+    .cp-alert.error {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    /* CARDS */
+    .cp-card {
+        background: #fff;
+        padding: 32px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    }
+    .cp-card-head {
+        margin-bottom: 28px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .cp-card-head h2 {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 6px 0;
+    }
+    .cp-card-head p {
+        margin: 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    /* FORM STYLES */
+    .cp-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr 2fr auto;
+        gap: 20px;
+        align-items: flex-end;
+    }
+    .cp-input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+    }
+    .cp-input-wrap input,
+    .cp-input-wrap select {
+        width: 100%;
+        height: 44px;
+        padding: 0 16px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 14px;
+        color: #1e293b;
+        font-family: inherit;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .cp-input-wrap input[type="file"] {
+        padding-top: 10px;
+    }
+    .cp-input-wrap input:focus,
+    .cp-input-wrap select:focus {
+        background: #fff;
+        border-color: #d90429;
+        box-shadow: 0 0 0 3px rgba(217, 4, 41, 0.1);
+    }
+    .cp-action-wrap {
+        display: flex;
+        align-items: center;
+        height: 44px;
+    }
+    .cp-btn-submit {
+        height: 100%;
+        padding: 0 24px;
+        border: none;
+        background: #d90429;
+        color: white;
+        font-size: 13px;
+        font-weight: 800;
+        border-radius: 10px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
+    }
+    .cp-btn-submit:hover {
+        background: #b80222;
+        transform: translateY(-1px);
+    }
+
+    /* TABLE STYLES */
+    .table-responsive { overflow-x: auto; }
+    .cp-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+    .cp-table th {
+        padding: 16px;
+        font-size: 11px;
+        color: #64748b;
+        text-transform: uppercase;
+        text-align: left;
+        border-bottom: 2px solid #f1f5f9;
+        background: #f8fafc;
+        font-weight: 800;
+    }
+    .cp-table th.text-end { text-align: right; }
+    .cp-table td {
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    .cp-table tr:last-child td { border-bottom: none; }
+    .cp-table tr:hover { background: #f8fafc; }
+
+    /* BADGES & TYPOGRAPHY */
+    .badge-week {
+        padding: 6px 12px;
+        background: #f1f5f9;
+        color: #475569;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 11px;
+    }
+    .badge-file {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #ecfdf5;
+        color: #059669;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+        transition: background 0.2s;
+    }
+    .badge-file:hover { background: #d1fae5; }
+    .badge-empty {
+        display: inline-block;
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 0;
+    }
+
+    .materi-info strong {
+        display: block;
+        font-size: 14px;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+    .materi-info small {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    /* ACTIONS (TABLE) */
+    .action-group {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .blue { background: #eff6ff; color: #2563eb; }
+    .blue:hover { background: #dbeafe; }
+
+    .dark { background: #f1f5f9; color: #334155; }
+    .dark:hover { background: #e2e8f0; color: #0f172a; }
+
+    .red { background: #fef2f2; color: #dc2626; }
+    .red:hover { background: #fecaca; }
+
+    /* EMPTY STATE */
+    .cp-empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .cp-empty-state i {
+        font-size: 40px;
+        color: #cbd5e1;
+        margin-bottom: 16px;
+        display: block;
+    }
+    .cp-empty-state strong {
+        display: block;
+        font-size: 16px;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    .cp-empty-state span {
+        font-size: 14px;
+        color: #64748b;
+    }
+
+    /* RESPONSIVE */
+    @media(max-width: 1024px){
+        .cp-form-grid {
+            grid-template-columns: 1fr 1fr;
+            align-items: start;
+        }
+        .cp-action-wrap {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+        }
+    }
+    @media(max-width: 640px){
+        .cp-card { padding: 20px; }
+        .cp-form-grid { grid-template-columns: 1fr; }
+        .cp-btn-submit { width: 100%; justify-content: center;}
+    }
+</style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/materi/pilih.blade.php ENDPATH**/ ?>

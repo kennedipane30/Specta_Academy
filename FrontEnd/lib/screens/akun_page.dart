@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
 import 'edit_profile_page.dart';
 import 'login_page.dart';
@@ -22,9 +25,9 @@ class AkunPage extends StatefulWidget {
 class _AkunPageState extends State<AkunPage> {
   late Map currentData;
   bool isLoading = false;
+  bool isUploadingPhoto = false;
 
   final Color redPrimary = const Color(0xFF9C0412);
-  final Color redDark = const Color(0xFF740107);
   final Color redDeep = const Color(0xFF520102);
   final Color redWine = const Color(0xFF3D0606);
   final Color softRed = const Color(0xFFFFE8EA);
@@ -46,12 +49,135 @@ class _AkunPageState extends State<AkunPage> {
         setState(() {
           currentData = response['user'];
         });
+        // Debug: Cetak enrolled_classes ke console
+        print("ENROLLED CLASSES: ${currentData['enrolled_classes']}");
       }
     } catch (e) {
       debugPrint("Refresh Error: $e");
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Pilih Sumber Foto",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildImageSourceOption(
+                      icon: Icons.camera_alt,
+                      label: "Kamera",
+                      onTap: () => Navigator.pop(context, ImageSource.camera),
+                    ),
+                    _buildImageSourceOption(
+                      icon: Icons.photo_library,
+                      label: "Galeri",
+                      onTap: () => Navigator.pop(context, ImageSource.gallery),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
+    final XFile? image = await picker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
+
+    if (image != null) {
+      setState(() => isUploadingPhoto = true);
+      
+      File file = File(image.path);
+      
+      Map<String, dynamic>? result = await AuthService.uploadProfilePhoto(file, widget.token);
+
+      setState(() => isUploadingPhoto = false);
+      
+      if (result != null && result['status'] == 'success') {
+        final oldPhotoUrl = currentData['photo_url'];
+        if (oldPhotoUrl != null && oldPhotoUrl.isNotEmpty) {
+          await CachedNetworkImage.evictFromCache(oldPhotoUrl);
+        }
+        
+        setState(() {
+          currentData['photo_url'] = result['photo_url'];
+        });
+        
+        await _refreshProfile();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Foto profil berhasil diperbarui!", textAlign: TextAlign.center),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Gagal mengunggah foto. Coba lagi.", textAlign: TextAlign.center),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildImageSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: softRed,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: redPrimary, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: redWine, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   void _showLogoutDialog() {
@@ -61,17 +187,22 @@ class _AkunPageState extends State<AkunPage> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           title: Text("Konfirmasi Logout", style: TextStyle(color: redWine, fontWeight: FontWeight.w900)),
-          content: const Text("Apakah Anda yakin ingin keluar dari aplikasi Spekta Academy?"),
+          content: const Text("Apakah Anda yakin ingin keluar dari aplikasi?"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context), 
               child: Text("Batal", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: redPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
-              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: redPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pushAndRemoveUntil(
+                context, 
+                MaterialPageRoute(builder: (_) => const LoginPage()), 
+                (route) => false,
+              ),
               child: const Text("Ya, Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
@@ -89,26 +220,28 @@ class _AkunPageState extends State<AkunPage> {
         onRefresh: _refreshProfile,
         child: Column(
           children: [
-            // 🔴 HEADER MERAH SEPERTI GAMBAR 1 🔴
             _buildRedHeader(),
-            // 🔴 SISA KONTEN (TIDAK DIHAPUS)
             Expanded(
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileCard(),
-                    const SizedBox(height: 28),
-                    _sectionTitle("Account Settings"),
-                    const SizedBox(height: 14),
-                    _buildSettingsCard(),
-                    const SizedBox(height: 28),
-                    _buildSignOutButton(),
-                  ],
-                ),
-              ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(18, 24, 18, 120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionTitle("Kelas Saya"),
+                          const SizedBox(height: 14),
+                          _buildEnrolledClasses(),
+                          const SizedBox(height: 28),
+                          _sectionTitle("Pengaturan Akun"),
+                          const SizedBox(height: 14),
+                          _buildSettingsCard(),
+                          const SizedBox(height: 28),
+                          _buildSignOutButton(),
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
@@ -116,21 +249,38 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  // ========== 🔴 HEADER BARU WARNA MERAH (seperti gambar 1) 🔴 ==========
   Widget _buildRedHeader() {
+    String photoUrl = currentData['photo_url'] ?? '';
+    String name = currentData['name'] ?? "User Name";
+    String email = currentData['email'] ?? "user@email.com";
+    String role = currentData['role'] ?? "STUDENT";
+    List classes = currentData['enrolled_classes'] ?? [];
+
+    // Debug: Cetak data ke console
+    print("=== HEADER DEBUG ===");
+    print("Photo URL: $photoUrl");
+    print("Name: $name");
+    print("Email: $email");
+    print("Role: $role");
+    print("Classes: $classes");
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: redPrimary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [redPrimary, redDeep, redWine],
+        ),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(35),
+          bottomRight: Radius.circular(35),
         ),
         boxShadow: [
           BoxShadow(
-            color: redDeep.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            color: redDeep.withValues(alpha: 0.3), // ✅ Perbaikan withOpacity
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -140,24 +290,18 @@ class _AkunPageState extends State<AkunPage> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
           child: Column(
             children: [
-              // Baris atas: Tombol back + Title Profile
               Row(
                 children: [
-                  // Tombol kembali ke Home
                   GestureDetector(
                     onTap: widget.onGoToHome,
                     child: Container(
-                      width: 40,
-                      height: 40,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 22,
-                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -167,106 +311,175 @@ class _AkunPageState extends State<AkunPage> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                     ),
                   ),
-                  // Ikon notifikasi
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-              // Avatar
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+              const SizedBox(height: 28),
+              
+              // FOTO PROFIL
+              GestureDetector(
+                onTap: _pickAndUploadImage,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25), // ✅ Perbaikan
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 55,
+                        backgroundColor: Colors.white,
+                        child: isUploadingPhoto
+                            ? const SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9C0412)),
+                                ),
+                              )
+                            : (photoUrl.isNotEmpty)
+                                ? ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: photoUrl,
+                                      width: 110,
+                                      height: 110,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => const Center(
+                                        child: SizedBox(
+                                          width: 30,
+                                          height: 30,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) => Icon(
+                                        Icons.person_rounded,
+                                        color: redPrimary,
+                                        size: 65,
+                                      ),
+                                    ),
+                                  )
+                                : Icon(Icons.person_rounded, color: redPrimary, size: 70),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: redPrimary, width: 2.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15), // ✅ Perbaikan
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(Icons.camera_alt_rounded, color: redPrimary, size: 20),
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: redPrimary,
-                    size: 55,
-                  ),
-                ),
               ),
-              const SizedBox(height: 14),
-              // Nama
+              const SizedBox(height: 18),
+              
+              // NAMA
               Text(
-                currentData['name'] ?? "steven",
+                name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 6),
-              // Email
+              
+              // EMAIL
               Text(
-                currentData['email'] ?? "stevensimanjuntak2606@gmail.com",
+                email,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
-                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.85), // ✅ Perbaikan
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              
               const SizedBox(height: 12),
-              // Badge STUDENT
+              
+              // ROLE BADGE
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  "STUDENT",
-                  style: TextStyle(
-                    color: redPrimary,
+                  role.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
                 ),
               ),
+              
+              // ✅ DAFTAR KELAS DI HEADER
+              if (classes.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Divider(color: Colors.white.withValues(alpha: 0.2), thickness: 1), // ✅ Perbaikan
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Icon(Icons.school_rounded, color: Colors.white.withValues(alpha: 0.7), size: 16), // ✅ Perbaikan
+                    const SizedBox(width: 8),
+                    Text(
+                      "Kelas Terdaftar",
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9), // ✅ Perbaikan
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: classes.map((cls) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // ✅ Perbaikan
+                      ),
+                      child: Text(
+                        cls['program_name'] ?? 'Kelas',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
@@ -274,64 +487,95 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  // ========== KODE ASLI (TIDAK DIHAPUS, HANYA DISESUAIKAN) ==========
-  Widget _buildProfileCard() {
+  Widget _buildEnrolledClasses() {
+    List classes = currentData['enrolled_classes'] ?? [];
+
+    if (classes.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: _cardDecoration(),
+        child: Column(
+          children: [
+            Icon(Icons.school_outlined, color: Colors.grey[400], size: 48),
+            const SizedBox(height: 12),
+            Text(
+              "Belum ada kelas terdaftar",
+              style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Silakan daftar kelas terlebih dahulu",
+              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: redDeep.withOpacity(0.2), blurRadius: 25, offset: const Offset(0, 12))],
-      ),
-      child: Column(
-        children: [
-          // Stats Row (Langsung tanpa header gradient karena sudah di header merah)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+      decoration: _cardDecoration(),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: classes.length,
+        separatorBuilder: (context, index) => _line(),
+        itemBuilder: (context, index) {
+          final cls = classes[index];
+          return ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [softRed, softRed.withValues(alpha: 0.5)], // ✅ Perbaikan
                 ),
-              ],
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.menu_book_rounded, color: redPrimary, size: 24),
             ),
-            child: Row(
-              children: [
-                _statItem(Icons.description_rounded, "0", "Tryouts"),
-                _divider(),
-                _statItem(Icons.menu_book_rounded, "4", "Classes"),
-                _divider(),
-                _statItem(Icons.emoji_events_rounded, "-", "Rank"),
-                _divider(),
-                _statItem(Icons.calendar_month_rounded, "12", "Days"),
-              ],
+            title: Text(
+              cls['program_name'] ?? 'Nama Kelas',
+              style: TextStyle(color: redWine, fontWeight: FontWeight.bold, fontSize: 15),
             ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1), // ✅ Perbaikan
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[600], size: 16),
+                  const SizedBox(width: 4),
+                  Text("Aktif", style: TextStyle(color: Colors.green[600], fontSize: 10, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String t) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            color: redPrimary,
+            borderRadius: BorderRadius.circular(2),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 10),
+        Text(t, style: TextStyle(color: redWine, fontSize: 18, fontWeight: FontWeight.w800)),
+      ],
     );
   }
-
-  Widget _statItem(IconData icon, String value, String label) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: redPrimary, size: 20),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(color: redWine, fontSize: 16, fontWeight: FontWeight.w900)),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() => Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.15));
-
-  Widget _sectionTitle(String t) => Text(t, style: TextStyle(color: redWine, fontSize: 18, fontWeight: FontWeight.w900));
 
   Widget _buildSettingsCard() {
     return Container(
@@ -343,7 +587,12 @@ class _AkunPageState extends State<AkunPage> {
             subtitle: "Update address and parent info",
             icon: Icons.person_outline_rounded,
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfilePage(userData: currentData, token: widget.token))).then((_) => _refreshProfile());
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditProfilePage(userData: currentData, token: widget.token),
+                ),
+              ).then((_) => _refreshProfile());
             },
           ),
           _line(),
@@ -351,38 +600,55 @@ class _AkunPageState extends State<AkunPage> {
             title: "Security",
             subtitle: "Change password and security",
             icon: Icons.lock_outline_rounded,
-            onTap: () {},
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Fitur sedang dalam pengembangan")),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _menuItem({required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
+  Widget _menuItem({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: softRed, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: redPrimary, size: 22),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [softRed, softRed.withValues(alpha: 0.5)], // ✅ Perbaikan
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: redPrimary, size: 24),
             ),
-            const SizedBox(width: 15),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: TextStyle(color: redWine, fontSize: 15, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -396,12 +662,21 @@ class _AkunPageState extends State<AkunPage> {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: softRed, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          color: softRed,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.15)), // ✅ Perbaikan
+        ),
         child: Row(
           children: [
-            Icon(Icons.logout_rounded, color: redPrimary),
-            const SizedBox(width: 15),
-            Expanded(child: Text("Sign Out", style: TextStyle(color: redPrimary, fontSize: 16, fontWeight: FontWeight.bold))),
+            Icon(Icons.logout_rounded, color: redPrimary, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                "Sign Out",
+                style: TextStyle(color: redPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
             Icon(Icons.arrow_forward_ios_rounded, color: redPrimary, size: 14),
           ],
         ),
@@ -409,11 +684,20 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  Widget _line() => Padding(padding: const EdgeInsets.only(left: 75, right: 15), child: Divider(height: 1, color: Colors.grey.withOpacity(0.1)));
+  Widget _line() => Padding(
+    padding: const EdgeInsets.only(left: 76, right: 16),
+    child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.12)), // ✅ Perbaikan
+  );
 
   BoxDecoration _cardDecoration() => BoxDecoration(
     color: Colors.white,
-    borderRadius: BorderRadius.circular(25),
-    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))],
+    borderRadius: BorderRadius.circular(24),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.04), // ✅ Perbaikan
+        blurRadius: 20,
+        offset: const Offset(0, 8),
+      ),
+    ],
   );
 }

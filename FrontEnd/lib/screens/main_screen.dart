@@ -24,7 +24,6 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final Color spektaRed = const Color(0xFF990000);
 
-  // Fungsi untuk berpindah tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -33,35 +32,20 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // List halaman yang ditampilkan berdasarkan tab yang dipilih
     final List<Widget> pages = [
-      // INDEX 0: HOME
-      HomePage(
-        userName: widget.userName,
-        token: widget.token,
-        userData: widget.userProfileData,
-      ),
-
-      // INDEX 1: CLASSES
+      HomePage(userName: widget.userName, token: widget.token, userData: widget.userProfileData),
       KelasPage(
-        token: widget.token,
-        userData: widget.userProfileData,
-        onGoToProfile: () => setState(() => _selectedIndex = 3), // Pindah ke Profile
-        onGoToHome: () => setState(() => _selectedIndex = 0),    // Balik ke Home
+        token: widget.token, userData: widget.userProfileData,
+        onGoToProfile: () => setState(() => _selectedIndex = 3), 
+        onGoToHome: () => setState(() => _selectedIndex = 0),    
       ),
-
-      // INDEX 2: REPORT
       ReportPage(
-        token: widget.token,
-        userData: widget.userProfileData,
-        onGoToHome: () => setState(() => _selectedIndex = 0),    // Balik ke Home
+        token: widget.token, userData: widget.userProfileData,
+        onGoToHome: () => setState(() => _selectedIndex = 0),    
       ),
-
-      // INDEX 3: PROFILE
       AkunPage(
-        token: widget.token, 
-        userData: widget.userProfileData,
-         onGoToHome: () => setState(() => _selectedIndex = 0)
+        token: widget.token, userData: widget.userProfileData,
+        onGoToHome: () => setState(() => _selectedIndex = 0)
       ),
     ];
 
@@ -71,64 +55,125 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: pages,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08), 
-              blurRadius: 20, 
-              offset: const Offset(0, -5)
-            ),
-          ],
+      // MENGGUNAKAN DESAIN SOLID DOCKED (MENEMPEL DI BAWAH)
+      bottomNavigationBar: _buildSolidBottomNav(),
+    );
+  }
+
+  Widget _buildSolidBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        // Lengkungan sangat tipis di bagian atas
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
-        child: SafeArea(
-          child: Container(
-            height: 75,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.grid_view_rounded, "Home"),
-                _buildNavItem(1, Icons.auto_stories_rounded, "Classes"),
-                _buildNavItem(2, Icons.analytics_rounded, "Report"), 
-                _buildNavItem(3, Icons.person_rounded, "Profile"),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04), // Bayangan hitam sangat lembut
+            blurRadius: 20, 
+            offset: const Offset(0, -5)
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 65, // Ketinggian standar profesional
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // ✨ PENGGUNAAN IKON OUTLINE (KOSONG) & FILLED (BERISI)
+              _buildNavItem(
+                index: 0, 
+                label: "Home", 
+                activeIcon: Icons.home_rounded, 
+                inactiveIcon: Icons.home_outlined
+              ),
+              _buildNavItem(
+                index: 1, 
+                label: "Kelas", 
+                activeIcon: Icons.auto_stories_rounded, 
+                inactiveIcon: Icons.auto_stories_outlined
+              ),
+              _buildNavItem(
+                index: 2, 
+                label: "Report", 
+                activeIcon: Icons.insert_chart_rounded, 
+                inactiveIcon: Icons.insert_chart_outlined
+              ),
+              _buildNavItem(
+                index: 3, 
+                label: "Profil", 
+                activeIcon: Icons.person_rounded, 
+                inactiveIcon: Icons.person_outline_rounded
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem({
+    required int index, 
+    required String label, 
+    required IconData activeIcon, 
+    required IconData inactiveIcon
+  }) {
     bool isSelected = _selectedIndex == index;
+
     return Expanded(
-      child: InkWell(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
+      child: GestureDetector(
         onTap: () => _onItemTapped(index),
+        behavior: HitTestBehavior.opaque, // Agar seluruh area bisa diklik
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(
-              icon, 
-              size: isSelected ? 28 : 24, 
-              color: isSelected ? spektaRed : Colors.grey.shade400
+            // ✨ INDIKATOR GARIS ATAS (Muncul saat aktif)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              height: 3,
+              width: isSelected ? 24 : 0, // Garis memanjang jika dipilih
+              decoration: BoxDecoration(
+                color: spektaRed,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(5),
+                  bottomRight: Radius.circular(5),
+                )
+              ),
             ),
+            
+            const Spacer(),
+            
+            // ✨ ANIMASI GANTI IKON & UKURAN
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Icon(
+                isSelected ? activeIcon : inactiveIcon, 
+                key: ValueKey<bool>(isSelected), // Wajib untuk AnimatedSwitcher
+                size: isSelected ? 26 : 24, 
+                color: isSelected ? spektaRed : Colors.grey.shade400,
+              ),
+            ),
+            
             const SizedBox(height: 4),
+            
+            // ✨ TEKS MENU
             Text(
               label, 
               style: TextStyle(
                 color: isSelected ? spektaRed : Colors.grey.shade400, 
                 fontSize: 11, 
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600
               )
             ),
+            
+            const Spacer(),
           ],
         ),
       ),

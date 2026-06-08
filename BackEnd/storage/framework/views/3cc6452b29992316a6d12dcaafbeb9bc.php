@@ -37,20 +37,18 @@
                 <h2>Form Tambah Pengajar</h2>
                 <p>Isi data pengajar dengan benar. Akun akan langsung bisa digunakan sesuai status yang dipilih.</p>
             </div>
-            <div class="heading-icon">
-                <i class="fa-solid fa-user-plus"></i>
-            </div>
         </div>
 
-        <form action="<?php echo e(route('admin.manajemen-pengajar.store')); ?>" method="POST" class="teacher-form">
+        <form action="<?php echo e(route('admin.manajemen-pengajar.store')); ?>" method="POST" class="teacher-form" id="teacherForm">
             <?php echo csrf_field(); ?>
 
             <div class="input-group">
                 <label>Nama Lengkap</label>
                 <div>
                     <i class="fa-solid fa-user"></i>
-                    <input type="text" name="name" value="<?php echo e(old('name')); ?>" placeholder="Contoh: Kennedi Pane" required>
+                    <input type="text" name="name" id="name" value="<?php echo e(old('name')); ?>" placeholder="Contoh: Kennedi Pane" required>
                 </div>
+                <small class="error-message" id="nameError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 5px;">Nama hanya boleh berisi huruf dan spasi</small>
             </div>
 
             <div class="input-group">
@@ -65,16 +63,18 @@
                 <label>Nomor Telepon</label>
                 <div>
                     <i class="fa-solid fa-phone"></i>
-                    <input type="text" name="phone" value="<?php echo e(old('phone')); ?>" placeholder="081234567890" required>
+                    <input type="text" name="phone" id="phone" value="<?php echo e(old('phone')); ?>" placeholder="081234567890" required>
                 </div>
+                <small class="error-message" id="phoneError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 5px;">Nomor telepon hanya boleh berisi angka</small>
             </div>
 
             <div class="input-group">
                 <label>Password</label>
                 <div>
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" name="password" placeholder="Minimal 6 karakter" required>
+                    <input type="password" name="password" id="password" placeholder="Minimal 6 karakter" required>
                 </div>
+                <small class="error-message" id="passwordError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 5px;">Password harus mengandung minimal 1 huruf kapital dan 1 huruf biasa (kecil)</small>
             </div>
 
             <div class="input-group">
@@ -93,7 +93,7 @@
                     Batal
                 </a>
 
-                <button type="submit" class="submit-btn">
+                <button type="submit" class="submit-btn" id="submitBtn">
                     <i class="fa-solid fa-user-plus"></i>
                     Simpan Pengajar
                 </button>
@@ -154,6 +154,7 @@
         font-size: 12px;
         font-weight: 900;
         white-space: nowrap;
+        text-decoration: none;
     }
 
     .form-alert {
@@ -184,7 +185,7 @@
         border-radius: 22px;
         box-shadow: 0 14px 35px rgba(15, 23, 42, .05);
         padding: 24px;
-        max-width: 880px;
+        width: 100%;
     }
 
     .card-heading {
@@ -208,17 +209,6 @@
         font-size: 12px;
         font-weight: 600;
         line-height: 1.5;
-    }
-
-    .heading-icon {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border-radius: 16px;
-        background: #ffe8ee;
-        color: #d90429;
-        flex-shrink: 0;
     }
 
     .teacher-form {
@@ -263,6 +253,7 @@
         font-size: 13px;
         font-weight: 700;
         font-family: inherit;
+        appearance: none;
     }
 
     .input-group input:focus,
@@ -270,6 +261,13 @@
         background: #fff;
         border-color: #fecdd3;
         box-shadow: 0 0 0 4px rgba(217, 4, 41, .08);
+    }
+
+    .input-group select {
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 10px auto;
     }
 
     .form-actions {
@@ -292,6 +290,7 @@
         font-size: 12px;
         font-weight: 900;
         font-family: inherit;
+        text-decoration: none;
     }
 
     .cancel-btn {
@@ -327,5 +326,76 @@
         }
     }
 </style>
+
+<script>
+    // Ambil elemen
+    const nameInput = document.getElementById('name');
+    const phoneInput = document.getElementById('phone');
+    const passwordInput = document.getElementById('password');
+    const form = document.getElementById('teacherForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const nameError = document.getElementById('nameError');
+    const phoneError = document.getElementById('phoneError');
+    const passwordError = document.getElementById('passwordError');
+
+    // Validasi nama: hanya huruf dan spasi
+    function validateName() {
+        const name = nameInput.value;
+        const regex = /^[A-Za-z\s]+$/;
+        if (!regex.test(name) && name !== '') {
+            nameError.style.display = 'block';
+            return false;
+        } else {
+            nameError.style.display = 'none';
+            return true;
+        }
+    }
+
+    // Validasi nomor telepon: hanya angka
+    function validatePhone() {
+        const phone = phoneInput.value;
+        const regex = /^[0-9]+$/;
+        if (!regex.test(phone) && phone !== '') {
+            phoneError.style.display = 'block';
+            return false;
+        } else {
+            phoneError.style.display = 'none';
+            return true;
+        }
+    }
+
+    // Validasi password: minimal 1 huruf kapital dan 1 huruf kecil
+    function validatePassword() {
+        const password = passwordInput.value;
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        if (password !== '' && (!hasUpper || !hasLower)) {
+            passwordError.style.display = 'block';
+            return false;
+        } else {
+            passwordError.style.display = 'none';
+            return true;
+        }
+    }
+
+    // Event listener saat input berubah
+    nameInput.addEventListener('input', validateName);
+    phoneInput.addEventListener('input', validatePhone);
+    passwordInput.addEventListener('input', validatePassword);
+
+    // Validasi sebelum submit
+    form.addEventListener('submit', function(e) {
+        const isNameValid = validateName();
+        const isPhoneValid = validatePhone();
+        const isPasswordValid = validatePassword();
+
+        if (!isNameValid || !isPhoneValid || !isPasswordValid) {
+            e.preventDefault(); // Hentikan pengiriman form jika validasi gagal
+            alert('Harap periksa kembali data yang Anda masukkan:\n- Nama hanya boleh huruf dan spasi\n- Nomor telepon hanya angka\n- Password harus mengandung huruf kapital dan huruf biasa');
+        }
+    });
+</script>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/pengajar/create.blade.php ENDPATH**/ ?>
