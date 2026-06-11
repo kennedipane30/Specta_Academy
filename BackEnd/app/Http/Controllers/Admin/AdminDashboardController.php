@@ -6,24 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\ClassModel;
-use App\Models\Material;
-use App\Models\Tryout;
 use App\Models\DedicatedTutor;
 use App\Models\Enrollment;
 use App\Models\Promotion;
 use App\Models\Banner;
 use App\Models\Announcement;
 use App\Models\Schedule;
-use App\Models\TryoutSubmission;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AdminDashboardController extends Controller
 {
     public function index()
     {
         $today = Carbon::today();
+
+        // Ambil data dari microservice (dengan fallback jika offline)
+        $total_materi_aktif = $this->getTotalMateriFromMicroservice();
+        $total_tryout_aktif = $this->getTotalTryoutFromMicroservice();
 
         /*
         |--------------------------------------------------------------------------
@@ -33,26 +36,7 @@ class AdminDashboardController extends Controller
 
         $total_siswa = User::where('role_id', 3)->count();
         $total_pengajar = User::where('role_id', 2)->count();
-
-        /*
-         * Karena tabel classes belum punya kolom is_active/status,
-         * kelas aktif sementara dihitung dari jadwal hari ini dan ke depan.
-         */
         $total_kelas_aktif = Enrollment::where('status', 'active')->count();
-
-
-        /*
-         * Karena tabel materials belum punya kolom status,
-         * materi aktif sementara dihitung dari semua materi yang tersedia.
-         */
-        $total_materi_aktif = Material::count();
-
-        /*
-         * Karena tabel tryouts belum punya kolom status,
-         * tryout aktif sementara dihitung dari semua tryout yang tersedia.
-         */
-        $total_tryout_aktif = Tryout::count();
-
         $tutor_pending = DedicatedTutor::where('status', 'pending')->count();
         $pendaftaran_pending = Enrollment::where('status', 'pending')->count();
 
@@ -88,7 +72,6 @@ class AdminDashboardController extends Controller
             if ($previous <= 0) {
                 return $current > 0 ? 100 : 0;
             }
-
             return round((($current - $previous) / $previous) * 100, 1);
         };
 
@@ -97,7 +80,7 @@ class AdminDashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 3. DATA GRAFIK 30 HARI TERAKHIR
+        | 3. DATA GRAFIK 30 HARI TERAKHIR (Gunakan data lokal saja)
         |--------------------------------------------------------------------------
         */
 
@@ -125,11 +108,6 @@ class AdminDashboardController extends Controller
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total', 'date');
 
-        $materialDaily = Material::whereDate('created_at', '>=', $startDate)
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as total'))
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->pluck('total', 'date');
-
         $chart_labels = [];
         $chart_siswa_baru = [];
         $chart_aktivitas_harian = [];
@@ -143,8 +121,7 @@ class AdminDashboardController extends Controller
             $newStudents = (int) ($studentDaily[$key] ?? 0);
             $dailyActivity =
                 (int) ($enrollmentDaily[$key] ?? 0) +
-                (int) ($tutorDaily[$key] ?? 0) +
-                (int) ($materialDaily[$key] ?? 0);
+                (int) ($tutorDaily[$key] ?? 0);
 
             $runningTotalStudent += $newStudents;
 
@@ -189,12 +166,6 @@ class AdminDashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $materi_tanpa_file = Material::where(function ($query) {
-                $query->whereNull('file_path')
-                    ->orWhere('file_path', '');
-            })
-            ->count();
-
         $pengajar_belum_verifikasi = User::where('role_id', 2)
             ->where('is_verified', false)
             ->count();
@@ -215,13 +186,6 @@ class AdminDashboardController extends Controller
                 'route' => route('admin.siswa.pendaftaran'),
             ],
             [
-                'title' => 'Materi belum lengkap',
-                'subtitle' => 'Materi belum memiliki file',
-                'count' => $materi_tanpa_file,
-                'icon' => 'fa-book-open',
-                'route' => route('admin.assignments.index'),
-            ],
-            [
                 'title' => 'Pengajar menunggu aktivasi',
                 'subtitle' => 'Akun pengajar belum diverifikasi',
                 'count' => $pengajar_belum_verifikasi,
@@ -234,13 +198,13 @@ class AdminDashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 6. LOG AKTIVITAS SISTEM
+        | 6. LOG AKTIVITAS SISTEM (Hanya data lokal)
         |--------------------------------------------------------------------------
         */
 
         $log_siswa = User::where('role_id', 3)
             ->latest()
-            ->take(3)
+            ->take(4)
             ->get()
             ->map(function ($user) {
                 return [
@@ -254,7 +218,7 @@ class AdminDashboardController extends Controller
             });
 
         $log_tutor = DedicatedTutor::latest()
-            ->take(3)
+            ->take(2)
             ->get()
             ->map(function ($item) {
                 return [
@@ -267,41 +231,11 @@ class AdminDashboardController extends Controller
                 ];
             });
 
-        $log_materi = Material::latest()
-            ->take(3)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'initial' => 'MT',
-                    'title' => 'Materi diperbarui',
-                    'description' => $item->title ?? 'Materi baru ditambahkan.',
-                    'status' => 'Informasi',
-                    'type' => 'info',
-                    'time' => $item->created_at,
-                ];
-            });
-
-        $log_tryout = Tryout::latest()
-            ->take(3)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'initial' => 'TO',
-                    'title' => 'Tryout tersedia',
-                    'description' => $item->title ?? 'Tryout baru tersedia.',
-                    'status' => 'Aktif',
-                    'type' => 'success',
-                    'time' => $item->created_at,
-                ];
-            });
-
         $log_aktivitas = collect()
             ->merge($log_siswa)
             ->merge($log_tutor)
-            ->merge($log_materi)
-            ->merge($log_tryout)
             ->sortByDesc('time')
-            ->take(4)
+            ->take(5)
             ->values();
 
         /*
@@ -408,22 +342,22 @@ class AdminDashboardController extends Controller
                 'route' => route('admin.jadwal.index'),
             ],
             [
-                'title' => 'Materi Aktif',
+                'title' => 'Materi Tersedia',
                 'value' => $total_materi_aktif,
                 'icon' => 'fa-book-open',
                 'badge' => 'Tersedia',
                 'badge_text' => 'materi',
                 'badge_type' => 'info',
-                'route' => route('admin.assignments.index'),
+                'route' => '#',
             ],
             [
-                'title' => 'Tryout Aktif',
+                'title' => 'Tryout Tersedia',
                 'value' => $total_tryout_aktif,
                 'icon' => 'fa-clipboard-check',
                 'badge' => 'Berjalan',
                 'badge_text' => 'tryout',
                 'badge_type' => 'info',
-                'route' => route('admin.tryout.index'),
+                'route' => '#',
             ],
             [
                 'title' => 'Permintaan Tutor',
@@ -456,6 +390,46 @@ class AdminDashboardController extends Controller
             'log_aktivitas',
             'informasi_promosi'
         ));
+    }
+
+    /**
+     * Ambil total materi dari Microservice Materi (Port 9001)
+     */
+    private function getTotalMateriFromMicroservice(): int
+    {
+        try {
+            $goUrl = env('GO_MATERI_URL', 'http://localhost:9001');
+            $response = Http::timeout(5)->get("$goUrl/api/materials");
+
+            if ($response->successful()) {
+                $data = $response->json()['data'] ?? [];
+                return count($data);
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil data materi dari microservice: " . $e->getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * Ambil total tryout dari Microservice Tryout (Port 9002)
+     */
+    private function getTotalTryoutFromMicroservice(): int
+    {
+        try {
+            $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
+            $response = Http::timeout(5)->get("$goUrl/api/tryouts");
+
+            if ($response->successful()) {
+                $data = $response->json()['data'] ?? [];
+                return count($data);
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil data tryout dari microservice: " . $e->getMessage());
+        }
+
+        return 0;
     }
 
     public function galeri()

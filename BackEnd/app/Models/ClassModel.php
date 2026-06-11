@@ -20,7 +20,6 @@ class ClassModel extends Model
         'price',
         'description',
         'image_url',
-        // expires_at → dihapus, tidak dipakai di kelas
     ];
 
     protected $casts = [
@@ -32,13 +31,22 @@ class ClassModel extends Model
     // RELASI
     // ─────────────────────────────────────────
 
-    public function materials()
-    {
-        return $this->hasMany(\App\Models\Material::class, 'class_id', 'class_id');
-    }
+    /**
+     * ❌ HAPUS METHOD materials() KARENA TABEL materials SUDAH DIHAPUS
+     * Data materi sekarang diambil dari Microservice
+     */
+    // public function materials() { ... } // HAPUS!
 
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class, 'class_id', 'class_id');
+    }
+
+    /**
+     * Relasi ke TeacherAssignment (penugasan pengajar)
+     */
+    public function teacherAssignments()
+    {
+        return $this->hasMany(TeacherAssignment::class, 'class_id', 'class_id');
     }
 }

@@ -15,7 +15,7 @@
 
         <div class="tm-stat-box">
             <div class="tm-stat-value">
-                <?php echo e(count($assignments)); ?>
+                <?php echo e(count($assignmentsWithSubjects ?? [])); ?>
 
             </div>
             <div class="tm-stat-label">Total Penugasan</div>
@@ -41,39 +41,36 @@
                         <th style="width: 30%">Program Kelas</th>
                         <th style="width: 30%">Mata Pelajaran</th>
                         <th style="width: 20%">Durasi</th>
-                        <th class="text-end" style="width: 20%">Aksi</th> 
+                        <th class="text-end" style="width: 20%">Aksi</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    <?php $__empty_1 = true; $__currentLoopData = $assignments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <?php $__empty_1 = true; $__currentLoopData = $assignmentsWithSubjects ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
                             <td>
                                 <div class="tm-class-info">
                                     <strong><?php echo e($assign->classModel->program_name ?? 'Kelas'); ?></strong>
                                     <small>ID #<?php echo e($assign->class_id); ?></small>
                                 </div>
-                            </td>
-
+                            </td
                             <td>
                                 <span class="tm-subject-pill">
                                     <i class="fa-solid fa-book-bookmark"></i>
-                                    <?php echo e($assign->subject->name ?? 'Mata Pelajaran'); ?>
+                                    <?php echo e($assign->subject_name ?? 'Mata Pelajaran'); ?>
 
                                 </span>
-                            </td>
-
+                            </td
                             <td>
                                 <span class="tm-muted">20 Minggu</span>
-                            </td>
-
-                            <td class="text-end"> 
-                                <a href="<?php echo e(route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id])); ?>" 
+                            </td
+                            <td class="text-end">
+                                <a href="<?php echo e(route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name])); ?>"
                                    class="tm-btn-manage">
                                     Kelola Materi
                                     <i class="fa-solid fa-arrow-right"></i>
                                 </a>
-                            </td>
+                            </td
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
@@ -82,7 +79,7 @@
                                     <i class="fa-solid fa-folder-open" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
                                     Belum ada penugasan mengajar yang terdaftar.
                                 </div>
-                            </td>
+                            </td
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -155,7 +152,7 @@
     color: #94a3b8;
     text-transform: uppercase;
     border-bottom: 2px solid #f1f5f9;
-    text-align: left; /* Default kiri */
+    text-align: left;
 }
 
 /* Class khusus untuk meratakan ke kanan */
@@ -210,4 +207,5 @@
 }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/materi/index.blade.php ENDPATH**/ ?>

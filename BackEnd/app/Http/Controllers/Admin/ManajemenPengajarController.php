@@ -6,44 +6,123 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\TeacherAssignment;
 use App\Models\Schedule;
-use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ManajemenPengajarController extends Controller
 {
+    /**
+     * Ambil data mata pelajaran dari Microservice Materi
+     */
+    private function getSubjectsFromMicroservice(): array
+    {
+        try {
+            $goUrl = env('GO_MATERI_URL', 'http://localhost:9001');
+            $response = Http::timeout(5)->get("$goUrl/api/materials");
+
+            if ($response->successful()) {
+                $materials = $response->json()['data'] ?? [];
+
+                // Extract unique subject names dari materials
+                $subjects = [];
+                $seen = [];
+
+                foreach ($materials as $material) {
+                    $subjectName = $material['subject_name'] ?? $material['material_name'] ?? '';
+                    if (!empty($subjectName) && !in_array($subjectName, $seen)) {
+                        $seen[] = $subjectName;
+                        $subjects[] = (object) [
+                            'subject_id' => md5($subjectName),
+                            'name' => $subjectName,
+                        ];
+                    }
+                }
+
+                // Sort by name
+                usort($subjects, function($a, $b) {
+                    return strcmp($a->name, $b->name);
+                });
+
+                return $subjects;
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil data subjects dari microservice: " . $e->getMessage());
+        }
+
+        return [];
+    }
+
+    /**
+     * Ambil distribusi bidang berdasarkan data dari microservice
+     */
+    private function getDistribusiBidangFromMicroservice(): array
+    {
+        try {
+            $goUrl = env('GO_MATERI_URL', 'http://localhost:9001');
+            $response = Http::timeout(5)->get("$goUrl/api/materials");
+
+            if ($response->successful()) {
+                $materials = $response->json()['data'] ?? [];
+
+                // Hitung distribusi berdasarkan subject_name
+                $distribution = [];
+                foreach ($materials as $material) {
+                    $subjectName = $material['subject_name'] ?? $material['material_name'] ?? 'Unknown';
+                    if (!isset($distribution[$subjectName])) {
+                        $distribution[$subjectName] = 0;
+                    }
+                    $distribution[$subjectName]++;
+                }
+
+                // Convert ke array untuk view
+                $result = [];
+                foreach ($distribution as $name => $total) {
+                    $result[] = (object) [
+                        'subject_name' => $name,
+                        'total' => $total,
+                    ];
+                }
+
+                // Sort by total descending
+                usort($result, function($a, $b) {
+                    return $b->total <=> $a->total;
+                });
+
+                return $result;
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil distribusi bidang: " . $e->getMessage());
+        }
+
+        return [];
+    }
+
     public function index(Request $request)
     {
+        // ✅ MODIFIKASI: Hapus 'assignments.subject' karena tidak ada relasi lagi
         $teacherQuery = User::where('role_id', 2)
-            ->with(['assignments.classModel', 'assignments.subject']);
+            ->with(['assignments.classModel']); // Hanya ambil classModel, bukan subject
 
+        // Search filter
         if ($request->filled('search')) {
             $search = strtolower($request->search);
 
             $teacherQuery->where(function ($query) use ($search) {
                 $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"])
-                    ->orWhereHas('assignments.subject', function ($subjectQuery) use ($search) {
-                        // MODIFIKASI: Gunakan material_name
-                        $subjectQuery->whereRaw('LOWER(material_name) LIKE ?', ["%{$search}%"]);
-                    });
+                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        if ($request->filled('subject_id')) {
-            $teacherQuery->whereHas('assignments', function ($assignmentQuery) use ($request) {
-                $assignmentQuery->where('subject_id', $request->subject_id);
-            });
-        }
-
+        // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
                 $teacherQuery->where('is_verified', true);
             }
-
             if ($request->status === 'inactive') {
                 $teacherQuery->where('is_verified', false);
             }
@@ -56,7 +135,7 @@ class ManajemenPengajarController extends Controller
 
         $teacherIds = $teachers->getCollection()->pluck('usersID');
 
-        $assignmentMap = TeacherAssignment::with(['classModel', 'subject'])
+        $assignmentMap = TeacherAssignment::with(['classModel'])
             ->whereIn('user_id', $teacherIds)
             ->get()
             ->groupBy('user_id');
@@ -67,8 +146,8 @@ class ManajemenPengajarController extends Controller
             ->groupBy('teacher_id')
             ->pluck('total', 'teacher_id');
 
-        // MODIFIKASI: Gunakan material_name untuk pengurutan
-        $subjects = Subject::orderBy('material_name')->get();
+        // ✅ AMBIL SUBJECTS DARI MICROSERVICE
+        $subjects = $this->getSubjectsFromMicroservice();
 
         $totalPengajar = User::where('role_id', 2)->count();
 
@@ -91,18 +170,11 @@ class ManajemenPengajarController extends Controller
 
         $kelasDiajar = TeacherAssignment::distinct()->count('class_id');
 
-        // MODIFIKASI: Join ke tabel 'materials' dan gunakan material_name
-        $distribusiBidang = TeacherAssignment::join('materials', 'teacher_assignments.subject_id', '=', 'materials.material_id')
-            ->select(
-                'materials.material_name as subject_name',
-                DB::raw('COUNT(*) as total')
-            )
-            ->groupBy('materials.material_id', 'materials.material_name')
-            ->orderByDesc('total')
-            ->get();
+        // ✅ AMBIL DISTRIBUSI BIDANG DARI MICROSERVICE
+        $distribusiBidang = $this->getDistribusiBidangFromMicroservice();
+        $totalDistribusiBidang = collect($distribusiBidang)->sum('total');
 
-        $totalDistribusiBidang = $distribusiBidang->sum('total');
-
+        // Aktivitas Pengajar
         $aktivitasPengajar = User::where('role_id', 2)
             ->latest()
             ->take(4)
@@ -116,8 +188,8 @@ class ManajemenPengajarController extends Controller
                 ];
             });
 
-        // MODIFIKASI: Gunakan material_name untuk log aktivitas
-        $aktivitasAssignment = TeacherAssignment::with(['teacher', 'classModel', 'subject'])
+        // Aktivitas Assignment (tanpa subject name dari DB)
+        $aktivitasAssignment = TeacherAssignment::with(['teacher', 'classModel'])
             ->latest()
             ->take(4)
             ->get()
@@ -125,7 +197,7 @@ class ManajemenPengajarController extends Controller
                 return [
                     'icon' => 'fa-book-open',
                     'title' => $assignment->teacher->name ?? 'Pengajar',
-                    'description' => 'Ditugaskan mengajar ' . ($assignment->subject->material_name ?? 'materi'),
+                    'description' => 'Ditugaskan mengajar kelas ' . ($assignment->classModel->program_name ?? ''),
                     'time' => $assignment->created_at,
                 ];
             });

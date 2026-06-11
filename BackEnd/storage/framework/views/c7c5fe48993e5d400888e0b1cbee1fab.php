@@ -88,17 +88,17 @@
                     <?php $__empty_1 = true; $__currentLoopData = $materis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr>
                         <td>
-                            <span class="badge-week">MG-<?php echo e($item->week); ?></span>
+                            <span class="badge-week">MG-<?php echo e($item['week'] ?? 'N/A'); ?></span>
                         </td>
                         <td>
                             <div class="materi-info">
-                                <strong><?php echo e($item->title); ?></strong>
-                                <small><?php echo e($item->material_name); ?></small>
+                                <strong><?php echo e($item['title'] ?? 'Untitled'); ?></strong>
+                                <small><?php echo e($item['subject_name'] ?? $subject_name); ?></small>
                             </div>
                         </td>
                         <td>
-                            <?php if($item->file_path): ?>
-                                <a target="_blank" href="<?php echo e(asset('storage/'.$item->file_path)); ?>" class="badge-file">
+                            <?php if(!empty($item['file_path'])): ?>
+                                <a target="_blank" href="<?php echo e($item['file_path']); ?>" class="badge-file">
                                     <i class="fa-solid fa-file-pdf"></i> PDF Tersedia
                                 </a>
                             <?php else: ?>
@@ -107,17 +107,17 @@
                         </td>
                         <td>
                             <div class="action-group">
-                                <?php if($item->file_path): ?>
-                                    <a href="<?php echo e(asset('storage/'.$item->file_path)); ?>" download class="btn-icon blue" title="Download PDF">
+                                <?php if(!empty($item['file_path'])): ?>
+                                    <a href="<?php echo e($item['file_path']); ?>" download class="btn-icon blue" title="Download PDF">
                                         <i class="fa-solid fa-download"></i>
                                     </a>
                                 <?php endif; ?>
 
-                                <button type="button" onclick="fillEditForm('<?php echo e($item->title); ?>', '<?php echo e($item->week); ?>')" class="btn-icon dark" title="Edit Materi">
+                                <button type="button" onclick="fillEditForm('<?php echo e(addslashes($item['title'] ?? '')); ?>', '<?php echo e($item['week'] ?? ''); ?>')" class="btn-icon dark" title="Edit Materi">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
 
-                                <form method="POST" action="<?php echo e(route('pengajar.materi.destroy', $item->material_id)); ?>" onsubmit="return confirm('Hapus materi ini? Data di aplikasi peserta didik juga akan terhapus.')" style="margin: 0;">
+                                <form method="POST" action="<?php echo e(route('pengajar.materi.destroy', $item['material_id'] ?? 0)); ?>" onsubmit="return confirm('Hapus materi ini? Data di aplikasi peserta didik juga akan terhapus.')" style="margin: 0;">
                                     <?php echo csrf_field(); ?>
                                     <?php echo method_field('DELETE'); ?>
                                     <button type="submit" class="btn-icon red" title="Hapus Materi">
@@ -128,15 +128,15 @@
                         </td>
                     </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                    <tr>
-                        <td colspan="4">
-                            <div class="cp-empty-state">
-                                <i class="fa-regular fa-folder-open"></i>
-                                <strong>Belum ada materi.</strong>
-                                <span>Silakan unggah materi pertama melalui form di atas.</span>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="4">
+                                <div class="cp-empty-state">
+                                    <i class="fa-regular fa-folder-open"></i>
+                                    <strong>Belum ada materi.</strong>
+                                    <span>Silakan unggah materi pertama melalui form di atas.</span>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>

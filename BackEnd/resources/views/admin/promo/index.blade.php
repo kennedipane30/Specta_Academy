@@ -8,11 +8,18 @@
     $promoCollection = method_exists($promos, 'getCollection') ? $promos->getCollection() : collect($promos);
     $totalPromo = method_exists($promos, 'total') ? $promos->total() : $promoCollection->count();
     $totalQuota = $promoCollection->sum('quota');
+
+    // KALKULASI DINAMIS METRIK KE-3: Promo Aktif & Belum Kadaluarsa
+    $activePromoCount = $promoCollection->filter(function($row) {
+        $endDate = $row->end_date ? \Carbon\Carbon::parse($row->end_date) : null;
+        $isExpired = $endDate ? now()->greaterThan($endDate->endOfDay()) : false;
+        return ($row->is_active ?? true) && !$isExpired;
+    })->count();
 @endphp
 
 <div class="pm-page">
 
-    {{-- HEADER --}}
+    {{-- ── 1. HEADER (BREADCRUMB CAPSULE & SHARP TITLE) ── --}}
     <section class="pm-header">
         <div class="pm-header-text">
             <span class="pm-kicker">Promosi & Informasi</span>
@@ -20,10 +27,11 @@
             <p>Kelola strategi diskon untuk setiap program kelas Spekta Academy.</p>
         </div>
 
-        <a href="#promoForm" class="pm-primary-btn">
-            <i class="fa-solid fa-plus"></i>
-            Buat Promo Baru
-        </a>
+        <!-- Tombol Pemicu Buka-Tutup Form (Sangat Interaktif) -->
+        <button type="button" class="pm-primary-btn" onclick="togglePromoForm()">
+            <i class="fa-solid fa-plus" id="toggle-icon"></i>
+            <span id="toggle-text">Buat Promo Baru</span>
+        </button>
     </section>
 
     {{-- ALERTS --}}
@@ -51,10 +59,11 @@
         </div>
     @endif
 
-    {{-- STATISTIK --}}
+    {{-- ── 2. STATS GRID (KINI BERJUMLAH 3 DAN SEIMBANG) ── --}}
     <section class="pm-stats">
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon">
+        <!-- Total Promo -->
+        <div class="pm-stat-card card-red">
+            <div class="pm-stat-icon red">
                 <i class="fa-solid fa-tags"></i>
             </div>
             <div class="pm-stat-info">
@@ -63,8 +72,9 @@
             </div>
         </div>
 
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon info-icon">
+        <!-- Total Kuota -->
+        <div class="pm-stat-card card-teal">
+            <div class="pm-stat-icon teal">
                 <i class="fa-solid fa-ticket"></i>
             </div>
             <div class="pm-stat-info">
@@ -72,9 +82,23 @@
                 <h2>{{ number_format($totalQuota) }}</h2>
             </div>
         </div>
+
+        <!-- Promo Aktif -->
+        <div class="pm-stat-card card-orange">
+            <div class="pm-stat-icon orange">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="pm-stat-info">
+                <p>Promo Aktif</p>
+                <h2>{{ number_format($activePromoCount) }}</h2>
+            </div>
+            @if($activePromoCount > 0)
+                <span class="pm-pulse-dot"></span>
+            @endif
+        </div>
     </section>
 
-    {{-- FORM SECTION --}}
+    {{-- ── 3. FORM PANEL (COLLAPSIBLE / ANIMASI BUKA-TUTUP NYATA) ── --}}
     <section class="pm-form-panel" id="promoForm">
         <div class="pm-panel-heading">
             <div>
@@ -92,7 +116,7 @@
                     <i class="fa-solid fa-ticket"></i>
                     <input type="text" name="code" id="promoCode" value="{{ old('code') }}" placeholder="CONTOH: SPEKTA50" required style="text-transform: uppercase;">
                 </div>
-                <small class="error-msg" id="codeError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Kode promo harus diisi</small>
+                <small class="error-msg" id="codeError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Kode promo harus diisi</small>
             </div>
 
             <div class="pm-input-group">
@@ -108,7 +132,7 @@
                         @endforeach
                     </select>
                 </div>
-                <small class="error-msg" id="classError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Pilih target kelas</small>
+                <small class="error-msg" id="classError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Pilih target kelas</small>
             </div>
 
             <div class="pm-input-group">
@@ -116,11 +140,11 @@
                 <div class="pm-discount-wrap">
                     <i class="fa-solid fa-percent"></i>
                     <input type="number" name="discount_value" id="discountValue" value="{{ old('discount_value') }}" placeholder="Nilai diskon" required min="1">
-                    <button type="button" id="btn-toggle-type" onclick="toggleDiscountType()">
+                    <button type="button" id="btn-toggle-type" onclick="toggleDiscountType()" title="Klik untuk mengubah mata uang">
                         <span id="display-type">%</span>
                     </button>
                 </div>
-                <small class="error-msg" id="discountError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Diskon harus diisi dengan angka positif</small>
+                <small class="error-msg" id="discountError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Diskon harus diisi dengan angka positif</small>
             </div>
             <input type="hidden" name="discount_type" id="input_discount_type" value="{{ old('discount_type', 'percent') }}">
 
@@ -130,7 +154,7 @@
                     <i class="fa-solid fa-users"></i>
                     <input type="number" name="quota" id="quota" value="{{ old('quota', 100) }}" placeholder="Contoh: 100" min="1" required>
                 </div>
-                <small class="error-msg" id="quotaError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Kuota minimal 1</small>
+                <small class="error-msg" id="quotaError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Kuota minimal 1</small>
             </div>
 
             <div class="pm-input-group">
@@ -139,7 +163,7 @@
                     <i class="fa-regular fa-calendar"></i>
                     <input type="date" name="start_date" id="startDate" value="{{ old('start_date') }}" required min="{{ date('Y-m-d') }}">
                 </div>
-                <small class="error-msg" id="startDateError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Tanggal mulai tidak boleh kurang dari hari ini</small>
+                <small class="error-msg" id="startDateError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Tanggal mulai tidak boleh kurang dari hari ini</small>
             </div>
 
             <div class="pm-input-group">
@@ -148,18 +172,18 @@
                     <i class="fa-regular fa-calendar-check"></i>
                     <input type="date" name="end_date" id="endDate" value="{{ old('end_date') }}" required>
                 </div>
-                <small class="error-msg" id="endDateError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Tanggal berakhir harus minimal 1 hari setelah tanggal mulai</small>
+                <small class="error-msg" id="endDateError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Tanggal berakhir harus minimal 1 hari setelah tanggal mulai</small>
             </div>
 
             <div class="pm-form-action">
                 <button type="submit" class="pm-submit-btn">
-                    Simpan & Terbitkan Promo
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Simpan & Terbitkan Promo
                 </button>
             </div>
         </form>
     </section>
 
-    {{-- PROMO LIST SECTION --}}
+    {{-- ── 4. PROMO LIST SECTION (TAMPILAN CARD DENGAN ACCENT NEON) ── --}}
     <section class="pm-promo-panel">
         <div class="pm-panel-heading">
             <div>
@@ -205,9 +229,20 @@
                         <div class="meta-item">
                             <span>Status</span>
                             @if($isActive)
-                                <strong class="status-active">Aktif</strong>
+                                <span class="pm-card-status active">
+                                    <span class="pm-dot-wrapper">
+                                        <i class="pm-dot"></i>
+                                        <i class="pm-dot-pulse"></i>
+                                    </span>
+                                    Aktif
+                                </span>
                             @else
-                                <strong class="status-inactive">Nonaktif</strong>
+                                <span class="pm-card-status inactive">
+                                    <span class="pm-dot-wrapper">
+                                        <i class="pm-dot"></i>
+                                    </span>
+                                    Nonaktif
+                                </span>
                             @endif
                         </div>
                         <div class="meta-item">
@@ -248,6 +283,24 @@
 </div>
 
 <script>
+    // FUNGSI TOGGLE FORM DENGAN ANIMASI HALUS (UX IMPROVEMENT)
+    function togglePromoForm() {
+        const formPanel = document.getElementById('promoForm');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const toggleText = document.getElementById('toggle-text');
+
+        if (formPanel.classList.contains('show')) {
+            formPanel.classList.remove('show');
+            toggleIcon.className = "fa-solid fa-plus";
+            toggleText.innerText = "Buat Promo Baru";
+        } else {
+            formPanel.classList.add('show');
+            toggleIcon.className = "fa-solid fa-minus";
+            toggleText.innerText = "Sembunyikan Form";
+            formPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
     // Fungsi toggle tipe diskon
     function toggleDiscountType() {
         const inputType = document.getElementById('input_discount_type');
@@ -448,11 +501,31 @@
 </script>
 
 <style>
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
+    }
+
     /* BASE LAYOUT */
     .pm-page {
         width: 100%;
-        font-family: 'Inter', system-ui, sans-serif;
-        color: #334155;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     /* HEADER */
@@ -462,144 +535,195 @@
         align-items: flex-start;
         margin-bottom: 24px;
         gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
     }
     .pm-kicker {
-        display: block;
-        color: #d90429;
-        font-size: 11px;
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
     .pm-header h1 {
-        margin: 0 0 8px;
-        color: #0f172a;
-        font-size: 28px;
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
         font-weight: 900;
         letter-spacing: -0.02em;
     }
     .pm-header p {
         margin: 0;
-        color: #64748b;
-        font-size: 14px;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
     }
     .pm-primary-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: #d90429;
-        color: #fff;
+        background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%);
+        color: var(--spekta-white);
+        border: none;
         border-radius: 12px;
-        padding: 12px 20px;
+        padding: 12px 18px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
         text-decoration: none;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.2);
+        cursor: pointer;
     }
     .pm-primary-btn:hover {
-        background: #b80222;
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(229, 57, 53, 0.3);
+        color: var(--spekta-white);
     }
 
     /* ALERTS */
     .pm-alert {
         border-radius: 12px;
-        padding: 16px;
+        padding: 12px 16px;
         margin-bottom: 24px;
         display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        font-size: 14px;
+        gap: 10px;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 800;
     }
-    .pm-alert.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .pm-alert.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .pm-alert strong { display: block; margin-bottom: 4px; font-weight: 700;}
+    .pm-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0; }
+    .pm-alert.error { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .pm-alert strong { display: block; margin-bottom: 2px; font-weight: 800;}
     .pm-alert ul { margin: 4px 0 0; padding-left: 20px; }
 
-    /* STATS */
+    /* STATS (3 KOLOM SEIMBANG) */
     .pm-stats {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
         margin-bottom: 24px;
     }
     .pm-stat-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 24px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px;
         display: flex;
         align-items: center;
-        gap: 16px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
+        position: relative;
     }
+    .pm-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .pm-stat-card.card-red:hover { border-color: var(--spekta-red); }
+    .pm-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .pm-stat-card.card-orange:hover { border-color: #d97706; }
+
     .pm-stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
         display: grid;
         place-items: center;
-        font-size: 20px;
-        background: #fef2f2;
-        color: #d90429;
+        font-size: 16px;
     }
-    .info-icon { background: #eff6ff; color: #2563eb; }
+    .pm-stat-icon.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+    .pm-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .pm-stat-icon.orange { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+
     .pm-stat-info p {
         margin: 0 0 4px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.04em;
     }
     .pm-stat-info h2 {
         margin: 0;
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-main);
         line-height: 1;
     }
 
-    /* PANELS (FORM & LIST) */
-    .pm-form-panel, .pm-promo-panel {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 30px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    /* Indikator Denyut untuk Promo Aktif */
+    .pm-pulse-dot {
+        position: absolute;
+        top: 14px; right: 14px;
+        width: 6px; height: 6px;
+        background: #d97706;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7);
+        animation: pulseOrange 1.5s infinite;
     }
-    .pm-panel-heading {
+    @keyframes pulseOrange {
+        0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+    }
+
+    /* ── FORM PANEL COLLAPSIBLE (ANIMASI MELUNCUR BULAN/BINTANG) ── */
+    .pm-form-panel {
+        background: var(--spekta-white);
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
         margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid #f1f5f9;
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 20px;
+        border-width: 0;
+        opacity: 0;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.4s ease, border-width 0.4s ease;
+    }
+    .pm-form-panel.show {
+        max-height: 800px;
+        padding: 20px;
+        border: 1px solid var(--border-soft);
+        opacity: 1;
+    }
+
+    .pm-panel-heading {
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--spekta-gray-light);
     }
     .pm-panel-heading h2 {
-        margin: 0 0 6px;
-        font-size: 18px;
+        margin: 0 0 4px;
+        font-size: 15px;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-main);
     }
     .pm-panel-heading p {
         margin: 0;
-        font-size: 13px;
-        color: #64748b;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
     }
 
     /* FORM STYLES */
     .pm-form {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
+        gap: 15px;
     }
     .pm-input-group label {
         display: block;
-        margin-bottom: 8px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #475569;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
     }
     .pm-input-wrap, .pm-discount-wrap {
         position: relative;
@@ -610,47 +734,53 @@
         left: 14px;
         top: 50%;
         transform: translateY(-50%);
-        color: #94a3b8;
-        font-size: 14px;
+        color: var(--spekta-gray);
+        font-size: 12px;
         pointer-events: none;
     }
     .pm-input-wrap input, .pm-input-wrap select, .pm-discount-wrap input {
         width: 100%;
-        height: 46px;
-        border: 1px solid #cbd5e1;
+        height: 40px;
+        border: 1px solid var(--border-soft);
         border-radius: 10px;
-        background: #f8fafc;
-        padding: 0 14px 0 40px;
-        font-size: 14px;
-        color: #1e293b;
+        background: var(--spekta-gray-light);
+        padding: 0 14px 0 38px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
         font-family: inherit;
         outline: none;
-        transition: all 0.2s;
+        transition: all 0.25s;
     }
     .pm-input-wrap input:focus, .pm-input-wrap select:focus, .pm-discount-wrap input:focus {
-        background: #fff;
-        border-color: #d90429;
-        box-shadow: 0 0 0 3px rgba(217, 4, 41, 0.1);
+        background: var(--spekta-white);
+        border-color: var(--spekta-teal);
+        box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12);
     }
 
-    /* Discount special input */
+    /* Perbaikan Input Type Diskon yang Minimalis & Elegan */
     .pm-discount-wrap input {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
         border-right: none;
     }
     .pm-discount-wrap button {
-        width: 60px;
-        border: 1px solid #d90429;
-        background: #d90429;
-        color: #fff;
+        width: 50px;
+        border: 1px solid var(--border-soft);
+        border-left: none;
+        background: var(--spekta-gray-light);
+        color: var(--text-main);
         border-top-right-radius: 10px;
         border-bottom-right-radius: 10px;
         font-weight: 800;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
+        font-size: 12px;
     }
-    .pm-discount-wrap button:hover { background: #b80222; }
+    .pm-discount-wrap button:hover { 
+        background: var(--border-soft); 
+        color: var(--spekta-red); 
+    }
 
     .pm-form-action {
         grid-column: 1 / -1;
@@ -659,141 +789,190 @@
         margin-top: 10px;
     }
     .pm-submit-btn {
-        background: #d90429;
-        color: #fff;
+        background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%);
+        color: var(--spekta-white);
         border: none;
-        padding: 14px 28px;
+        padding: 11px 20px;
         border-radius: 10px;
-        font-size: 14px;
-        font-weight: 700;
+        font-size: 13px;
+        font-weight: 800;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(229, 57, 53, 0.15);
     }
-    .pm-submit-btn:hover { background: #b80222; }
+    .pm-submit-btn:hover { 
+        transform: translateY(-1px); 
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.25); 
+    }
 
-    /* PROMO GRID & CARDS */
+    /* PROMO GRID & CARDS (DESAIN SANGAT KECE) */
+    .pm-promo-panel {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+    }
+
     .pm-promo-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
+        gap: 16px;
     }
     .pm-promo-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 20px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.25s ease;
     }
     .pm-promo-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        border-color: var(--spekta-gray);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.03);
         transform: translateY(-2px);
     }
     .pm-promo-top {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
     .pm-code {
         display: inline-block;
-        background: #fef2f2;
-        color: #b91c1c;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
         padding: 4px 10px;
         border-radius: 6px;
         font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.05em;
         margin-bottom: 8px;
-        border: 1px solid #fecaca;
+        border: 1px solid rgba(229, 57, 53, 0.1);
     }
     .pm-promo-title-area h3 {
         margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-        color: #0f172a;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--text-main);
         line-height: 1.4;
     }
     .pm-discount { text-align: right; }
-    .pm-discount strong { display: block; font-size: 22px; font-weight: 900; color: #d90429; line-height: 1;}
-    .pm-discount small { font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase;}
+    .pm-discount strong { display: block; font-size: 20px; font-weight: 900; color: var(--spekta-red); line-height: 1;}
+    .pm-discount small { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;}
 
     .pm-promo-meta {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        background: #f8fafc;
-        padding: 16px;
-        border-radius: 12px;
-        margin-bottom: 16px;
+        gap: 10px;
+        background: var(--spekta-gray-light);
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 14px;
         flex-grow: 1;
     }
     .meta-item span {
         display: block;
-        font-size: 10px;
-        color: #64748b;
-        font-weight: 700;
+        font-size: 9px;
+        color: var(--text-muted);
+        font-weight: 800;
         text-transform: uppercase;
         margin-bottom: 2px;
     }
     .meta-item strong {
-        font-size: 13px;
-        color: #1e293b;
+        font-size: 12px;
+        color: var(--text-main);
         font-weight: 700;
     }
-    .status-active { color: #059669 !important; }
-    .status-inactive { color: #ea580c !important; }
+
+    /* Glowing Badge Status */
+    .pm-card-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+    .pm-dot-wrapper {
+        position: relative;
+        width: 5px; height: 5px;
+        display: inline-block;
+    }
+    .pm-dot {
+        width: 5px; height: 5px;
+        border-radius: 99px;
+        background: currentColor;
+        display: block;
+        position: absolute;
+        left: 0; top: 0;
+    }
+    .pm-dot-pulse {
+        width: 5px; height: 5px;
+        border-radius: 99px;
+        background: currentColor;
+        display: block;
+        position: absolute;
+        left: 0; top: 0;
+        opacity: 0.4;
+        transform: scale(1);
+        animation: dotGlow 1.8s infinite ease-in-out;
+    }
+    @keyframes dotGlow {
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(3.2); opacity: 0; }
+    }
+    .pm-card-status.active { color: #15803d; }
+    .pm-card-status.inactive { color: var(--spekta-gray); }
 
     .pm-stop-btn {
         width: 100%;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        padding: 10px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        color: var(--text-muted);
+        padding: 8px;
         border-radius: 10px;
-        font-size: 12px;
-        font-weight: 700;
+        font-size: 11px;
+        font-weight: 800;
         cursor: pointer;
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         transition: all 0.2s;
     }
     .pm-stop-btn:hover {
-        background: #fef2f2;
-        border-color: #fecaca;
-        color: #dc2626;
+        background: var(--spekta-red-light);
+        border-color: rgba(229, 57, 53, 0.15);
+        color: var(--spekta-red);
     }
 
     /* EMPTY STATE */
     .pm-empty {
         grid-column: 1 / -1;
         text-align: center;
-        padding: 60px 20px;
-        background: #f8fafc;
-        border-radius: 16px;
-        border: 1px dashed #cbd5e1;
+        padding: 48px;
+        background: var(--spekta-gray-light);
+        border-radius: 12px;
+        border: 1px dashed var(--border-soft);
     }
     .pm-empty-icon {
-        width: 64px;
-        height: 64px;
-        background: #fff;
+        width: 48px;
+        height: 48px;
+        background: var(--spekta-white);
         border-radius: 50%;
         display: grid;
         place-items: center;
-        font-size: 24px;
-        color: #94a3b8;
-        margin: 0 auto 16px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        font-size: 18px;
+        color: var(--spekta-gray);
+        margin: 0 auto 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
-    .pm-empty strong { display: block; font-size: 16px; color: #1e293b; margin-bottom: 4px;}
-    .pm-empty p { margin: 0; font-size: 14px; color: #64748b; }
+    .pm-empty strong { display: block; font-size: 14px; color: var(--text-main); margin-bottom: 4px; font-weight: 800;}
+    .pm-empty p { margin: 0; font-size: 12px; color: var(--text-muted); font-weight: 600; }
 
     .error-msg {
-        display: block;
+        display: none;
     }
 
     /* RESPONSIVE */
@@ -801,11 +980,12 @@
         .pm-promo-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
-        .pm-header { flex-direction: column; align-items: flex-start; }
+        .pm-header { flex-direction: column; align-items: flex-start; gap: 14px; }
         .pm-form { grid-template-columns: 1fr; }
         .pm-stats, .pm-promo-grid { grid-template-columns: 1fr; }
         .pm-form-action { justify-content: flex-start; }
         .pm-submit-btn { width: 100%; }
+        .pm-form-panel.show { padding: 15px; }
     }
 </style>
 @endsection

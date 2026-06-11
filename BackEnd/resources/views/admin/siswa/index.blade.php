@@ -6,83 +6,91 @@
 @section('content')
 <div class="ss-page">
 
-    {{-- ── HEADER ── --}}
+    {{-- ── 1. HEADER (ASIMETRIS & CLEAN) ── --}}
     <section class="ss-header">
         <div class="ss-header-left">
-            <span class="ss-breadcrumb">Manajemen Akademik</span>
+            <span class="ss-breadcrumb-capsule">Manajemen Akademik</span>
             <h1>Manajemen Siswa</h1>
             <p>Kelola data siswa Spekta Academy secara efisien berdasarkan data pendaftaran dari aplikasi.</p>
         </div>
         <div class="ss-header-actions">
             <a href="{{ route('admin.siswa.pendaftaran') }}" class="ss-btn-primary">
                 <i class="fa-solid fa-circle-check"></i>
-                Konfirmasi Kelas
+                <span>Konfirmasi Kelas</span>
                 @if(($pendingEnrollment ?? 0) > 0)
-                    <em>{{ $pendingEnrollment }}</em>
+                    <em class="bounce-pulse">{{ $pendingEnrollment }}</em>
                 @endif
             </a>
         </div>
     </section>
 
-    {{-- ── STAT CARDS ── --}}
+    {{-- ── 2. STAT CARDS (TACO & GLOWING ACCENT) ── --}}
     <section class="ss-stats">
 
-        <div class="ss-stat-card">
+        <!-- Card: Total Siswa -->
+        <div class="ss-stat-card card-teal">
             <div class="ss-stat-top">
-                <div class="ss-stat-icon red">
+                <div class="ss-stat-icon teal">
                     <i class="fa-solid fa-user-group"></i>
                 </div>
                 <span class="ss-stat-badge green">Live</span>
             </div>
-            <p class="ss-stat-label">Total Siswa</p>
-            <h2 class="ss-stat-val">{{ number_format($totalSiswa ?? 0) }}</h2>
+            <div class="ss-stat-info">
+                <p class="ss-stat-label">Total Siswa</p>
+                <h2 class="ss-stat-val">{{ number_format($totalSiswa ?? 0) }}</h2>
+            </div>
             <div class="ss-stat-bar">
-                <div class="ss-stat-bar-fill" style="width:100%"></div>
+                <div class="ss-stat-bar-fill teal" style="width:100%"></div>
             </div>
             <small class="ss-stat-sub">data siswa terdaftar</small>
         </div>
 
-        <div class="ss-stat-card">
+        <!-- Card: Siswa Aktif -->
+        <div class="ss-stat-card card-green">
             <div class="ss-stat-top">
                 <div class="ss-stat-icon green">
                     <i class="fa-solid fa-user-check"></i>
                 </div>
                 <span class="ss-stat-badge green">Aktif</span>
             </div>
-            <p class="ss-stat-label">Siswa Aktif</p>
-            <h2 class="ss-stat-val">{{ number_format($siswaAktif ?? 0) }}</h2>
+            <div class="ss-stat-info">
+                <p class="ss-stat-label">Siswa Aktif</p>
+                <h2 class="ss-stat-val">{{ number_format($siswaAktif ?? 0) }}</h2>
+            </div>
             <div class="ss-stat-bar">
-                <div class="ss-stat-bar-fill green" style="width:68%"></div>
+                <div class="ss-stat-bar-fill green" style="width:100%"></div>
             </div>
             <small class="ss-stat-sub">enrollment aktif</small>
         </div>
 
-        <div class="ss-stat-card">
+        <!-- Card: Siswa Baru -->
+        <div class="ss-stat-card card-red">
             <div class="ss-stat-top">
-                <div class="ss-stat-icon blue">
+                <div class="ss-stat-icon red">
                     <i class="fa-solid fa-user-plus"></i>
                 </div>
-                <span class="ss-stat-badge {{ ($growthSiswa ?? 0) >= 0 ? 'green' : 'red' }}">
+                <span class="ss-stat-badge {{ ($growthSiswa ?? 0) >= 0 ? 'red' : 'red-dark' }}">
                     {{ ($growthSiswa ?? 0) >= 0 ? '+' : '' }}{{ $growthSiswa ?? 0 }}%
                 </span>
             </div>
-            <p class="ss-stat-label">Siswa Baru Bulan Ini</p>
-            <h2 class="ss-stat-val">{{ number_format($siswaBaruBulanIni ?? 0) }}</h2>
+            <div class="ss-stat-info">
+                <p class="ss-stat-label">Siswa Baru Bulan Ini</p>
+                <h2 class="ss-stat-val">{{ number_format($siswaBaruBulanIni ?? 0) }}</h2>
+            </div>
             <div class="ss-stat-bar">
-                <div class="ss-stat-bar-fill blue" style="width:42%"></div>
+                <div class="ss-stat-bar-fill red" style="width:100%"></div>
             </div>
             <small class="ss-stat-sub">vs bulan lalu</small>
         </div>
 
     </section>
 
-    {{-- ── MAIN GRID ── --}}
+    {{-- ── 3. MAIN GRID (TOOLBAR & SLEEK TABLE) ── --}}
     <section class="ss-main-grid">
 
-        {{-- TABLE PANEL --}}
         <div class="ss-table-panel">
 
-            {{-- Toolbar --}}
+            {{-- Toolbar Pencarian --}}
             <form method="GET" action="{{ route('admin.siswa.index') }}" class="ss-toolbar">
                 <div class="ss-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
@@ -99,7 +107,7 @@
                 </button>
             </form>
 
-            {{-- Table --}}
+            {{-- Tabel Siswa --}}
             <div class="ss-table-wrap">
                 <table class="ss-table">
                     <thead>
@@ -128,11 +136,11 @@
                                 $st = $statusMap[$status] ?? $statusMap['registered'];
 
                                 $initial = strtoupper(substr($s->name, 0, 1));
-                                $avatarColors = ['#D90429','#7C3AED','#0369A1','#15803D','#C2410C'];
+                                $avatarColors = ['#e53935','#2ea8ab','#c5352c','#9e9e9e','#1f2937'];
                                 $avatarBg = $avatarColors[crc32($s->name) % count($avatarColors)];
                             @endphp
                             <tr>
-                                {{-- Nama --}}
+                                {{-- Nama & Profil Siswa --}}
                                 <td>
                                     <div class="ss-student">
                                         <div class="ss-avatar" style="background:{{ $avatarBg }}">
@@ -160,16 +168,20 @@
                                     <span class="ss-program-name">{{ $activeClass?->program_name ?? '—' }}</span>
                                 </td>
 
-                                {{-- Status --}}
+                                {{-- Status (Desain Dot Pulsing) --}}
                                 <td>
                                     <span class="ss-status {{ $st['cls'] }}">
-                                        <i class="ss-dot"></i>{{ $st['label'] }}
+                                        <span class="ss-dot-wrapper">
+                                            <i class="ss-dot"></i>
+                                            <i class="ss-dot-pulse"></i>
+                                        </span>
+                                        {{ $st['label'] }}
                                     </span>
                                 </td>
 
-                                {{-- Tanggal --}}
+                                {{-- Tanggal Daftar --}}
                                 <td class="ss-date">
-                                    {{ $s->created_at?->translatedFormat('d M Y') ?? '-' }}
+                                    <i class="fa-regular fa-clock"></i> {{ $s->created_at?->translatedFormat('d M Y') ?? '-' }}
                                 </td>
                             </tr>
                         @empty
@@ -189,7 +201,7 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
+            {{-- Navigasi Halaman (Pagination) --}}
             <div class="ss-pagination">
                 <p>
                     Menampilkan
@@ -229,55 +241,64 @@
                 @endif
             </div>
 
-        </div>{{-- /table-panel --}}
+        </div>
 
-    </section>{{-- /main-grid --}}
+    </section>
 
 </div>
 
 {{-- ══════════════════════════════════════════════════════════ --}}
-{{--  STYLES                                                   --}}
+{{--  STYLES MODERN STYLE (STYLE GEN-Z)                         --}}
 {{-- ══════════════════════════════════════════════════════════ --}}
 <style>
 /* ── Base ─────────────────────────────────────────────────── */
 .ss-page {
     width: 100%;
-    font-family: 'Inter', system-ui, sans-serif;
-    color: #111827;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    color: #1f2937;
+    animation: slideInUp 0.4s ease-out;
 }
 
-/* ── Header ───────────────────────────────────────────────── */
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header (Clean & Modern) ──────────────────────────────── */
 .ss-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
-.ss-breadcrumb {
-    display: block;
-    color: #d90429;
+.ss-breadcrumb-capsule {
+    display: inline-block;
+    background: rgba(229, 57, 53, 0.08);
+    color: #c5352c;
     font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .18em;
+    font-weight: 800;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
     margin-bottom: 8px;
 }
 
 .ss-header h1 {
     margin: 0 0 6px;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 900;
-    letter-spacing: -.03em;
-    color: #0f172a;
+    letter-spacing: -0.03em;
+    color: #111827;
 }
 
 .ss-header p {
     margin: 0;
     color: #6b7280;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .ss-header-actions {
@@ -290,125 +311,159 @@
 .ss-btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    height: 44px;
-    padding: 0 20px;
-    background: #d90429;
+    gap: 8px;
+    height: 42px;
+    padding: 0 18px;
+    background: linear-gradient(135deg, #e53935 0%, #c5352c 100%);
     color: #fff;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 800;
     white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(217,4,41,.28);
-    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 6px 15px rgba(229, 57, 53, 0.2);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ss-btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgba(217,4,41,.35);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(229, 57, 53, 0.3);
     color: #fff;
 }
 .ss-btn-primary em {
-    min-width: 22px;
-    height: 22px;
+    min-width: 20px;
+    height: 20px;
     display: grid;
     place-items: center;
     background: #fff;
-    color: #d90429;
+    color: #e53935;
     border-radius: 99px;
     font-size: 10px;
     font-style: normal;
     font-weight: 900;
 }
 
-/* ── Stat Cards ───────────────────────────────────────────── */
+.bounce-pulse {
+    animation: bouncePulse 2s infinite;
+}
+
+@keyframes bouncePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ── Stat Cards (Tactile Hover & Glow) ────────────────────── */
 .ss-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0,1fr)); /* Diubah menjadi 3 kolom */
-    gap: 18px;
-    margin-bottom: 26px;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .ss-stat-card {
     background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: 22px;
-    padding: 22px 20px 18px;
-    box-shadow: 0 2px 12px rgba(15,23,42,.04);
-    transition: box-shadow .2s, transform .2s;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
+
+/* Garis aksen tipis di bagian atas kartu stat */
+.ss-stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 4px;
+    transition: height 0.2s ease;
+}
+
+.card-teal::before { background: #2ea8ab; }
+.card-green::before { background: #16a34a; }
+.card-red::before { background: #e53935; }
+
 .ss-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(15,23,42,.08);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 }
+.card-teal:hover { border-color: #2ea8ab; box-shadow: 0 8px 24px rgba(46,168,171,0.08); }
+.card-green:hover { border-color: #16a34a; box-shadow: 0 8px 24px rgba(22,163,74,0.08); }
+.card-red:hover { border-color: #e53935; box-shadow: 0 8px 24px rgba(229,57,53,0.08); }
 
 .ss-stat-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    align-items: center;
+    margin-bottom: 12px;
 }
 
 .ss-stat-icon {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     display: grid;
     place-items: center;
-    border-radius: 14px;
-    font-size: 17px;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: transform 0.2s ease;
 }
-.ss-stat-icon.red    { background: #fff1f2; color: #d90429; }
-.ss-stat-icon.green  { background: #dcfce7; color: #16a34a; }
-.ss-stat-icon.blue   { background: #dbeafe; color: #2563eb; }
+.ss-stat-card:hover .ss-stat-icon {
+    transform: scale(1.1);
+}
+
+.ss-stat-icon.red    { background: rgba(229, 57, 53, 0.08); color: #e53935; }
+.ss-stat-icon.green  { background: rgba(22, 163, 74, 0.08); color: #16a34a; }
+.ss-stat-icon.teal   { background: rgba(46, 168, 171, 0.08); color: #2ea8ab; }
 
 .ss-stat-badge {
-    height: 22px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
-    padding: 0 9px;
-    border-radius: 99px;
-    font-size: 10px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 9px;
     font-weight: 800;
 }
-.ss-stat-badge.green { background: #dcfce7; color: #16a34a; }
-.ss-stat-badge.blue  { background: #dbeafe; color: #2563eb; }
-.ss-stat-badge.red   { background: #fee2e2; color: #dc2626; }
+.ss-stat-badge.green     { background: #e6f7ed; color: #15803d; }
+.ss-stat-badge.blue      { background: #e0f2fe; color: #0369a1; }
+.ss-stat-badge.red       { background: #fee2e2; color: #b91c1c; }
+.ss-stat-badge.red-dark  { background: rgba(197, 53, 44, 0.1); color: #c5352c; }
 
 .ss-stat-label {
     margin: 0 0 4px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #6b7280;
+    font-size: 10px;
+    font-weight: 800;
+    color: #9e9e9e;
     text-transform: uppercase;
     letter-spacing: .06em;
 }
 
 .ss-stat-val {
-    margin: 0 0 14px;
-    font-size: 30px;
+    margin: 0 0 10px;
+    font-size: 26px;
     font-weight: 900;
-    letter-spacing: -.04em;
-    color: #0f172a;
+    letter-spacing: -.03em;
+    color: #111827;
 }
 
 .ss-stat-bar {
     height: 4px;
-    background: #f1f5f9;
+    background: #f3f4f6;
     border-radius: 99px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .ss-stat-bar-fill {
     height: 100%;
     border-radius: 99px;
-    background: #d90429;
     transition: width .6s ease;
 }
+.ss-stat-bar-fill.red    { background: #e53935; }
 .ss-stat-bar-fill.green  { background: #16a34a; }
-.ss-stat-bar-fill.blue   { background: #2563eb; }
+.ss-stat-bar-fill.teal   { background: #2ea8ab; }
 
 .ss-stat-sub {
-    font-size: 11px;
-    color: #9ca3af;
+    font-size: 10px;
+    color: #9e9e9e;
     font-weight: 600;
 }
 
@@ -422,9 +477,9 @@
 .ss-table-panel {
     background: #fff;
     border: 1px solid #edf0f4;
-    border-radius: 22px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(15,23,42,.04);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 2px 12px rgba(15,23,42,.01);
 }
 
 /* toolbar */
@@ -432,7 +487,7 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 
 .ss-search {
@@ -442,52 +497,52 @@
 }
 .ss-search > i {
     position: absolute;
-    left: 13px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #9ca3af;
+    color: #9e9e9e;
     font-size: 12px;
     pointer-events: none;
 }
 .ss-search input {
     width: 100%;
-    height: 42px;
+    height: 40px;
     padding: 0 14px 0 38px;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #f8fafc;
-    font-size: 13px;
-    font-weight: 500;
-    color: #111827;
+    border-radius: 10px;
+    background: #f9fafb;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2937;
     outline: none;
-    transition: border-color .15s, box-shadow .15s;
+    transition: all 0.2s ease;
 }
 .ss-search input:focus {
     background: #fff;
-    border-color: #fca5a5;
-    box-shadow: 0 0 0 3px rgba(217,4,41,.08);
+    border-color: #2ea8ab;
+    box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12);
 }
 
 .ss-btn-search {
-    height: 42px;
+    height: 40px;
     padding: 0 16px;
-    background: #d90429;
+    background: #1f2937;
     color: #fff;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     white-space: nowrap;
     transition: background .15s;
 }
-.ss-btn-search:hover { background: #b80222; }
+.ss-btn-search:hover { background: var(--spekta-red); }
 
 /* table */
-.ss-table-wrap { overflow-x: auto; border-radius: 14px; }
+.ss-table-wrap { overflow-x: auto; border-radius: 12px; }
 
 .ss-table {
     width: 100%;
@@ -496,51 +551,57 @@
 }
 
 .ss-table thead tr {
-    background: #f8fafc;
+    background: #f9fafb;
 }
 
 .ss-table th {
-    padding: 12px 14px;
+    padding: 10px 14px;
     color: #6b7280;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     letter-spacing: .08em;
     text-transform: uppercase;
     text-align: left;
     white-space: nowrap;
-    border-bottom: 1px solid #edf0f4;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .ss-table td {
-    padding: 14px;
+    padding: 12px 14px;
     font-size: 13px;
     font-weight: 600;
     color: #374151;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
 }
 
 .ss-table tbody tr:last-child td { border-bottom: none; }
 
-.ss-table tbody tr:hover { background: #fffbfc; }
+.ss-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+.ss-table tbody tr:hover { 
+    background: #fafbfc; 
+}
 
 /* student cell */
 .ss-student {
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: 10px;
 }
 
 .ss-avatar {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     flex-shrink: 0;
     border-radius: 99px;
     display: grid;
     place-items: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 900;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
 }
 
 .ss-student-info strong {
@@ -553,96 +614,130 @@
 .ss-student-info span,
 .ss-student-info small {
     display: block;
-    color: #9ca3af;
+    color: #9e9e9e;
     font-size: 10px;
     font-weight: 600;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 /* class badge */
 .ss-class-badge {
     display: inline-flex;
     align-items: center;
-    height: 24px;
-    padding: 0 10px;
-    background: #f1f5f9;
-    color: #475569;
-    border-radius: 8px;
-    font-size: 11px;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--spekta-gray-light);
+    color: #4b5563;
+    border-radius: 6px;
+    font-size: 10px;
     font-weight: 800;
     white-space: nowrap;
 }
 
 /* program name */
 .ss-program-name {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    color: #374151;
+    color: #4b5563;
 }
 
-/* status */
+/* status (Glow style) */
 .ss-status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 24px;
-    padding: 0 10px;
-    border-radius: 99px;
-    font-size: 10px;
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 9px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .04em;
     white-space: nowrap;
 }
+
+.ss-dot-wrapper {
+    position: relative;
+    width: 5px;
+    height: 5px;
+    display: inline-block;
+}
+
 .ss-status .ss-dot {
     width: 5px;
     height: 5px;
     border-radius: 99px;
     background: currentColor;
-    display: inline-block;
-    flex-shrink: 0;
+    display: block;
+    position: absolute;
+    left: 0; top: 0;
 }
-.ss-status.active     { background: #dcfce7; color: #16a34a; }
+
+.ss-status .ss-dot-pulse {
+    width: 5px;
+    height: 5px;
+    border-radius: 99px;
+    background: currentColor;
+    display: block;
+    position: absolute;
+    left: 0; top: 0;
+    opacity: 0.4;
+    transform: scale(1);
+    animation: pulseGlow 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(3.2); opacity: 0; }
+}
+
+.ss-status.active     { background: #e6f7ed; color: #16a34a; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.12); }
 .ss-status.pending    { background: #fff7ed; color: #c2410c; }
 .ss-status.expired    { background: #fee2e2; color: #dc2626; }
-.ss-status.registered { background: #dbeafe; color: #1d4ed8; }
+.ss-status.registered { background: #e0f2fe; color: #0269a1; }
 
 /* date */
 .ss-date {
     color: #6b7280;
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.ss-date i {
+    color: #9e9e9e;
+    margin-right: 3px;
 }
 
 /* muted */
-.ss-muted { color: #d1d5db; font-size: 16px; }
+.ss-muted { color: #d1d5db; font-size: 14px; }
 
 /* empty */
 .ss-empty {
-    padding: 40px 20px;
+    padding: 36px 18px;
     text-align: center;
 }
 .ss-empty-icon {
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
     display: grid;
     place-items: center;
-    margin: 0 auto 14px;
-    background: #fff1f2;
-    color: #d90429;
+    margin: 0 auto 12px;
+    background: var(--spekta-red-light);
+    color: var(--spekta-red);
     border-radius: 99px;
-    font-size: 20px;
+    font-size: 18px;
 }
 .ss-empty strong {
     display: block;
     color: #111827;
-    font-size: 15px;
-    font-weight: 900;
-    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
 }
 .ss-empty span {
     display: block;
-    color: #9ca3af;
-    font-size: 13px;
+    color: #9e9e9e;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 /* pagination */
@@ -651,59 +746,61 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding-top: 18px;
-    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
     margin-top: 4px;
     flex-wrap: wrap;
 }
 .ss-pagination p {
     margin: 0;
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
-    font-weight: 600;
+    font-weight: 700;
 }
 .ss-pagination p strong { color: #111827; font-weight: 800; }
 
 .ss-pages {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 .ss-page-btn {
-    min-width: 34px;
-    height: 34px;
+    min-width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 8px;
     color: #6b7280;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
     text-decoration: none;
-    transition: background .15s, border-color .15s;
+    transition: all 0.2s ease;
 }
 .ss-page-btn:hover:not(.disabled):not(.active) {
-    border-color: #fca5a5;
-    color: #d90429;
+    border-color: #2ea8ab;
+    color: #2ea8ab;
+    background: rgba(46, 168, 171, 0.04);
 }
 .ss-page-btn.active {
-    background: #d90429;
+    background: #1f2937;
     color: #fff;
-    border-color: #d90429;
+    border-color: #1f2937;
+    box-shadow: 0 3px 8px rgba(31, 41, 55, 0.2);
 }
 .ss-page-btn.disabled { opacity: .4; pointer-events: none; }
-.ss-page-dots { color: #9ca3af; font-size: 13px; }
+.ss-page-dots { color: #9ca3af; font-size: 12px; }
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1280px) {
-    .ss-stats               { grid-template-columns: repeat(2,1fr); }
+    .ss-stats { grid-template-columns: repeat(2,1fr); }
 }
 
 @media (max-width: 768px) {
-    .ss-header              { flex-direction: column; gap: 14px; }
-    .ss-stats               { grid-template-columns: 1fr; }
-    .ss-toolbar             { flex-direction: column; }
-    .ss-pagination          { flex-direction: column; align-items: flex-start; }
+    .ss-header { flex-direction: column; gap: 14px; }
+    .ss-stats { grid-template-columns: 1fr; }
+    .ss-toolbar { flex-direction: column; }
+    .ss-pagination { flex-direction: column; align-items: flex-start; }
 }
 </style>
 @endsection

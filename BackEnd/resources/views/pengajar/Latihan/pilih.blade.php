@@ -1,5 +1,11 @@
 @extends('layouts.spekta')
 
+@section('head')
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+@endsection
+
 @section('title', 'Kelola Latihan ' . $subject_name)
 @section('subtitle', 'Import dan kelola latihan soal mingguan')
 
@@ -179,8 +185,15 @@
                                 </span>
                             </td>
 
+                            {{-- ============================================================ --}}
+                            {{-- 🔥 MODIFIKASI: Form Delete dengan parameter yang benar --}}
+                            {{-- ============================================================ --}}
                             <td>
-                                <form action="{{ route('pengajar.latihan.destroy_week', [$class->class_id, $subject_name, $p->week]) }}"
+                                <form action="{{ route('pengajar.latihan.destroy_week', [
+                                    'class_id' => $class->class_id,
+                                    'subject_name' => $subject_name,
+                                    'week' => $p->week
+                                ]) }}"
                                       method="POST"
                                       onsubmit="return confirm('Hapus semua soal di Minggu ke-{{ $p->week }}?')">
                                     @csrf
@@ -242,6 +255,7 @@
         font-size: 11px;
         font-weight: 900;
         margin-bottom: 18px;
+        text-decoration: none;
     }
 
     .pq-detail-header span {

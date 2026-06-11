@@ -13,7 +13,7 @@
 
 <div class="sc-page">
 
-    {{-- HEADER --}}
+    {{-- ── 1. HEADER (BREADCRUMB CAPSULE & SHARP TITLE) ── --}}
     <section class="sc-header">
         <div class="sc-header-title">
             <nav class="sc-breadcrumb">
@@ -43,7 +43,35 @@
         </div>
     @endif
 
-    {{-- FORM BUAT JADWAL (HANYA UNTUK ADMIN) --}}
+    {{-- ── 2. STATS CARDS (KINI DI ATAS SEBAGAI RINGKASAN KONTEKS) ── --}}
+    <section class="sc-stats">
+        <!-- Total Jadwal -->
+        <div class="sc-stat-card card-red">
+            <div class="sc-icon-box red"><i class="fa-regular fa-calendar-days"></i></div>
+            <div class="sc-stat-info">
+                <p>Total Jadwal</p>
+                <strong>{{ number_format($totalJadwalBulanIni ?? 0) }}</strong>
+            </div>
+        </div>
+        <!-- Hari Ini -->
+        <div class="sc-stat-card card-teal">
+            <div class="sc-icon-box teal"><i class="fa-regular fa-clock"></i></div>
+            <div class="sc-stat-info">
+                <p>Hari Ini</p>
+                <strong>{{ number_format($jadwalHariIni ?? 0) }}</strong>
+            </div>
+        </div>
+        <!-- Selesai -->
+        <div class="sc-stat-card card-gray">
+            <div class="sc-icon-box gray"><i class="fa-solid fa-check-double"></i></div>
+            <div class="sc-stat-info">
+                <p>Selesai</p>
+                <strong>{{ number_format($jadwalSelesaiTotal ?? 0) }}</strong>
+            </div>
+        </div>
+    </section>
+
+    {{-- ── 3. FORM BUAT JADWAL (HANYA UNTUK ADMIN) ── --}}
     @if($isAdmin)
     <section class="sc-top-grid">
         <div class="sc-panel sc-form-panel">
@@ -60,7 +88,7 @@
                 <input type="hidden" name="title" id="autoTitle">
 
                 <div class="sc-input-row">
-                    {{-- 1. PILIH PROGRAM --}}
+                    {{-- Pilih Program --}}
                     <div class="sc-input-group">
                         <label>Program</label>
                         <select name="class_id" id="classSelect" required>
@@ -71,7 +99,7 @@
                         </select>
                     </div>
 
-                    {{-- 2. PILIH MATA PELAJARAN (FILTERED BY MATRIX) --}}
+                    {{-- Pilih Mata Pelajaran --}}
                     <div class="sc-input-group">
                         <label>Mata Pelajaran</label>
                         <select name="subject_id" id="subjectSelect" required disabled>
@@ -80,28 +108,28 @@
                     </div>
                 </div>
 
-                {{-- 3. PENGAJAR (READONLY - OTOMATIS) --}}
+                {{-- Pengajar Terdaftar (Kini Menggunakan Read-Only yang Jelas) --}}
                 <div class="sc-input-group">
                     <label>Pengajar Terdaftar</label>
                     <input type="text" id="teacherNameDisplay" class="sc-input-readonly" readonly placeholder="Akan terisi otomatis berdasarkan mata pelajaran...">
                 </div>
 
-                {{-- 4. ATUR WAKTU --}}
+                {{-- Atur Waktu & Tanggal --}}
                 <div class="sc-input-row three-col">
                     <div class="sc-input-group">
                         <label>Hari / Tanggal</label>
                         <input type="date" name="date" id="scheduleDate" required min="{{ date('Y-m-d') }}">
-                        <small class="error-msg" id="dateError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Tanggal tidak boleh kurang dari hari ini</small>
+                        <small class="error-msg" id="dateError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Tanggal tidak boleh kurang dari hari ini</small>
                     </div>
                     <div class="sc-input-group">
                         <label>Jam Mulai</label>
                         <input type="time" name="start_time" id="startTime" required>
-                        <small class="error-msg" id="startTimeError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Jam mulai tidak valid</small>
+                        <small class="error-msg" id="startTimeError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Jam mulai tidak valid</small>
                     </div>
                     <div class="sc-input-group">
                         <label>Jam Selesai</label>
                         <input type="time" name="end_time" id="endTime" required>
-                        <small class="error-msg" id="endTimeError" style="color: #b91c1c; font-size: 10px; display: none; margin-top: 4px;">Jam selesai harus setelah jam mulai</small>
+                        <small class="error-msg" id="endTimeError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Jam selesai harus setelah jam mulai</small>
                     </div>
                 </div>
 
@@ -113,32 +141,7 @@
     </section>
     @endif
 
-    {{-- STATS CARDS --}}
-    <section class="sc-stats">
-        <div class="sc-stat-card">
-            <div class="sc-icon-box red"><i class="fa-regular fa-calendar-days"></i></div>
-            <div class="sc-stat-info">
-                <p>Total Jadwal</p>
-                <strong>{{ number_format($totalJadwalBulanIni ?? 0) }}</strong>
-            </div>
-        </div>
-        <div class="sc-stat-card">
-            <div class="sc-icon-box blue"><i class="fa-regular fa-clock"></i></div>
-            <div class="sc-stat-info">
-                <p>Hari Ini</p>
-                <strong>{{ number_format($jadwalHariIni ?? 0) }}</strong>
-            </div>
-        </div>
-        <div class="sc-stat-card">
-            <div class="sc-icon-box purple"><i class="fa-solid fa-check-double"></i></div>
-            <div class="sc-stat-info">
-                <p>Selesai</p>
-                <strong>{{ number_format($jadwalSelesaiTotal ?? 0) }}</strong>
-            </div>
-        </div>
-    </section>
-
-    {{-- TABLE --}}
+    {{-- ── 4. TABLE JADWAL (RAPI & SELARAS SEJAJAR TENGAH) ── --}}
     <section class="sc-table-panel">
         <div class="sc-table-wrap">
             <table class="sc-table">
@@ -149,7 +152,7 @@
                         <th>Mata Pelajaran</th>
                         <th>Pengajar</th>
                         <th>Status</th>
-                        <th>Aksi</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -163,23 +166,32 @@
                         <tr>
                             <td>
                                 <strong>{{ $start->translatedFormat('d M Y') }}</strong><br>
-                                <small>{{ $start->format('H:i') }} - {{ $end->format('H:i') }}</small>
+                                <small style="color: #9e9e9e; font-weight: 600;">{{ $start->format('H:i') }} - {{ $end->format('H:i') }}</small>
                             </td>
                             <td>{{ $row->class->program_name ?? '-' }}</td>
-                            <td>{{ $row->subject->name ?? $row->title }}</td>
+                            <td>{{ $row->subject_name ?? $row->title }}</td>
                             <td>{{ $row->teacher->name ?? '-' }}</td>
                             <td><span class="sc-status-badge {{ $status }}">{{ ucfirst($status) }}</span></td>
                             <td>
-                                <form action="{{ route('admin.jadwal.destroy', $row->schedule_id) }}" method="POST">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn-delete" onclick="return confirm('Hapus jadwal ini?')">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </form>
+                                <div class="sc-actions-wrap">
+                                    <form action="{{ route('admin.jadwal.destroy', $row->schedule_id) }}" method="POST" style="display: inline-flex;">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn-delete" onclick="return confirm('Hapus jadwal ini?')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center">Belum ada jadwal yang diatur.</td></tr>
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <div class="sc-empty-state">
+                                    <i class="fa-regular fa-calendar-times"></i>
+                                    <span>Belum ada jadwal yang diatur.</span>
+                                </div>
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -188,57 +200,203 @@
 </div>
 
 <style>
-    .sc-page { font-family: 'Inter', sans-serif; padding: 10px; }
-    .sc-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; }
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
+    }
+
+    .sc-page { 
+        font-family: 'Montserrat', sans-serif; 
+        padding: 10px; 
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Header ── */
+    .sc-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-end; 
+        margin-bottom: 24px; 
+        border-bottom: 1px solid var(--border-soft); 
+        padding-bottom: 20px; 
+    }
+    
+    .sc-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .sc-breadcrumb a { color: var(--spekta-teal); text-decoration: none; }
+    .sc-breadcrumb i { font-size: 8px; color: var(--spekta-gray); }
+
     .sc-title-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 8px;}
-    .sc-header h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0; }
-    .sc-badge-live { background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; color: #64748b; display: flex; align-items: center; gap: 6px; border: 1px solid #e2e8f0; }
+    .sc-header h1 { font-size: 24px; font-weight: 900; color: var(--text-main); margin: 0; letter-spacing: -0.02em; }
+    
+    .sc-badge-live { 
+        background: var(--spekta-gray-light); 
+        padding: 4px 12px; 
+        border-radius: 20px; 
+        font-size: 10px; 
+        font-weight: 800; 
+        color: var(--text-muted); 
+        display: flex; 
+        align-items: center; 
+        gap: 6px; 
+        border: 1px solid var(--border-soft); 
+    }
+    
     .dot-pulse { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
-    .sc-header p {margin: 0; color: #64748b; font-size: 14px;}
+    .sc-header p { margin: 0; color: var(--text-muted); font-size: 13px; font-weight: 600;}
 
-    .sc-alert { display: flex; gap: 10px; align-items: center; padding: 14px 20px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; font-size: 14px;}
-    .sc-alert.success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0;}
+    /* Alert */
+    .sc-alert { display: flex; gap: 10px; align-items: center; padding: 12px 18px; border-radius: 12px; margin-bottom: 24px; font-weight: 800; font-size: 13px;}
+    .sc-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0;}
 
-    .sc-top-grid { display: block; margin-bottom: 30px; }
-    .sc-panel { background: #fff; border-radius: 22px; padding: 25px; border: 1px solid #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.03); }
+    /* ── Stats Cards (Metrik yang Rapi di Atas) ── */
+    .sc-stats { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 16px; 
+        margin-bottom: 24px; 
+    }
+    .sc-stat-card { 
+        background: var(--spekta-white); 
+        border-radius: 14px; 
+        padding: 16px; 
+        display: flex; 
+        align-items: center; 
+        gap: 14px; 
+        border: 1px solid var(--border-soft); 
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
+    }
+    .sc-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .sc-stat-card.card-red:hover { border-color: var(--spekta-red); }
+    .sc-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .sc-stat-card.card-gray:hover { border-color: var(--spekta-gray); }
 
-    .sc-panel-heading {display: flex; gap: 15px; align-items: center; margin-bottom: 20px;}
-    .sc-heading-icon { width: 45px; height: 45px; background: #fff1f2; color: #d90429; display: grid; place-items: center; border-radius: 12px; font-size: 20px;}
-    .sc-panel-heading h2 { margin: 0; font-size: 18px; font-weight: 800;}
+    .sc-icon-box { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; }
+    .sc-icon-box.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+    .sc-icon-box.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .sc-icon-box.gray { background: var(--spekta-gray-light); color: var(--text-muted); }
+    .sc-stat-info p { margin: 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .sc-stat-info strong { font-size: 22px; font-weight: 900; color: var(--text-main); display: block; }
+
+    /* Form Panel */
+    .sc-top-grid { display: block; margin-bottom: 24px; }
+    .sc-panel { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
+
+    .sc-panel-heading { display: flex; gap: 12px; align-items: center; margin-bottom: 18px;}
+    .sc-heading-icon { width: 38px; height: 38px; background: var(--spekta-red-light); color: var(--spekta-red); display: grid; place-items: center; border-radius: 10px; font-size: 16px;}
+    .sc-panel-heading h2 { margin: 0; font-size: 15px; font-weight: 800;}
 
     .sc-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .sc-input-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
     .sc-input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-    .sc-input-group label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; }
-    .sc-input-group input, .sc-input-group select { padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: 600; outline: none; transition: all 0.3s; font-family: inherit;}
-    .sc-input-group input:focus, .sc-input-group select:focus { border-color: #d90429; background: #fff;}
-    .sc-input-readonly { background: #eff6ff !important; border-color: #bfdbfe !important; color: #1e40af; cursor: not-allowed; }
+    .sc-input-group label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
+    .sc-input-group input, .sc-input-group select { padding: 11px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--spekta-gray-light); font-weight: 600; outline: none; transition: all 0.25s; font-family: inherit; font-size: 12px; }
+    .sc-input-group input:focus, .sc-input-group select:focus { border-color: var(--spekta-teal); background: var(--spekta-white); box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12); }
+    
+    /* Perubahan Read-Only State yang Seimbang & Pasif */
+    .sc-input-readonly { 
+        background: #f9fafb !important; 
+        border-color: var(--border-soft) !important; 
+        color: var(--text-muted) !important; 
+        cursor: not-allowed; 
+        box-shadow: none !important;
+    }
 
-    .sc-submit { background: linear-gradient(135deg, #d90429 0%, #ef233c 100%); color: #fff; border: none; padding: 14px 24px; border-radius: 14px; font-weight: 800; cursor: pointer; margin-top: 10px; box-shadow: 0 10px 20px rgba(217, 4, 41, 0.2); transition: 0.3s; display: inline-flex; gap: 10px; align-items: center;}
-    .sc-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(217, 4, 41, 0.3); }
+    .sc-submit { background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%); color: var(--spekta-white); border: none; padding: 12px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2); transition: 0.2s; display: inline-flex; gap: 8px; align-items: center; font-family: inherit; font-size: 13px;}
+    .sc-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(229, 57, 53, 0.3); }
 
-    .sc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-    .sc-stat-card { background: #fff; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; border: 1px solid #f1f5f9; }
-    .sc-icon-box { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 18px; }
-    .sc-icon-box.red { background: #fff1f2; color: #d90429; }
-    .sc-icon-box.blue { background: #eff6ff; color: #2563eb; }
-    .sc-icon-box.purple { background: #faf5ff; color: #7c3aed; }
-    .sc-stat-info p { margin: 0; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-    .sc-stat-info strong { font-size: 24px; font-weight: 900; color: #0f172a; display: block; }
-
-    .sc-table-panel { background: #fff; border-radius: 22px; padding: 25px; border: 1px solid #f1f5f9; }
+    /* Table Panel */
+    .sc-table-panel { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); }
     .sc-table-wrap { overflow-x: auto;}
     .sc-table { width: 100%; border-collapse: collapse; min-width: 800px;}
-    .sc-table th { text-align: left; padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase; border-bottom: 2px solid #f8fafc; }
-    .sc-table td { padding: 15px; border-bottom: 1px solid #f8fafc; font-size: 13px; font-weight: 600; color: #334155;}
-    .sc-table tbody tr:last-child td {border-bottom: none;}
-    .sc-status-badge { padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .sc-status-badge.ongoing { background: #dcfce7; color: #15803d; }
-    .sc-status-badge.scheduled { background: #e0f2fe; color: #0369a1; }
-    .sc-status-badge.finished { background: #f1f5f9; color: #64748b; }
-    .btn-delete { color: #d90429; border: none; background: #fff1f2; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; display: grid; place-items: center;}
-    .btn-delete:hover { transform: scale(1.05); background: #fecdd3;}
+    .sc-table th { text-align: left; padding: 12px 14px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--spekta-gray-light); font-weight: 800; letter-spacing: 0.05em; }
+    .sc-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); font-size: 13px; font-weight: 600; color: var(--text-main); vertical-align: middle; }
+    .sc-table tbody tr:last-child td { border-bottom: none; }
+    .sc-table tbody tr:hover { background: #fafbfc; }
+    
+    /* Status Badge alignment */
+    .sc-status-badge { 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        height: 22px; 
+        padding: 0 10px; 
+        border-radius: 6px; 
+        font-size: 9px; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        letter-spacing: 0.02em;
+    }
+    .sc-status-badge.ongoing { background: #e6f7ed; color: #15803d; }
+    .sc-status-badge.scheduled { background: #e0f2fe; color: #0269a1; }
+    .sc-status-badge.finished { background: var(--spekta-gray-light); color: var(--text-muted); }
+    
+    .sc-actions-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .btn-delete { 
+        color: var(--spekta-red); 
+        border: none; 
+        background: var(--spekta-red-light); 
+        width: 30px; 
+        height: 30px; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-size: 12px; 
+        transition: 0.2s; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center;
+    }
+    .btn-delete:hover { transform: scale(1.05); background: #fecaca; color: #991b1b; }
+    
+    .sc-empty-state {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    .sc-empty-state i {
+        font-size: 20px;
+        color: var(--spekta-gray);
+    }
+
     .text-center { text-align: center; }
     .error-msg { display: block; }
 
@@ -267,13 +425,12 @@
         const endTimeError = document.getElementById('endTimeError');
         const form = document.getElementById('scheduleForm');
 
-        // Set min date untuk input date (tanggal tidak boleh kurang dari hari ini)
+        // Set min date untuk input date
         const today = new Date().toISOString().split('T')[0];
         if (dateInput) {
             dateInput.setAttribute('min', today);
         }
 
-        // Fungsi validasi tanggal
         function validateDate() {
             const selectedDate = dateInput.value;
             if (!selectedDate) return true;
@@ -291,7 +448,6 @@
             }
         }
 
-        // Fungsi validasi jam mulai (tidak boleh kurang dari jam sekarang jika tanggal = hari ini)
         function validateStartTime() {
             const selectedDate = dateInput.value;
             const startTime = startTimeInput.value;
@@ -313,7 +469,6 @@
             }
         }
 
-        // Fungsi validasi jam selesai (harus lebih besar dari jam mulai)
         function validateEndTime() {
             const startTime = startTimeInput.value;
             const endTime = endTimeInput.value;
@@ -330,12 +485,10 @@
             }
         }
 
-        // Event listener validasi
         if (dateInput) {
             dateInput.addEventListener('change', function() {
                 validateDate();
                 if (dateInput.value === today) {
-                    // Jika tanggal berubah menjadi hari ini, validasi ulang start time
                     validateStartTime();
                 } else {
                     startTimeError.style.display = 'none';
@@ -351,7 +504,6 @@
             endTimeInput.addEventListener('change', validateEndTime);
         }
 
-        // Validasi sebelum submit
         if (form) {
             form.addEventListener('submit', function(e) {
                 const isDateValid = validateDate();
@@ -369,7 +521,6 @@
             });
         }
 
-        // ========== AJAX untuk getSubjects dan getTeacher (tidak berubah) ==========
         if (classSelect) {
             classSelect.addEventListener('change', function() {
                 const classId = this.value;

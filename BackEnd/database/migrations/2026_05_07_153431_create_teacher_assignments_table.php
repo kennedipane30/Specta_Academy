@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
-        // Hapus tabel jika sudah ada untuk menghindari error saat migrasi ulang
         Schema::dropIfExists('teacher_assignments');
 
         Schema::create('teacher_assignments', function (Blueprint $table) {
@@ -20,13 +19,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('class_id');
             $table->foreign('class_id')->references('class_id')->on('classes')->onDelete('cascade');
 
-            // 3. Relasi ke Mata Pelajaran
-            // MODIFIKASI: Diarahkan ke tabel 'materials' kolom 'material_id'
-            $table->unsignedBigInteger('subject_id');
-            $table->foreign('subject_id')
-                  ->references('material_id')
-                  ->on('materials')
-                  ->onDelete('cascade');
+            // 3. Mata Pelajaran
+            $table->unsignedBigInteger('subject_id')->nullable();
+
+            // ✅ TAMBAHKAN KOLOM subject_name untuk menyimpan nama mata pelajaran
+            $table->string('subject_name', 255)->nullable()->after('subject_id');
 
             $table->timestamps();
         });

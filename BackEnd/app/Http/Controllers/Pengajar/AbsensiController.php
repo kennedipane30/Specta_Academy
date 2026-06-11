@@ -10,25 +10,58 @@ use App\Models\ClassModel;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AbsensiController extends Controller
 {
     /**
-     * 1. Menampilkan daftar kelas + subjek yang ditugaskan ke pengajar.
+     * ✅ LANGSUNG DARI TEACHER_ASSIGNMENTS (sudah ada subject_name)
      */
+    private function getAssignmentsWithSubjects(): array
+    {
+        $userId = Auth::user()->usersID;
+
+        $assignments = TeacherAssignment::with(['classModel'])
+            ->where('user_id', $userId)
+            ->get();
+
+        $result = [];
+        foreach ($assignments as $assignment) {
+            $result[] = (object) [
+                'class_id'     => $assignment->class_id,
+                'classModel'   => $assignment->classModel,
+                'subject_name' => $assignment->subject_name,
+                'subject_id'   => $assignment->subject_id,
+            ];
+        }
+
+        // Sort by class_id and subject_name
+        usort($result, function($a, $b) {
+            $keyA = $a->class_id . '-' . $a->subject_name;
+            $keyB = $b->class_id . '-' . $b->subject_name;
+            return strcmp($keyA, $keyB);
+        });
+
+        return $result;
+    }
+
+    /**
+     * ✅ VALIDASI: Cek apakah pengajar memiliki penugasan
+     */
+    private function hasAssignment(int $classId, string $subjectName): bool
+    {
+        return TeacherAssignment::where('user_id', Auth::user()->usersID)
+            ->where('class_id', $classId)
+            ->where('subject_name', $subjectName)
+            ->exists();
+    }
+
     public function index()
     {
         $teacherId = Auth::user()->usersID;
         $today = now()->toDateString();
 
-        // MODIFIKASI: Menghapus orderBy('subject_name') karena kolom tersebut tidak ada di tabel ini.
-        // Kita sorting menggunakan Collection sortBy agar bisa mengambil nama dari relasi subject.
-        $assignments = TeacherAssignment::with(['classModel', 'subject'])
-            ->where('user_id', $teacherId)
-            ->get()
-            ->sortBy(function($query) {
-                return $query->class_id . '-' . ($query->subject->material_name ?? '');
-            });
+        $assignmentsWithSubjects = $this->getAssignmentsWithSubjects();
 
         $jadwalHariIni = Schedule::where('teacher_id', $teacherId)
             ->whereDate('date', $today)
@@ -36,26 +69,20 @@ class AbsensiController extends Controller
             ->toArray();
 
         return view('pengajar.absensi.index', compact(
-            'assignments',
+            'assignmentsWithSubjects',
             'jadwalHariIni'
         ));
     }
 
-    /**
-     * 2. Menampilkan daftar 20 minggu untuk kelas + subjek tertentu.
-     */
     public function listWeeks($class_id, $subject)
     {
         $teacherId = Auth::user()->usersID;
 
-        // MODIFIKASI: Menggunakan whereHas untuk mencocokkan nama mata pelajaran (string) ke tabel materials
-        $assignment = TeacherAssignment::with('classModel')
-            ->where('user_id', $teacherId)
-            ->where('class_id', $class_id)
-            ->whereHas('subject', function($q) use ($subject) {
-                $q->where('material_name', $subject);
-            })
-            ->firstOrFail();
+        if (!$this->hasAssignment($class_id, $subject)) {
+            abort(403, 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
+
+        $class = ClassModel::findOrFail($class_id);
 
         $doneWeeks = Attendance::where('teacher_id', $teacherId)
             ->where('class_id', $class_id)
@@ -66,26 +93,19 @@ class AbsensiController extends Controller
             ->toArray();
 
         return view('pengajar.absensi.weeks', [
-            'class' => $assignment->classModel,
+            'class' => $class,
             'subject' => $subject,
             'doneWeeks' => $doneWeeks,
         ]);
     }
 
-    /**
-     * 3. Menampilkan form input absensi.
-     */
     public function create($class_id, $subject, $week)
     {
         $teacherId = Auth::user()->usersID;
 
-        // MODIFIKASI: Validasi penugasan menggunakan whereHas
-        TeacherAssignment::where('user_id', $teacherId)
-            ->where('class_id', $class_id)
-            ->whereHas('subject', function($q) use ($subject) {
-                $q->where('material_name', $subject);
-            })
-            ->firstOrFail();
+        if (!$this->hasAssignment($class_id, $subject)) {
+            abort(403, 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
 
         $class = ClassModel::findOrFail($class_id);
 
@@ -111,27 +131,20 @@ class AbsensiController extends Controller
         ));
     }
 
-    /**
-     * 4. Menyimpan data absensi secara massal.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'status' => 'required|array',
-            'class_id' => 'required|integer',
+            'status'       => 'required|array',
+            'class_id'     => 'required|integer',
             'subject_name' => 'required|string',
-            'week' => 'required|integer|min:1|max:20',
+            'week'         => 'required|integer|min:1|max:20',
         ]);
 
         $teacherId = Auth::user()->usersID;
 
-        // MODIFIKASI: Validasi penugasan menggunakan whereHas
-        TeacherAssignment::where('user_id', $teacherId)
-            ->where('class_id', $request->class_id)
-            ->whereHas('subject', function($q) use ($request) {
-                $q->where('material_name', $request->subject_name);
-            })
-            ->firstOrFail();
+        if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
+            return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
 
         foreach ($request->status as $siswaID => $statusValue) {
             if (!in_array($statusValue, ['h', 'i', 'a'])) {
@@ -140,15 +153,15 @@ class AbsensiController extends Controller
 
             Attendance::updateOrCreate(
                 [
-                    'user_id' => $siswaID,
-                    'class_id' => $request->class_id,
+                    'user_id'      => $siswaID,
+                    'class_id'     => $request->class_id,
                     'subject_name' => $request->subject_name,
-                    'week' => $request->week,
+                    'week'         => $request->week,
                 ],
                 [
                     'teacher_id' => $teacherId,
-                    'status' => $statusValue,
-                    'date' => now()->toDateString(),
+                    'status'     => $statusValue,
+                    'date'       => now()->toDateString(),
                 ]
             );
         }
@@ -161,20 +174,13 @@ class AbsensiController extends Controller
             ->with('success', "Absensi Minggu ke-{$request->week} berhasil disimpan!");
     }
 
-    /**
-     * 5. Menampilkan rekapitulasi absensi.
-     */
     public function showRecap($class_id, $subject, $week)
     {
         $teacherId = Auth::user()->usersID;
 
-        // MODIFIKASI: Validasi penugasan menggunakan whereHas
-        TeacherAssignment::where('user_id', $teacherId)
-            ->where('class_id', $class_id)
-            ->whereHas('subject', function($q) use ($subject) {
-                $q->where('material_name', $subject);
-            })
-            ->firstOrFail();
+        if (!$this->hasAssignment($class_id, $subject)) {
+            abort(403, 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
 
         $class = ClassModel::findOrFail($class_id);
 

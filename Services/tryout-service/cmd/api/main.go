@@ -56,8 +56,13 @@ func main() {
 		api.POST("/tryouts/:id/submit", handler.SubmitTryout)
 		api.GET("/questions", handler.GetQuestions)
 		
-		// ✨ MODIFIKASI: Menambahkan rute Endpoint untuk mengambil riwayat Tryout
 		api.GET("/tryouts/history", handler.GetHistory)
+		
+		// ✅ TAMBAH: Route untuk submissions
+		api.GET("/tryouts/submissions", handler.GetSubmissions)
+		
+		// ✅ TAMBAH: Route DELETE untuk menghapus tryout
+		api.DELETE("/tryouts/:id", handler.DeleteTryout)
 	}
 
 	port := os.Getenv("PORT")
@@ -66,6 +71,15 @@ func main() {
 	}
 
 	fmt.Println("🚀 Spekta Tryout Service started on port: " + port)
+	fmt.Println("📋 Available endpoints:")
+	fmt.Println("   POST   /api/tryouts/sync")
+	fmt.Println("   POST   /api/tryouts/submissions/sync")
+	fmt.Println("   GET    /api/tryouts")
+	fmt.Println("   GET    /api/tryouts/:id/questions")
+	fmt.Println("   POST   /api/tryouts/:id/submit")
+	fmt.Println("   GET    /api/tryouts/history")
+	fmt.Println("   GET    /api/tryouts/submissions")
+	fmt.Println("   DELETE /api/tryouts/:id")
 
 	err := r.Run(":" + port)
 	if err != nil {

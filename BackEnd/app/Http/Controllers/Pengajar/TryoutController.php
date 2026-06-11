@@ -13,35 +13,64 @@ use Illuminate\Support\Facades\Log;
 
 class TryoutController extends Controller
 {
-    public function index()
+    /**
+     * ✅ LANGSUNG DARI TEACHER_ASSIGNMENTS
+     */
+    private function getAssignmentsWithSubjects(): array
     {
         $userId = Auth::user()->usersID;
 
-        $assignments = TeacherAssignment::with(['classModel', 'subject'])
+        $assignments = TeacherAssignment::with(['classModel'])
             ->where('user_id', $userId)
             ->get();
 
+        $result = [];
         foreach ($assignments as $assignment) {
-            $subjectName = strtolower(trim($assignment->subject->name ?? ''));
-
-            $assignment->total_soal = TryoutDraft::where('user_id', $userId)
+            $totalSoal = TryoutDraft::where('user_id', $userId)
                 ->where('class_id', $assignment->class_id)
-                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subjectName])
+                ->where('subject_name', $assignment->subject_name)
                 ->count();
+
+            $result[] = (object) [
+                'class_id'     => $assignment->class_id,
+                'classModel'   => $assignment->classModel,
+                'subject_name' => $assignment->subject_name,
+                'total_soal'   => $totalSoal,
+            ];
         }
 
-        return view('pengajar.tryout.index', compact('assignments'));
+        return $result;
+    }
+
+    /**
+     * ✅ VALIDASI: Cek apakah pengajar memiliki penugasan
+     */
+    private function hasAssignment(int $classId, string $subjectName): bool
+    {
+        return TeacherAssignment::where('user_id', Auth::user()->usersID)
+            ->where('class_id', $classId)
+            ->where('subject_name', $subjectName)
+            ->exists();
+    }
+
+    public function index()
+    {
+        $assignmentsWithSubjects = $this->getAssignmentsWithSubjects();
+        return view('pengajar.tryout.index', compact('assignmentsWithSubjects'));
     }
 
     public function create($class_id, $subject_name)
     {
+        if (!$this->hasAssignment($class_id, $subject_name)) {
+            abort(403, 'Anda tidak ditugaskan untuk kelas dan mata pelajaran ini.');
+        }
+
         $classModel = ClassModel::findOrFail($class_id);
-        $cleanSubject = strtolower(trim($subject_name));
         $userId = Auth::user()->usersID;
 
         $existingSoal = TryoutDraft::where('class_id', $class_id)
             ->where('user_id', $userId)
-            ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$cleanSubject])
+            ->where('subject_name', $subject_name)
             ->latest()
             ->get();
 
@@ -57,16 +86,20 @@ class TryoutController extends Controller
     {
         $request->validate([
             'draft_id'       => 'nullable|exists:tryout_drafts,id',
-            'class_id'       => 'required',
-            'subject_name'   => 'required',
-            'question'       => 'required',
-            'option_a'       => 'required',
-            'option_b'       => 'required',
-            'option_c'       => 'required',
-            'option_d'       => 'required',
-            'option_e'       => 'required',
+            'class_id'       => 'required|integer',
+            'subject_name'   => 'required|string',
+            'question'       => 'required|string',
+            'option_a'       => 'required|string',
+            'option_b'       => 'required|string',
+            'option_c'       => 'required|string',
+            'option_d'       => 'required|string',
+            'option_e'       => 'required|string',
             'correct_answer' => 'required|in:A,B,C,D,E',
         ]);
+
+        if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
+            return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
 
         try {
             TryoutDraft::updateOrCreate(
@@ -94,22 +127,22 @@ class TryoutController extends Controller
         }
     }
 
-    /**
-     * 4. IMPORT MASSAL (CSV)
-     */
     public function importCSV(Request $request)
     {
         $request->validate([
             'file_csv'     => 'required|mimes:csv,txt',
-            'class_id'     => 'required',
-            'subject_name' => 'required'
+            'class_id'     => 'required|integer',
+            'subject_name' => 'required|string'
         ]);
+
+        if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
+            return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
 
         $file = $request->file('file_csv');
         $handle = fopen($file->getRealPath(), "r");
 
-        // ✨ PERBAIKAN 1: Ganti koma (",") menjadi titik koma (";")
-        fgetcsv($handle, 2000, ";"); // Lewati Baris Header
+        fgetcsv($handle, 2000, ";");
 
         $count = 0;
         $userId = Auth::user()->usersID;
@@ -117,9 +150,7 @@ class TryoutController extends Controller
 
         DB::beginTransaction();
         try {
-            // ✨ PERBAIKAN 2: Ganti koma (",") menjadi titik koma (";")
             while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
-                // Lewati jika kolom pertanyaan (index 1) kosong
                 if (!isset($row[1]) || empty(trim($row[1]))) continue;
 
                 TryoutDraft::create([
@@ -147,12 +178,19 @@ class TryoutController extends Controller
             return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
         }
     }
+
     public function destroy($id)
     {
         try {
-            TryoutDraft::where('id', $id)
+            $draft = TryoutDraft::where('id', $id)
                 ->where('user_id', Auth::user()->usersID)
-                ->delete();
+                ->first();
+
+            if (!$draft) {
+                return back()->with('error', 'Draf tidak ditemukan atau bukan milik Anda.');
+            }
+
+            $draft->delete();
 
             return back()->with('success', 'Soal berhasil dihapus dari draf.');
         } catch (\Exception $e) {
@@ -162,12 +200,19 @@ class TryoutController extends Controller
 
     public function deleteAllDrafts(Request $request)
     {
+        $request->validate([
+            'class_id'     => 'required|integer',
+            'subject_name' => 'required|string'
+        ]);
+
         try {
-            $subject = strtolower(trim($request->subject_name));
+            if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
+                return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+            }
 
             TryoutDraft::where('user_id', Auth::user()->usersID)
                 ->where('class_id', $request->class_id)
-                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subject])
+                ->where('subject_name', $request->subject_name)
                 ->delete();
 
             return back()->with('success', "Seluruh draf untuk mata pelajaran ini telah dihapus.");

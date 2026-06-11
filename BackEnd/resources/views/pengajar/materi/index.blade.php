@@ -17,7 +17,7 @@
 
         <div class="tm-stat-box">
             <div class="tm-stat-value">
-                {{ count($assignments) }}
+                {{ count($assignmentsWithSubjects ?? []) }}
             </div>
             <div class="tm-stat-label">Total Penugasan</div>
         </div>
@@ -42,38 +42,35 @@
                         <th style="width: 30%">Program Kelas</th>
                         <th style="width: 30%">Mata Pelajaran</th>
                         <th style="width: 20%">Durasi</th>
-                        <th class="text-end" style="width: 20%">Aksi</th> {{-- Header disejajarkan ke kanan --}}
+                        <th class="text-end" style="width: 20%">Aksi</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @forelse($assignments as $assign)
+                    @forelse($assignmentsWithSubjects ?? [] as $assign)
                         <tr>
                             <td>
                                 <div class="tm-class-info">
                                     <strong>{{ $assign->classModel->program_name ?? 'Kelas' }}</strong>
                                     <small>ID #{{ $assign->class_id }}</small>
                                 </div>
-                            </td>
-
+                            </td
                             <td>
                                 <span class="tm-subject-pill">
                                     <i class="fa-solid fa-book-bookmark"></i>
-                                    {{ $assign->subject->name ?? 'Mata Pelajaran' }}
+                                    {{ $assign->subject_name ?? 'Mata Pelajaran' }}
                                 </span>
-                            </td>
-
+                            </td
                             <td>
                                 <span class="tm-muted">20 Minggu</span>
-                            </td>
-
-                            <td class="text-end"> {{-- Kolom aksi disejajarkan ke kanan --}}
-                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_id' => $assign->subject_id]) }}" 
+                            </td
+                            <td class="text-end">
+                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}"
                                    class="tm-btn-manage">
                                     Kelola Materi
                                     <i class="fa-solid fa-arrow-right"></i>
                                 </a>
-                            </td>
+                            </td
                         </tr>
                     @empty
                         <tr>
@@ -82,7 +79,7 @@
                                     <i class="fa-solid fa-folder-open" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
                                     Belum ada penugasan mengajar yang terdaftar.
                                 </div>
-                            </td>
+                            </td
                         </tr>
                     @endforelse
                 </tbody>
@@ -155,7 +152,7 @@
     color: #94a3b8;
     text-transform: uppercase;
     border-bottom: 2px solid #f1f5f9;
-    text-align: left; /* Default kiri */
+    text-align: left;
 }
 
 /* Class khusus untuk meratakan ke kanan */

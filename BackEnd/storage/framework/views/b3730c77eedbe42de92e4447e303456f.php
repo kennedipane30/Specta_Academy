@@ -3,7 +3,7 @@
 
 <?php $__env->startSection('content'); ?>
 <?php
-    $assignmentCollection = collect($assignments);
+    $assignmentCollection = collect($assignmentsWithSubjects ?? []);
     $totalAssignment = $assignmentCollection->count();
     $totalProgram = $assignmentCollection->pluck('class_id')->unique()->count();
     $totalSubject = $assignmentCollection->pluck('subject_name')->unique()->count();
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <?php if($assignments->isEmpty()): ?>
+        <?php if($assignmentCollection->isEmpty()): ?>
             <div class="pq-empty">
                 <i class="fa-solid fa-clipboard-question"></i>
                 <strong>Belum ada penugasan latihan soal.</strong>
@@ -98,7 +98,7 @@
                     </thead>
 
                     <tbody>
-                        <?php $__currentLoopData = $assignments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__currentLoopData = $assignmentsWithSubjects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr>
                                 <td>
                                     <div class="pq-program">
@@ -112,43 +112,37 @@
                                             <span>ID Kelas: <?php echo e($assign->class_id); ?></span>
                                         </section>
                                     </div>
-                                </td>
-
+                                </td
                                 <td>
                                     <span class="pq-subject">
                                         <?php echo e($assign->subject_name); ?>
 
                                     </span>
-                                </td>
-
+                                </td
                                 <td>
                                     <span class="pq-format">
                                         <i class="fa-solid fa-file-csv"></i>
                                         CSV
                                     </span>
-                                </td>
-
+                                </td
                                 <td>
                                     <div class="pq-structure">
                                         <strong>20 Minggu</strong>
                                         <span>Bank soal latihan bertahap</span>
                                     </div>
-                                </td>
-
+                                </td
                                 <td>
                                     <span class="pq-status">
                                         <i class="fa-solid fa-circle"></i>
                                         Aktif
                                     </span>
-                                </td>
-
+                                </td
                                 <td>
-                                    <a href="<?php echo e(route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_id])); ?>" class="pq-action">
-
+                                    <a href="<?php echo e(route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_name])); ?>" class="pq-action">
                                         Kelola Bank Soal
                                         <i class="fa-solid fa-arrow-right"></i>
                                     </a>
-                                </td>
+                                </td
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
@@ -446,6 +440,7 @@
         font-size: 11px;
         font-weight: 900;
         white-space: nowrap;
+        text-decoration: none;
     }
 
     .pq-empty {
@@ -494,4 +489,5 @@
     }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/Latihan/index.blade.php ENDPATH**/ ?>

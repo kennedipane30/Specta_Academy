@@ -90,17 +90,17 @@
                     @forelse($materis as $item)
                     <tr>
                         <td>
-                            <span class="badge-week">MG-{{ $item->week }}</span>
+                            <span class="badge-week">MG-{{ $item['week'] ?? 'N/A' }}</span>
                         </td>
                         <td>
                             <div class="materi-info">
-                                <strong>{{ $item->title }}</strong>
-                                <small>{{ $item->material_name }}</small>
+                                <strong>{{ $item['title'] ?? 'Untitled' }}</strong>
+                                <small>{{ $item['subject_name'] ?? $subject_name }}</small>
                             </div>
                         </td>
                         <td>
-                            @if($item->file_path)
-                                <a target="_blank" href="{{ asset('storage/'.$item->file_path) }}" class="badge-file">
+                            @if(!empty($item['file_path']))
+                                <a target="_blank" href="{{ $item['file_path'] }}" class="badge-file">
                                     <i class="fa-solid fa-file-pdf"></i> PDF Tersedia
                                 </a>
                             @else
@@ -109,17 +109,17 @@
                         </td>
                         <td>
                             <div class="action-group">
-                                @if($item->file_path)
-                                    <a href="{{ asset('storage/'.$item->file_path) }}" download class="btn-icon blue" title="Download PDF">
+                                @if(!empty($item['file_path']))
+                                    <a href="{{ $item['file_path'] }}" download class="btn-icon blue" title="Download PDF">
                                         <i class="fa-solid fa-download"></i>
                                     </a>
                                 @endif
 
-                                <button type="button" onclick="fillEditForm('{{ $item->title }}', '{{ $item->week }}')" class="btn-icon dark" title="Edit Materi">
+                                <button type="button" onclick="fillEditForm('{{ addslashes($item['title'] ?? '') }}', '{{ $item['week'] ?? '' }}')" class="btn-icon dark" title="Edit Materi">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
 
-                                <form method="POST" action="{{ route('pengajar.materi.destroy', $item->material_id) }}" onsubmit="return confirm('Hapus materi ini? Data di aplikasi peserta didik juga akan terhapus.')" style="margin: 0;">
+                                <form method="POST" action="{{ route('pengajar.materi.destroy', $item['material_id'] ?? 0) }}" onsubmit="return confirm('Hapus materi ini? Data di aplikasi peserta didik juga akan terhapus.')" style="margin: 0;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn-icon red" title="Hapus Materi">
@@ -130,15 +130,15 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="4">
-                            <div class="cp-empty-state">
-                                <i class="fa-regular fa-folder-open"></i>
-                                <strong>Belum ada materi.</strong>
-                                <span>Silakan unggah materi pertama melalui form di atas.</span>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="4">
+                                <div class="cp-empty-state">
+                                    <i class="fa-regular fa-folder-open"></i>
+                                    <strong>Belum ada materi.</strong>
+                                    <span>Silakan unggah materi pertama melalui form di atas.</span>
+                                </div>
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>

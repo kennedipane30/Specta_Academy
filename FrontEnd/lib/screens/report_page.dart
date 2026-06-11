@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart'; 
 import '../services/auth_service.dart';
+import 'announcement_detail_page.dart'; // ✅ Import halaman detail
 
 class ReportPage extends StatefulWidget {
   final String token;
@@ -33,14 +34,36 @@ class _ReportPageState extends State<ReportPage> {
     _fetchReportData();
   }
 
+  /// ✅ Perbaiki URL gambar
   String _fixImageUrl(String path) {
     if (path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    if (!path.startsWith('/')) path = '/$path';
-    return 'http://10.0.2.2:8000/storage$path';
+    
+    // Jika sudah full URL, return langsung
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
+    // Bersihkan path dari leading slash
+    String cleanPath = path;
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+    
+    // Jika sudah mengandung storage/, langsung gunakan
+    if (cleanPath.startsWith('storage/')) {
+      return 'http://10.0.2.2:8000/' + cleanPath;
+    }
+    
+    // Jika path dimulai dengan announcements/
+    if (cleanPath.startsWith('announcements/')) {
+      return 'http://10.0.2.2:8000/storage/' + cleanPath;
+    }
+    
+    // Default: simpan di folder announcements
+    return 'http://10.0.2.2:8000/storage/announcements/' + cleanPath;
   }
 
-  // ✨ PERBAIKAN: Gunakan fungsi tangguh untuk mencari User ID
+  // Ambil User ID
   int _getUserId() {
     try {
       var data = widget.userData;
@@ -70,7 +93,6 @@ class _ReportPageState extends State<ReportPage> {
     try {
       final annRes = await AuthService.getAnnouncements(widget.token).catchError((_) => http.Response('[]', 500));
       
-      // Ambil ID User dengan fungsi baru
       int currentUserId = _getUserId();
       debugPrint("📊 Mengambil riwayat untuk User ID: $currentUserId");
 
@@ -149,24 +171,59 @@ class _ReportPageState extends State<ReportPage> {
                   ),
                   const SizedBox(height: 15),
                   
+                  // ✅ GAMBAR BISA DIKLIK - LANGSUNG KE DETAIL
                   if (announcements.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: Image.network(
-                        _fixImageUrl(announcements[0]['image_url'] ?? announcements[0]['image'] ?? ''),
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 180, width: double.infinity,
-                          color: Colors.grey[200],
-                          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AnnouncementDetailPage(
+                              data: announcements[0],
+                            ),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.network(
+                          (announcements[0]['image_url']?.toString() ?? '').isNotEmpty 
+                              ? announcements[0]['image_url'].toString()
+                              : _fixImageUrl(announcements[0]['image']?.toString() ?? ''),
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              height: 180,
+                              width: double.infinity,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            height: 180,
+                            width: double.infinity,
+                            color: Colors.grey[200],
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                SizedBox(height: 8),
+                                Text("Gambar tidak tersedia", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     )
                   else 
                     Container(
-                      height: 180, width: double.infinity,
+                      height: 180,
+                      width: double.infinity,
                       decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(15)),
                       child: const Center(child: Text("Tidak ada pengumuman", style: TextStyle(color: Colors.grey))),
                     ),
@@ -213,7 +270,6 @@ class _ReportPageState extends State<ReportPage> {
                                   getTitlesWidget: (value, meta) {
                                     int index = value.toInt();
                                     if (index >= 0 && index < tryoutTitles.length) {
-                                      // Agar text rapi
                                       return SideTitleWidget(
                                         axisSide: meta.axisSide,
                                         child: Padding(
@@ -239,14 +295,13 @@ class _ReportPageState extends State<ReportPage> {
                             ),
                             borderData: FlBorderData(show: false),
                             minX: 0,
-                            // ✨ FIX: Cegah error FlChart jika data hanya 1 buah
                             maxX: chartData.length > 1 ? (chartData.length - 1).toDouble() : 1.0,
                             minY: 0,
                             maxY: 100, 
                             lineBarsData: [
                               LineChartBarData(
                                 spots: chartData.length == 1 
-                                    ? [chartData[0], FlSpot(1.0, chartData[0].y)] // Buat garis lurus jika data cuma 1
+                                    ? [chartData[0], FlSpot(1.0, chartData[0].y)]
                                     : chartData,
                                 isCurved: true,
                                 color: spektaRed,

@@ -12,9 +12,8 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
-    protected $primaryKey = 'usersID'; // Kunci utama sesuai PostgreSQL Anda
+    protected $primaryKey = 'usersID';
 
-    // ✨ MODIFIKASI: Tambahkan 'photo' ke dalam array fillable
     protected $fillable = [
         'name', 'email', 'phone', 'role_id', 'password', 'is_verified', 'photo'
     ];
@@ -23,10 +22,8 @@ class User extends Authenticatable
         'password', 'remember_token',
     ];
 
-    // ✨ MODIFIKASI: Tambahkan appends agar photo_url otomatis terkirim ke API mobile
     protected $appends = ['photo_url'];
 
-    // ✨ MODIFIKASI: Fungsi pembuat link URL foto secara otomatis
     public function getPhotoUrlAttribute()
     {
         return $this->photo ? asset('storage/' . $this->photo) : null;
@@ -49,6 +46,10 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    /**
+     * Relasi ke TeacherAssignment (penugasan mengajar)
+     * ✅ SUDAH BENAR - tidak perlu diubah
+     */
     public function assignments()
     {
         return $this->hasMany(TeacherAssignment::class, 'user_id', 'usersID');

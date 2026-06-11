@@ -114,6 +114,7 @@ class PaymentController extends Controller
                 'snap_token'  => $transaction->token,
                 'snap_url'    => $transaction->redirect_url,
                 'final_price' => (int) $finalPrice,
+                'order_id'    => $orderId, // ✅ TAMBAHKAN order_id untuk Flutter
             ]);
 
         } catch (\Exception $e) {
@@ -148,6 +149,7 @@ class PaymentController extends Controller
                     DB::table('payments')->where('order_id', $order_id)->update([
                         'status'       => 'success',
                         'payment_type' => $notif->payment_type,
+                        'paid_at'      => now(), // ✅ TAMBAHKAN paid_at
                         'updated_at'   => now(),
                     ]);
 
@@ -155,6 +157,7 @@ class PaymentController extends Controller
                     DB::table('enrollments')->updateOrInsert(
                         ['user_id' => $payment->user_id, 'class_id' => $payment->class_id],
                         [
+                            'payment_proof' => 'midtrans_' . $order_id,
                             'status'     => 'active',
                             'expires_at' => $expiresAt,
                             'updated_at' => now(),
@@ -162,8 +165,7 @@ class PaymentController extends Controller
                         ]
                     );
 
-                    // ✨ 3. SYNC TO STUDENTS TABLE (IMPORTANT FOR FLUTTER)
-                    // This line lets Flutter app know the user has an active class
+                    // 3. SYNC TO STUDENTS TABLE
                     DB::table('students')
                         ->where('user_id', $payment->user_id)
                         ->update(['class_id' => $payment->class_id]);
@@ -173,6 +175,7 @@ class PaymentController extends Controller
                         DB::table('promotions')
                             ->where('code', $payment->promo_code)
                             ->where('class_id', $payment->class_id)
+                            ->where('quota', '>', 0)
                             ->decrement('quota');
                     }
                 });
@@ -183,6 +186,111 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             Log::error("Callback Error: " . $e->getMessage());
             return response()->json(['message' => 'Notification Error'], 500);
+        }
+    }
+
+    /**
+     * 🚀 3. MANUAL UPDATE PAYMENT SUCCESS (Dipanggil dari Flutter setelah sukses bayar)
+     */
+    public function manualPaymentSuccess(Request $request)
+    {
+        try {
+            $request->validate([
+                'order_id' => 'required|string',
+            ]);
+
+            $orderId = $request->order_id;
+
+            Log::info('Manual payment update untuk order: ' . $orderId);
+
+            $payment = DB::table('payments')->where('order_id', $orderId)->first();
+
+            if (!$payment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment tidak ditemukan'
+                ], 404);
+            }
+
+            if ($payment->status === 'success') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment sudah sukses sebelumnya'
+                ]);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                $expiresAt = now()->addDays(140)->endOfDay();
+
+                // 1. Update payments table
+                DB::table('payments')
+                    ->where('order_id', $orderId)
+                    ->update([
+                        'status'     => 'success',
+                        'paid_at'    => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                // 2. Update or create enrollment
+                DB::table('enrollments')->updateOrInsert(
+                    [
+                        'user_id'  => $payment->user_id,
+                        'class_id' => $payment->class_id
+                    ],
+                    [
+                        'payment_proof' => 'midtrans_' . $orderId,
+                        'status'        => 'active',
+                        'expires_at'    => $expiresAt,
+                        'created_at'    => now(),
+                        'updated_at'    => now()
+                    ]
+                );
+
+                // 3. Update students table
+                DB::table('students')
+                    ->where('user_id', $payment->user_id)
+                    ->update([
+                        'class_id'   => $payment->class_id,
+                        'updated_at' => now()
+                    ]);
+
+                // 4. Kurangi quota promo jika ada
+                if ($payment->promo_code) {
+                    DB::table('promotions')
+                        ->where('code', $payment->promo_code)
+                        ->where('class_id', $payment->class_id)
+                        ->where('quota', '>', 0)
+                        ->decrement('quota');
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment berhasil diupdate!',
+                    'data' => [
+                        'order_id'   => $orderId,
+                        'status'     => 'success',
+                        'user_id'    => $payment->user_id,
+                        'class_id'   => $payment->class_id,
+                        'expires_at' => $expiresAt
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('DB Error manual update: ' . $e->getMessage());
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Manual update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

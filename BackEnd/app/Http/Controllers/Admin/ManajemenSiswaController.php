@@ -7,12 +7,52 @@ use App\Models\Enrollment;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\ClassModel;
-use App\Models\TryoutResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ManajemenSiswaController extends Controller
 {
+    /**
+     * Ambil nilai rata-rata tryout dari microservice
+     */
+    private function getAverageScoresFromMicroservice(array $userIds): array
+    {
+        $scores = [];
+
+        try {
+            $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
+
+            foreach ($userIds as $userId) {
+                $response = Http::timeout(3)->get("$goUrl/api/tryouts/history", [
+                    'user_id' => $userId
+                ]);
+
+                if ($response->successful()) {
+                    $data = $response->json()['data'] ?? [];
+                    if (!empty($data)) {
+                        $totalScore = 0;
+                        $count = 0;
+                        foreach ($data as $result) {
+                            if (isset($result['score'])) {
+                                $totalScore += (float) $result['score'];
+                                $count++;
+                            }
+                        }
+                        if ($count > 0) {
+                            $scores[$userId] = round($totalScore / $count, 1);
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil nilai tryout dari microservice: " . $e->getMessage());
+        }
+
+        return $scores;
+    }
+
     public function index(Request $request)
     {
         // Ambil data user role siswa (3)
@@ -31,12 +71,12 @@ class ManajemenSiswaController extends Controller
             });
         }
 
-        // 2. FILTER BERDASARKAN KELAS (FIX: Mencari di tabel enrollments)
+        // 2. FILTER BERDASARKAN KELAS
         if ($request->filled('class_id')) {
             $classId = $request->class_id;
             $query->whereHas('classes', function ($q) use ($classId) {
                 $q->where('enrollments.class_id', $classId)
-                  ->where('enrollments.status', 'active'); // Hanya yang aktif di kelas tersebut
+                  ->where('enrollments.status', 'active');
             });
         }
 
@@ -50,21 +90,19 @@ class ManajemenSiswaController extends Controller
 
         // Eksekusi Query dengan Pagination
         $siswas = $query->latest('created_at')->paginate(8)->withQueryString();
-        $studentUserIds = $siswas->getCollection()->pluck('usersID');
+        $studentUserIds = $siswas->getCollection()->pluck('usersID')->toArray();
 
         // MAP UNTUK MENAMPILKAN KELAS & PROGRAM DI TABEL
         $latestEnrollmentMap = Enrollment::with('class')
             ->whereIn('user_id', $studentUserIds)
-            ->where('status', 'active') 
+            ->where('status', 'active')
             ->latest('created_at')
             ->get()
             ->unique('user_id')
             ->keyBy('user_id');
 
-        $avgScoreMap = TryoutResult::whereIn('user_id', $studentUserIds)
-            ->select('user_id', DB::raw('ROUND(AVG(score), 1) as average_score'))
-            ->groupBy('user_id')
-            ->pluck('average_score', 'user_id');
+        // ✅ AMBIL NILAI RATA-RATA DARI MICROSERVICE (bukan dari database lokal)
+        $avgScoreMap = $this->getAverageScoresFromMicroservice($studentUserIds);
 
         /*
         |--------------------------------------------------------------------------
@@ -145,8 +183,8 @@ class ManajemenSiswaController extends Controller
         $aktivitasTerbaru = collect()->merge($aktivitasSiswa)->merge($aktivitasEnrollment)->sortByDesc('time')->take(5)->values();
 
         return view('admin.siswa.index', compact(
-            'siswas', 'classes', 'latestEnrollmentMap', 'avgScoreMap', 'totalSiswa', 'siswaAktif', 
-            'siswaBaruBulanIni', 'kelasAktif', 'pendingEnrollment', 'growthSiswa', 'distribusiProgram', 
+            'siswas', 'classes', 'latestEnrollmentMap', 'avgScoreMap', 'totalSiswa', 'siswaAktif',
+            'siswaBaruBulanIni', 'kelasAktif', 'pendingEnrollment', 'growthSiswa', 'distribusiProgram',
             'totalDistribusi', 'aktivitasTerbaru'
         ));
     }

@@ -19,11 +19,9 @@ class SubjectListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color spektaRed = Color(0xFF990000);
 
-    // ✨ PERBAIKAN LOGIKA: Mengambil Mata Pelajaran Unik
-// ✨ PERBAIKAN LOGIKA: Ambil mata pelajaran unik
+    // Ambil mata pelajaran unik
     final subjects = materi
         .map((e) {
-          // Cek semua kemungkinan key yang dikirim oleh Go
           return (e['subject_name'] ?? e['material_name'] ?? e['title'] ?? '').toString();
         })
         .where((name) => name.isNotEmpty) 
@@ -74,7 +72,6 @@ class SubjectListPage extends StatelessWidget {
                 subtitle: const Text("Lihat materi 20 minggu"),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                 onTap: () {
-                  // ➡️ NAVIGASI KE HALAMAN 20 MINGGU
                   Navigator.push(context, MaterialPageRoute(
                     builder: (context) => ModuleWeekListPage(
                       subjectName: sName, 

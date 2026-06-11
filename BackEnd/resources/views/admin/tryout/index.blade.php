@@ -35,17 +35,17 @@
                 <p class="tm-sub-title">Kurasi setoran soal dari pengajar dan publikasikan menjadi paket Tryout resmi untuk aplikasi mobile siswa.</p>
             </div>
         </div>
-        
+
         <div class="tm-hero-summary">
             <div class="summary-card highlight">
-                <strong>{{ $activePackages->count() }}</strong>
+                <strong>{{ count($activePackages) }}</strong>
                 <span>Paket Live</span>
             </div>
         </div>
     </section>
 
     <div class="tm-grid-layout">
-        
+
         {{-- 3. PANEL KIRI: MONITORING DRAF GURU --}}
         <section class="cp-main-card">
             <div class="card-header-flex">
@@ -69,7 +69,7 @@
                     </thead>
                     <tbody>
                         @foreach($classes as $c)
-                            @php 
+                            @php
                                 $totalSoal = $draftStatus[$c->class_id]->total ?? 0;
                             @endphp
                             <tr>
@@ -90,21 +90,19 @@
                                 </td>
                                 <td class="text-right">
                                     <div class="action-group-end">
-                                        {{-- Tombol Download CSV --}}
                                         @if($totalSoal > 0)
                                         <a href="{{ route('admin.tryout.export_draft', $c->class_id) }}" class="btn-icon-sm green-soft" title="Download CSV">
                                             <i class="fa-solid fa-file-csv"></i>
                                         </a>
                                         @endif
 
-                                        {{-- Tombol Review --}}
                                         <a href="{{ route('admin.tryout.review', $c->class_id) }}" class="btn-review-main">
                                             <span>Review</span>
                                             <i class="fa-solid fa-arrow-right"></i>
                                         </a>
                                     </div>
-                                </td>
-                            </tr>
+                                </td
+                            </tr
                         @endforeach
                     </tbody>
                 </table>
@@ -127,21 +125,26 @@
                 @forelse($activePackages as $pkg)
                     <div class="package-item-card">
                         <div class="pkg-icon">
-                            <i class="fa-solid fa-stopwatch-20"></i>
+                            <i class="fa-solid {{ $pkg->total_questions > 0 ? 'fa-stopwatch-20' : 'fa-file-lines' }}"></i>
                         </div>
                         <div class="pkg-info">
                             <strong>{{ $pkg->title }}</strong>
-                            <span>{{ $pkg->classModel->program_name }} • {{ $pkg->questions_count }} Soal</span>
+                            <span>{{ $pkg->class_name }} • {{ $pkg->total_questions }} Soal • {{ $pkg->duration }} menit</span>
+                            <small class="pkg-id">ID: #{{ $pkg->tryout_id }}</small>
                         </div>
                         <form action="{{ route('admin.tryout.destroy_package', $pkg->tryout_id) }}" method="POST" onsubmit="return confirm('Hapus paket ini dari HP siswa?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn-del-pkg" title="Hapus Paket"><i class="fa-solid fa-trash-can"></i></button>
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-del-pkg" title="Hapus Paket">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
                         </form>
                     </div>
                 @empty
                     <div class="empty-state-lite">
                         <i class="fa-solid fa-ghost"></i>
                         <p>Belum ada paket dipublikasikan.</p>
+                        <small>Publish paket tryout dari draf yang tersedia.</small>
                     </div>
                 @endforelse
             </div>
@@ -150,18 +153,15 @@
 </div>
 
 <style>
-    /* Global & Animations */
     .cp-page { padding: 10px; font-family: 'Montserrat', sans-serif; animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Alert Styling */
     .tm-alert-modern { padding: 18px 24px; border-radius: 16px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; font-weight: 600; border-left: 6px solid; }
     .tm-alert-modern.success { background: #dcfce7; color: #15803d; border-color: #22c55e; }
     .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-color: #ef4444; }
     .tm-alert-modern i { font-size: 24px; }
     .tm-alert-modern p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
 
-    /* Hero Section */
     .tm-hero-header {
         background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
         border-radius: 28px; padding: 40px; color: white;
@@ -175,19 +175,17 @@
     .summary-card strong { display: block; font-size: 32px; font-weight: 900; }
     .summary-card span { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.8; }
 
-    /* Grid & Cards */
     .tm-grid-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; }
     .cp-main-card { background: white; border-radius: 30px; padding: 30px; border: 1px solid #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
-    
+
     .title-with-icon { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
     .icon-box { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; }
     .icon-box.red { background: #fee2e2; color: #d90429; }
     .icon-box.blue { background: #e0f2fe; color: #0369a1; }
-    
+
     .card-header-flex h2 { font-size: 18px; font-weight: 900; color: #111827; margin: 0; }
     .card-header-flex p { font-size: 13px; color: #94a3b8; margin: 4px 0 0; font-weight: 500; }
 
-    /* Table Design */
     .cp-table-modern { width: 100%; border-collapse: collapse; }
     .cp-table-modern th { text-align: left; padding: 12px; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
     .cp-table-modern td { padding: 18px 12px; border-bottom: 1px solid #f8fafc; }
@@ -199,30 +197,30 @@
     .badge-status.success { background: #ecfdf5; color: #10b981; }
     .badge-status.empty { background: #f8fafc; color: #cbd5e1; }
 
-    /* Actions */
     .action-group-end { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
     .btn-icon-sm { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; transition: 0.2s; text-decoration: none; }
     .btn-icon-sm.green-soft { background: #ecfdf5; color: #10b981; border: 1px solid #d1fae5; }
     .btn-icon-sm:hover { transform: translateY(-2px); filter: brightness(0.95); }
 
-    .btn-review-main { 
-        background: #111827; color: white; padding: 8px 18px; border-radius: 12px; 
+    .btn-review-main {
+        background: #111827; color: white; padding: 8px 18px; border-radius: 12px;
         font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none;
     }
     .btn-review-main:hover { background: #d90429; box-shadow: 0 8px 15px rgba(217, 4, 41, 0.2); }
 
-    /* Right Panel List */
     .package-item-card { display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 20px; margin-bottom: 12px; border: 1px solid #edf2f7; transition: 0.2s; }
     .package-item-card:hover { border-color: #d1d5db; background: white; }
     .pkg-icon { width: 40px; height: 40px; background: white; color: #0369a1; border-radius: 12px; display: grid; place-items: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
     .pkg-info { flex: 1; }
-    .pkg-info strong { display: block; font-size: 13px; color: #111827; }
+    .pkg-info strong { display: block; font-size: 14px; color: #111827; }
     .pkg-info span { font-size: 11px; color: #64748b; font-weight: 600; }
-    .btn-del-pkg { background: transparent; border: none; color: #cbd5e1; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .pkg-info .pkg-id { font-size: 9px; color: #94a3b8; display: block; margin-top: 4px; }
+    .btn-del-pkg { background: transparent; border: none; color: #cbd5e1; cursor: pointer; font-size: 14px; transition: 0.2s; padding: 8px; }
     .btn-del-pkg:hover { color: #d90429; }
 
     .empty-state-lite { text-align: center; padding: 40px; color: #cbd5e1; }
     .empty-state-lite i { font-size: 32px; margin-bottom: 10px; display: block; }
+    .empty-state-lite small { font-size: 11px; display: block; margin-top: 8px; }
     .text-right { text-align: right; }
 </style>
 @endsection

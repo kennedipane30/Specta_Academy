@@ -125,22 +125,28 @@ class AuthService {
   }
 
   // ✅ MODIFIKASI: Memanggil endpoint /profile dan mengambil nested user object
-  static Future<Map<String, dynamic>?> getUserProfile(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/profile'), // ← Ubah dari /user menjadi /profile
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json'
-      }
-    );
-    
-    if (response.statusCode == 200) {
-      var data = jsonDecode(response.body);
-      // Response dari getProfile: { "status": "success", "user": {...} }
-      return data['user'] ?? data;
+static Future<Map<String, dynamic>?> getUserProfile(String token) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/profile'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json'
     }
-    return null;
+  );
+  
+  print("📡 PROFILE RESPONSE STATUS: ${response.statusCode}");
+  print("📡 PROFILE RESPONSE BODY: ${response.body}");
+  
+  if (response.statusCode == 200) {
+    var data = jsonDecode(response.body);
+    // ✅ LANGSUNG KEMBALIKAN DATA USER
+    if (data['status'] == 'success' && data['user'] != null) {
+      return data['user'];
+    }
+    return data;
   }
+  return null;
+}
 
   static Future<http.Response> updateProfile(Map<String, dynamic> data, String token) async {
     return await http.post(Uri.parse('$baseUrl/update-profile'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}, body: data.map((key, value) => MapEntry(key, value.toString())));
@@ -241,6 +247,76 @@ class AuthService {
     debugPrint("Upload Error: $e");
   }
   return null;
+}
+// ============================================================
+// 💳 PAYMENT METHODS
+// ============================================================
+
+/// Mendapatkan Snap Token dari Midtrans
+static Future<Map<String, dynamic>?> getSnapToken({
+  required int classId,
+  required String token,
+  String? promoCode,
+}) async {
+  try {
+    final body = {
+      'class_id': classId.toString(),
+    };
+    if (promoCode != null && promoCode.isNotEmpty) {
+      body['promo_code'] = promoCode;
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/payment/snap-token'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    debugPrint("📡 getSnapToken response: ${response.statusCode}");
+    debugPrint("📡 Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  } catch (e) {
+    debugPrint("❌ getSnapToken error: $e");
+    return null;
+  }
+}
+
+/// Manual update payment success (dipanggil setelah sukses bayar di WebView)
+static Future<bool> manualPaymentSuccess({
+  required String orderId,
+  required String token,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payment/manual-success'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'order_id': orderId}),
+    );
+
+    debugPrint("📡 manualPaymentSuccess response: ${response.statusCode}");
+    debugPrint("📡 Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['success'] == true;
+    }
+    return false;
+  } catch (e) {
+    debugPrint("❌ manualPaymentSuccess error: $e");
+    return false;
+  }
 }
 
 }

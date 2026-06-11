@@ -163,10 +163,11 @@
                                 <strong><?php echo e($start->translatedFormat('d M Y')); ?></strong><br>
                                 <small><?php echo e($start->format('H:i')); ?> - <?php echo e($end->format('H:i')); ?></small>
                             </td>
-                            <td><?php echo e($row->class->program_name ?? '-'); ?></td>
-                            <td><?php echo e($row->subject->name ?? $row->title); ?></td>
-                            <td><?php echo e($row->teacher->name ?? '-'); ?></td>
-                            <td><span class="sc-status-badge <?php echo e($status); ?>"><?php echo e(ucfirst($status)); ?></span></td>
+                            <td><?php echo e($row->class->program_name ?? '-'); ?></td
+                            
+                            <td><?php echo e($row->subject_name ?? $row->title); ?></td
+                            <td><?php echo e($row->teacher->name ?? '-'); ?></td
+                            <td><span class="sc-status-badge <?php echo e($status); ?>"><?php echo e(ucfirst($status)); ?></span></td
                             <td>
                                 <form action="<?php echo e(route('admin.jadwal.destroy', $row->schedule_id)); ?>" method="POST">
                                     <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
@@ -174,10 +175,10 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </form>
-                            </td>
+                            </td
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                        <tr><td colspan="6" class="text-center">Belum ada jadwal yang diatur.</td></tr>
+                        <tr><td colspan="6" class="text-center">Belum ada jadwal yang diatur.</td</td
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -265,13 +266,12 @@
         const endTimeError = document.getElementById('endTimeError');
         const form = document.getElementById('scheduleForm');
 
-        // Set min date untuk input date (tanggal tidak boleh kurang dari hari ini)
+        // Set min date untuk input date
         const today = new Date().toISOString().split('T')[0];
         if (dateInput) {
             dateInput.setAttribute('min', today);
         }
 
-        // Fungsi validasi tanggal
         function validateDate() {
             const selectedDate = dateInput.value;
             if (!selectedDate) return true;
@@ -289,7 +289,6 @@
             }
         }
 
-        // Fungsi validasi jam mulai (tidak boleh kurang dari jam sekarang jika tanggal = hari ini)
         function validateStartTime() {
             const selectedDate = dateInput.value;
             const startTime = startTimeInput.value;
@@ -311,7 +310,6 @@
             }
         }
 
-        // Fungsi validasi jam selesai (harus lebih besar dari jam mulai)
         function validateEndTime() {
             const startTime = startTimeInput.value;
             const endTime = endTimeInput.value;
@@ -328,12 +326,10 @@
             }
         }
 
-        // Event listener validasi
         if (dateInput) {
             dateInput.addEventListener('change', function() {
                 validateDate();
                 if (dateInput.value === today) {
-                    // Jika tanggal berubah menjadi hari ini, validasi ulang start time
                     validateStartTime();
                 } else {
                     startTimeError.style.display = 'none';
@@ -349,7 +345,6 @@
             endTimeInput.addEventListener('change', validateEndTime);
         }
 
-        // Validasi sebelum submit
         if (form) {
             form.addEventListener('submit', function(e) {
                 const isDateValid = validateDate();
@@ -367,7 +362,6 @@
             });
         }
 
-        // ========== AJAX untuk getSubjects dan getTeacher (tidak berubah) ==========
         if (classSelect) {
             classSelect.addEventListener('change', function() {
                 const classId = this.value;

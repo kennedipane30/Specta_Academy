@@ -40,17 +40,23 @@ class _AkunPageState extends State<AkunPage> {
     _refreshProfile();
   }
 
+  // ✅ PERBAIKAN: Method refresh profile yang benar
   Future<void> _refreshProfile() async {
     if (!mounted) return;
     setState(() => isLoading = true);
     try {
-      final response = await AuthService.getUserProfile(widget.token);
-      if (response != null && response['user'] != null) {
+      final userData = await AuthService.getUserProfile(widget.token);
+      if (userData != null) {
         setState(() {
-          currentData = response['user'];
+          currentData = userData;
         });
         // Debug: Cetak enrolled_classes ke console
-        print("ENROLLED CLASSES: ${currentData['enrolled_classes']}");
+        print("✅ ENROLLED CLASSES: ${currentData['enrolled_classes']}");
+        if (currentData['enrolled_classes'] != null && currentData['enrolled_classes'].isNotEmpty) {
+          print("✅ PROGRAM NAME: ${currentData['enrolled_classes'][0]['program_name']}");
+        }
+      } else {
+        print("❌ Gagal mengambil profile: response null");
       }
     } catch (e) {
       debugPrint("Refresh Error: $e");
@@ -278,7 +284,7 @@ class _AkunPageState extends State<AkunPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: redDeep.withValues(alpha: 0.3), // ✅ Perbaikan withOpacity
+            color: redDeep.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -298,7 +304,7 @@ class _AkunPageState extends State<AkunPage> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
@@ -332,7 +338,7 @@ class _AkunPageState extends State<AkunPage> {
                         border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25), // ✅ Perbaikan
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -382,7 +388,7 @@ class _AkunPageState extends State<AkunPage> {
                         border: Border.all(color: redPrimary, width: 2.5),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15), // ✅ Perbaikan
+                            color: Colors.black.withValues(alpha: 0.15),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -411,7 +417,7 @@ class _AkunPageState extends State<AkunPage> {
               Text(
                 email,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85), // ✅ Perbaikan
+                  color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -423,7 +429,7 @@ class _AkunPageState extends State<AkunPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -440,16 +446,16 @@ class _AkunPageState extends State<AkunPage> {
               // ✅ DAFTAR KELAS DI HEADER
               if (classes.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Divider(color: Colors.white.withValues(alpha: 0.2), thickness: 1), // ✅ Perbaikan
+                Divider(color: Colors.white.withValues(alpha: 0.2), thickness: 1),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Icon(Icons.school_rounded, color: Colors.white.withValues(alpha: 0.7), size: 16), // ✅ Perbaikan
+                    Icon(Icons.school_rounded, color: Colors.white.withValues(alpha: 0.7), size: 16),
                     const SizedBox(width: 8),
                     Text(
                       "Kelas Terdaftar",
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9), // ✅ Perbaikan
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -464,9 +470,9 @@ class _AkunPageState extends State<AkunPage> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15), // ✅ Perbaikan
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // ✅ Perbaikan
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         cls['program_name'] ?? 'Kelas',
@@ -529,7 +535,7 @@ class _AkunPageState extends State<AkunPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [softRed, softRed.withValues(alpha: 0.5)], // ✅ Perbaikan
+                  colors: [softRed, softRed.withValues(alpha: 0.5)],
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -542,7 +548,7 @@ class _AkunPageState extends State<AkunPage> {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1), // ✅ Perbaikan
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -631,7 +637,7 @@ class _AkunPageState extends State<AkunPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [softRed, softRed.withValues(alpha: 0.5)], // ✅ Perbaikan
+                  colors: [softRed, softRed.withValues(alpha: 0.5)],
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -665,7 +671,7 @@ class _AkunPageState extends State<AkunPage> {
         decoration: BoxDecoration(
           color: softRed,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.15)), // ✅ Perbaikan
+          border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
@@ -686,7 +692,7 @@ class _AkunPageState extends State<AkunPage> {
 
   Widget _line() => Padding(
     padding: const EdgeInsets.only(left: 76, right: 16),
-    child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.12)), // ✅ Perbaikan
+    child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.12)),
   );
 
   BoxDecoration _cardDecoration() => BoxDecoration(
@@ -694,7 +700,7 @@ class _AkunPageState extends State<AkunPage> {
     borderRadius: BorderRadius.circular(24),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.04), // ✅ Perbaikan
+        color: Colors.black.withValues(alpha: 0.04),
         blurRadius: 20,
         offset: const Offset(0, 8),
       ),

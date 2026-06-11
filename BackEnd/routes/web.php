@@ -37,7 +37,6 @@ Route::get('/login', [WebAuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [WebAuthController::class, 'login']);
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
-
 // ============================================================
 // 🟢 ROUTE GLOBAL (Auth Required)
 // ============================================================
@@ -45,7 +44,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-schedule', [JadwalController::class, 'index'])->name('schedule.index');
     Route::get('/schedule/calendar-data', [JadwalController::class, 'getCalendarData'])->name('schedule.calendar');
 });
-
 
 // ============================================================
 // 🔥 2. GROUP ADMIN (Role: Admin)
@@ -76,8 +74,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     });
 
     // ✅ KEUANGAN & PROMO
-    Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
-    Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
+    // Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    // Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
     Route::resource('promo', PromoController::class)->only(['index', 'store', 'destroy']);
 
     // ✅ DEDICATED TUTOR (MANAJEMEN REQUEST SISWA)
@@ -91,7 +89,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/penugasan-materi/{id}', [TeacherAssignmentController::class, 'destroy'])->name('assignments.destroy');
 
     // ✅ ROUTE AJAX UNTUK DROP DOWN (PENTING)
-    // Route ini akan memiliki nama 'admin.getSubjectsByClass' secara otomatis
     Route::get('/get-subjects-by-class/{class_id}', [TeacherAssignmentController::class, 'getSubjectsByClass'])->name('getSubjectsByClass');
 
     // ✅ MASTER TRYOUT (KELOLA PAKET)
@@ -110,7 +107,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 // ============================================================
-// 🔥 3. GROUP PENGAJAR (Role: Pengajar)
+// 🔥 3. GROUP PENGAJAR (Role: Pengajar) - DIPERBAIKI
 // ============================================================
 Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar.')->group(function () {
 
@@ -119,7 +116,7 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     // ✅ MANAJEMEN MATERI BELAJAR
     Route::prefix('materi')->name('materi.')->group(function() {
         Route::get('/', [MateriController::class, 'index'])->name('index');
-        Route::get('/pilih/{class_id}/{subject_id}', [MateriController::class, 'pilihMateri'])->name('pilih');
+        Route::get('/pilih/{class_id}/{subject_name}', [MateriController::class, 'pilihMateri'])->name('pilih');
         Route::post('/upload/{class_id}', [MateriController::class, 'store'])->name('store');
         Route::delete('/destroy/{id}', [MateriController::class, 'destroy'])->name('destroy');
     });
@@ -127,7 +124,7 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     // ✅ TRYOUT SYSTEM (SETOR SOAL)
     Route::prefix('tryout')->name('tryout.')->group(function() {
         Route::get('/', [PengajarTryoutController::class, 'index'])->name('index');
-        Route::get('/buat/{class_id}/{subject_id}', [PengajarTryoutController::class, 'create'])->name('create');
+        Route::get('/buat/{class_id}/{subject_name}', [PengajarTryoutController::class, 'create'])->name('create');
         Route::post('/simpan', [PengajarTryoutController::class, 'store'])->name('store');
         Route::post('/import-csv', [PengajarTryoutController::class, 'importCSV'])->name('import_csv');
         Route::delete('/draft/delete/{id}', [PengajarTryoutController::class, 'destroyDraft'])->name('destroy_draft');
@@ -143,15 +140,19 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
         Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
     });
 
-    // ✅ MANAJEMEN LATIHAN SOAL (CSV)
+    // ✅ MANAJEMEN LATIHAN SOAL (CSV) - DIPERBAIKI
     Route::prefix('latihan')->name('latihan.')->group(function() {
         Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
-        Route::get('/pilih/{class_id}/{subject_id}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
+        // Select practice - menggunakan subject_name
+        Route::get('/pilih/{class_id}/{subject_name}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
+        // Upload CSV
         Route::post('/upload/{class_id}', [PracticeQuestionController::class, 'storeCSV'])->name('store');
-        Route::delete('/destroy-week/{class_id}/{subject}/{week}', [PracticeQuestionController::class, 'destroyByWeek'])->name('destroy_week');
+        // Delete week - KONSISTEN menggunakan subject_name
+        Route::delete('/destroy-week/{class_id}/{subject_name}/{week}', [PracticeQuestionController::class, 'destroyByWeek'])->name('destroy_week');
+        // Lihat soal per minggu
+        Route::get('/questions/{class_id}/{subject_name}/{week}', [PracticeQuestionController::class, 'showQuestions'])->name('questions');
     });
 });
-
 
 // ============================================================
 // 🟢 4. STABLE FILE SERVER (PDF BYPASS)

@@ -71,6 +71,8 @@
                     <select name="subject_id" id="subject-select" required disabled>
                         <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
                     </select>
+                    
+                    <input type="hidden" name="subject_name" id="subject-name-hidden">
                 </div>
                 <button type="submit" class="am-btn-submit">Simpan Penugasan</button>
             </form>
@@ -138,7 +140,7 @@
                                     <?php endif; ?>
                                 </td>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </tr>
+                        </td>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
@@ -167,13 +169,11 @@
                                     <strong><?php echo e($assign->teacher->name ?? 'N/A'); ?></strong>
                                 </div>
                             </td>
-                            <td><?php echo e($assign->classModel->program_name ?? 'N/A'); ?></td>
+                            <td><?php echo e($assign->classModel->program_name ?? 'N/A'); ?></td
                             <td>
-                                <?php
-                                    $matName = collect($subjects)->where('material_id', $assign->subject_id)->first()->material_name ?? 'N/A';
-                                ?>
-                                <span class="badge-subject"><?php echo e($matName); ?></span>
-                            </td>
+                                
+                                <span class="badge-subject"><?php echo e($assign->subject_name ?? 'N/A'); ?></span>
+                            </td
                             <td>
                                 <form action="<?php echo e(route('admin.assignments.destroy', $assign->id)); ?>" method="POST">
                                     <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
@@ -181,10 +181,10 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </form>
-                            </td>
+                            </td
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                        <tr><td colspan="4" class="text-center">Belum ada data.</td></tr>
+                        <tr><td colspan="4" class="text-center">Belum ada data. </td</td
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -198,6 +198,7 @@ $(document).ready(function() {
     $('#class-select').on('change', function() {
         var classId = $(this).val();
         var subjectSelect = $('#subject-select');
+        var subjectNameHidden = $('#subject-name-hidden');
 
         if (classId) {
             subjectSelect.prop('disabled', true).html('<option>Memuat Mapel...</option>');
@@ -210,7 +211,8 @@ $(document).ready(function() {
                     subjectSelect.append('<option value="">-- Pilih Mapel --</option>');
                     if(data.length > 0) {
                         $.each(data, function(key, value) {
-                            subjectSelect.append('<option value="' + value.material_id + '">' + value.material_name + '</option>');
+                            // ✅ Simpan juga nama mapel ke dalam data attribute
+                            subjectSelect.append('<option value="' + value.material_id + '" data-name="' + value.material_name + '">' + value.material_name + '</option>');
                         });
                     } else {
                         subjectSelect.html('<option value="">Tidak ada mapel untuk kelas ini</option>');
@@ -219,13 +221,21 @@ $(document).ready(function() {
             });
         } else {
             subjectSelect.prop('disabled', true).html('<option value="">-- Pilih Kelas Terlebih Dahulu --</option>');
+            subjectNameHidden.val('');
         }
+    });
+
+    // ✅ Ketika user memilih mata pelajaran, simpan nama mapel ke hidden input
+    $(document).on('change', '#subject-select', function() {
+        var selectedOption = $(this).find('option:selected');
+        var subjectName = selectedOption.data('name');
+        $('#subject-name-hidden').val(subjectName);
     });
 });
 </script>
 
 <style>
-    /* DESAIN STYLE SPEKTA ACADEMY */
+    /* (CSS tetap sama seperti sebelumnya) */
     .am-page { font-family: 'Inter', sans-serif; padding: 20px; color: #1e293b; }
     .am-hero { background: linear-gradient(135deg, #d90429 0%, #2b2d42 100%); border-radius: 24px; padding: 40px; color: #fff; margin-bottom: 25px; }
     .am-kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; margin-bottom: 15px; display: inline-block; }

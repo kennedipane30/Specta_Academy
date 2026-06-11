@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id('payment_id');
             $table->foreignId('user_id')->constrained('users', 'usersID')->onDelete('cascade');
             $table->foreignId('class_id')->constrained('classes', 'class_id')->onDelete('cascade');
-            $table->string('order_id')->unique(); // ID unik untuk Midtrans (Contoh: SPEKTA-12345)
+            $table->string('order_id')->unique();
             $table->integer('amount');
-            $table->string('status')->default('pending'); // pending, success, failure, settlement
+            $table->string('promo_code')->nullable(); // ✅ TAMBAH INI
+            $table->string('status')->default('pending');
             $table->string('snap_token')->nullable();
-            $table->string('payment_type')->nullable(); // gopay, bank_transfer, dll
+            $table->string('payment_type')->nullable();
+            $table->timestamp('paid_at')->nullable(); // ✅ TAMBAH INI
             $table->timestamps();
         });
     }

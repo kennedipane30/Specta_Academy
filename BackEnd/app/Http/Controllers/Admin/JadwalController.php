@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use App\Models\ClassModel;
 use App\Models\User;
-use App\Models\Subject;
+use App\Models\TeacherAssignment;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -20,7 +20,8 @@ class JadwalController extends Controller
         $today = Carbon::today();
         $nowTime = now()->format('H:i:s');
 
-        $query = Schedule::with(['class', 'teacher', 'subject']);
+        // ✅ Hapus 'subject' dari with
+        $query = Schedule::with(['class', 'teacher']);
 
         if ($request->filled('search')) {
             $search = strtolower($request->search);
@@ -31,10 +32,6 @@ class JadwalController extends Controller
                     })
                     ->orWhereHas('teacher', function ($teacherQuery) use ($search) {
                         $teacherQuery->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-                    })
-                    ->orWhereHas('subject', function ($subQuery) use ($search) {
-                        // MODIFIKASI: Gunakan material_name sesuai database Anda
-                        $subQuery->whereRaw('LOWER(material_name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
@@ -69,6 +66,14 @@ class JadwalController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // ✅ Untuk setiap jadwal, ambil nama mata pelajaran dari teacher_assignments
+        foreach ($jadwal as $item) {
+            $assignment = TeacherAssignment::where('class_id', $item->class_id)
+                ->where('subject_id', $item->subject_id)
+                ->first();
+            $item->subject_name = $assignment ? $assignment->subject_name : $item->title;
+        }
+
         $classes = ClassModel::orderBy('program_name')->get();
 
         $totalJadwalBulanIni = Schedule::whereYear('date', now()->year)->whereMonth('date', now()->month)->count();
@@ -84,6 +89,7 @@ class JadwalController extends Controller
                 });
         })->count();
 
+        // ✅ PERBAIKAN: Calendar Days dengan error handling
         $calendarMonth = Carbon::today()->startOfMonth();
         $calendarStart = $calendarMonth->copy()->startOfWeek(Carbon::MONDAY);
         $calendarEnd = $calendarMonth->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
@@ -92,19 +98,22 @@ class JadwalController extends Controller
             ->selectRaw('date, COUNT(*) as total')
             ->groupBy('date')
             ->pluck('total', 'date');
-        $calendarDays = collect(CarbonPeriod::create($calendarStart, $calendarEnd))
-            ->map(function ($date) use ($calendarMonth, $scheduleCountByDate) {
-                /** @var \Carbon\Carbon $date */ // ✨ Tambahkan baris ini untuk menghilangkan error di IDE
 
-                $key = $date->toDateString();
-                return [
-                    'date' => $key,
-                    'day' => $date->day,
-                    'is_current_month' => $date->month === $calendarMonth->month,
-                    'is_today' => $date->isToday(),
-                    'schedule_count' => $scheduleCountByDate[$key] ?? 0,
-                ];
-            });
+        // ✅ PERBAIKAN: Gunakan loop manual untuk menghindari error CarbonPeriod
+        $calendarDays = [];
+        $currentDate = $calendarStart->copy();
+
+        while ($currentDate <= $calendarEnd) {
+            $key = $currentDate->toDateString();
+            $calendarDays[] = [
+                'date' => $key,
+                'day' => $currentDate->day,
+                'is_current_month' => $currentDate->month === $calendarMonth->month,
+                'is_today' => $currentDate->isToday(),
+                'schedule_count' => $scheduleCountByDate[$key] ?? 0,
+            ];
+            $currentDate->addDay();
+        }
 
         return view('admin.jadwal.index', compact(
             'jadwal', 'classes', 'totalJadwalBulanIni',
@@ -117,13 +126,12 @@ class JadwalController extends Controller
     {
         $validated = $request->validate([
             'class_id'     => 'required|exists:classes,class_id',
-            'subject_id'   => 'required|exists:materials,material_id', // ✨ Pastikan ini merujuk ke material_id
+            'subject_id'   => 'nullable|string',
             'teacher_id'   => 'required|exists:users,usersID',
             'title'        => 'required|string|max:255',
             'date'         => 'required|date',
             'start_time'   => 'required',
             'end_time'     => 'required|after:start_time',
-            'meeting_link' => 'nullable|url'
         ]);
 
         Schedule::create($validated);
@@ -131,16 +139,15 @@ class JadwalController extends Controller
     }
 
     /**
-     * 🔥 AJAX: Ambil Mata Pelajaran dari Matrix Penugasan
+     * ✅ AJAX: Ambil Mata Pelajaran dari teacher_assignments
      */
     public function getSubjects($class_id)
     {
         try {
-            // MODIFIKASI: Gunakan join ke tabel 'materials' dan kolom 'material_name'
-            $subjects = DB::table('teacher_assignments')
-                ->join('materials', 'teacher_assignments.subject_id', '=', 'materials.material_id')
-                ->where('teacher_assignments.class_id', $class_id)
-                ->select('materials.material_id as subject_id', 'materials.material_name as name')
+            $subjects = TeacherAssignment::where('class_id', $class_id)
+                ->whereNotNull('subject_name')
+                ->select('subject_id', 'subject_name as name')
+                ->distinct()
                 ->get();
 
             if ($subjects->isEmpty()) {
@@ -149,15 +156,18 @@ class JadwalController extends Controller
 
             return response()->json($subjects);
         } catch (\Exception $e) {
+            Log::error("Error getSubjects: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
+    /**
+     * ✅ AJAX: Ambil teacher berdasarkan class_id dan subject_id
+     */
     public function getTeacherBySubject($class_id, $subject_id)
     {
         try {
-            $teacher = DB::table('teacher_assignments')
-                ->join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
+            $teacher = TeacherAssignment::join('users', 'teacher_assignments.user_id', '=', 'users.usersID')
                 ->where('teacher_assignments.class_id', $class_id)
                 ->where('teacher_assignments.subject_id', $subject_id)
                 ->select('users.usersID as teacher_id', 'users.name as teacher_name')
@@ -165,6 +175,7 @@ class JadwalController extends Controller
 
             return response()->json($teacher);
         } catch (\Exception $e) {
+            Log::error("Error getTeacherBySubject: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -175,5 +186,37 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil dihapus!');
     }
 
-    // ... API Method tetap sama
+    /**
+     * API untuk calendar view
+     */
+    public function getCalendarData(Request $request)
+    {
+        $start = $request->query('start');
+        $end = $request->query('end');
+
+        $schedules = Schedule::with(['class', 'teacher'])
+            ->whereBetween('date', [$start, $end])
+            ->get()
+            ->map(function($schedule) {
+                $assignment = TeacherAssignment::where('class_id', $schedule->class_id)
+                    ->where('subject_id', $schedule->subject_id)
+                    ->first();
+                $subjectName = $assignment ? $assignment->subject_name : $schedule->title;
+
+                return [
+                    'id' => $schedule->schedule_id,
+                    'title' => $subjectName,
+                    'start' => $schedule->date . 'T' . $schedule->start_time,
+                    'end' => $schedule->date . 'T' . $schedule->end_time,
+                    'className' => 'schedule-event',
+                    'extendedProps' => [
+                        'class_name' => $schedule->class->program_name ?? '',
+                        'teacher_name' => $schedule->teacher->name ?? '',
+                        'subject_name' => $subjectName,
+                    ]
+                ];
+            });
+
+        return response()->json($schedules);
+    }
 }

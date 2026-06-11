@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log" // ✨ Perbaikan: Tambahkan log
+	"log"
 	"os"
 	"practice-service/config"
 	"practice-service/internal/delivery/http"
@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Middleware CORS agar bisa diakses oleh Flutter
+// CORSMiddleware handles CORS headers for cross-origin requests
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -29,40 +29,57 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	// 1. Inisialisasi Database
+	// Initialize Database
 	db := config.InitDB()
-	
-	// 2. Migrasi Tabel Otomatis
-	db.AutoMigrate(&models.PracticeQuestion{}) 
 
-	// 3. Dependency Injection
+	// Auto Migrate Tables
+	if err := db.AutoMigrate(&models.PracticeQuestion{}); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+	log.Println("Database migration completed successfully")
+
+	// Dependency Injection
 	repo := repository.NewPracticeRepository(db)
 	uc := usecase.NewPracticeUsecase(repo)
 	handler := http.NewPracticeHandler(uc)
 
-	// 4. Inisialisasi Gin
+	// Initialize Gin
 	r := gin.Default()
-	r.Use(CORSMiddleware()) 
+	r.Use(CORSMiddleware())
 
-	// 5. API Routes
+	// API Routes
 	api := r.Group("/api")
 	{
-		// SINKRON: Gunakan rute /tryouts karena Flutter memanggil ini ke Port 9003
-		api.GET("/tryouts", handler.GetPractice) 
-		api.GET("/practice", handler.GetPractice) // Backup rute
+		// GET Routes
+		api.GET("/tryouts", handler.GetPractice)
+		api.GET("/practice", handler.GetPractice)
+
+		// POST Routes
 		api.POST("/practice/sync", handler.Sync)
+
+		// DELETE Routes
+		api.DELETE("/practice/class/:class_id/week/:week", handler.DeleteWeek)
+		
+		// Support POST with _method=DELETE for Laravel compatibility
+		api.POST("/practice/class/:class_id/week/:week", handler.DeleteWeek)
 	}
 
-	// 6. Penentuan Port (Gunakan os agar tidak error 'not used')
+	// Determine Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "9003"
 	}
 
-	// 7. Jalankan Server
+	// Start Server
 	log.Printf("Practice Service is starting on port %s", port)
-	err := r.Run(":" + port)
-	if err != nil {
+	log.Printf("Available endpoints:")
+	log.Printf("  GET    /api/tryouts?class_id={id}")
+	log.Printf("  GET    /api/practice?class_id={id}")
+	log.Printf("  POST   /api/practice/sync")
+	log.Printf("  DELETE /api/practice/class/{id}/week/{week}?subject={subject}")
+	log.Printf("  POST   /api/practice/class/{id}/week/{week} (with _method=DELETE)")
+
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server: ", err)
 	}
 }

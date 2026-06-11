@@ -142,3 +142,41 @@ func (h *TryoutHandler) GetHistory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
 }
+
+// ✅ TAMBAH: GetSubmissions untuk admin melihat submissions per tryout
+func (h *TryoutHandler) GetSubmissions(c *gin.Context) {
+	tryoutID := c.Query("tryout_id")
+	if tryoutID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tryout_id is required"})
+		return
+	}
+
+	data, err := h.uc.GetSubmissionsByTryout(tryoutID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil submissions: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
+}
+
+// Tambahkan method ini di akhir file handler.go
+
+// DeleteTryout - Menghapus paket tryout beserta questions dan submissions
+func (h *TryoutHandler) DeleteTryout(c *gin.Context) {
+	tryoutID := c.Param("id")
+	if tryoutID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tryout_id is required"})
+		return
+	}
+
+	if err := h.uc.DeleteTryout(tryoutID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus paket: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Paket tryout berhasil dihapus",
+	})
+}

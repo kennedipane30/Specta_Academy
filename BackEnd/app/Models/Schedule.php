@@ -20,32 +20,35 @@ class Schedule extends Model
         'date',
         'start_time',
         'end_time',
-        'meeting_link',
         'status'
     ];
 
     /**
-     * Relasi ke Mata Pelajaran (Model Subject)
+     * Relasi ke Pengajar (User)
      */
-    public function subject()
-    {
-        /**
-         * MODIFIKASI PENTING:
-         * Parameter ke-2: 'subject_id' adalah kolom Foreign Key di tabel schedules.
-         * Parameter ke-3: 'material_id' adalah kolom Primary Key di tabel materials (milik Model Subject).
-         */
-        return $this->belongsTo(Subject::class, 'subject_id', 'material_id');
-    }
-
-    // Relasi ke Pengajar
     public function teacher()
     {
         return $this->belongsTo(User::class, 'teacher_id', 'usersID');
     }
 
-    // Relasi ke Kelas
+    /**
+     * Relasi ke Kelas
+     */
     public function class()
     {
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
+    }
+
+    /**
+     * Accessor untuk mendapatkan nama mata pelajaran dari teacher_assignments
+     * (Karena tidak ada foreign key, ambil dari relasi tidak langsung)
+     */
+    public function getSubjectNameAttribute()
+    {
+        $assignment = TeacherAssignment::where('class_id', $this->class_id)
+            ->where('subject_id', $this->subject_id)
+            ->first();
+
+        return $assignment ? $assignment->subject_name : $this->title;
     }
 }

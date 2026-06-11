@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 // IMPORT SEMUA MODEL & LIBRARY YANG DIBUTUHKAN
-use App\Models\{User, Student, OtpCode, Enrollment, Material, Schedule, Tryout, Question, TryoutResult, PracticeQuestion, ClassModel};
+use App\Models\{User, Student, OtpCode, Enrollment, Schedule, ClassModel};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\{Hash, Validator, DB, Auth, Mail, Log, Http, Storage};
@@ -132,34 +132,32 @@ class AuthController extends Controller {
     /**
      * 5. GET CLASS CONTENT (Gateway Microservices + Subjects)
      */
-    // BackEnd/app/Http/Controllers/AuthController.php
+    public function getClassContent(Request $request): JsonResponse {
+        $classId = $request->class_id;
+        $class = ClassModel::find($classId);
 
-public function getClassContent(Request $request): JsonResponse {
-    $classId = $request->class_id;
-    $class = ClassModel::find($classId); // Ambil data kelas dari DB Utama
+        if (!$class) return response()->json(['status' => 'error', 'message' => 'Kelas tidak ditemukan'], 404);
 
-    if (!$class) return response()->json(['status' => 'error', 'message' => 'Kelas tidak ditemukan'], 404);
+        try {
+            // Ambil data dari Microservices Go
+            $materiRes   = Http::get(env('GO_MATERI_URL') . "/api/materials?class_id=$classId");
+            $tryoutRes   = Http::get(env('GO_TRYOUT_URL') . "/api/tryouts?class_id=$classId");
+            $practiceRes = Http::get(env('GO_PRACTICE_URL') . "/api/practice?class_id=$classId");
 
-    try {
-        // Ambil data dari Microservices Go
-        $materiRes   = Http::get(env('GO_MATERI_URL') . "/api/materials?class_id=$classId");
-        $tryoutRes   = Http::get(env('GO_TRYOUT_URL') . "/api/tryouts?class_id=$classId");
-        $practiceRes = Http::get(env('GO_PRACTICE_URL') . "/api/practice?class_id=$classId");
-
-        return response()->json([
-            'status'        => 'success',
-            'enroll_status' => 'active',
-            'program_name'  => $class->program_name, // ✨ Kirim nama kelas asli
-            'price'         => $class->price,
-            'description'   => $class->description ?? "Materi belajar tersedia.",
-            'materi'        => $materiRes->json()['data'] ?? [],
-            'tryouts'       => $tryoutRes->json()['data'] ?? [],
-            'practice_questions' => $practiceRes->json()['data'] ?? [],
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => 'Microservice Offline'], 500);
+            return response()->json([
+                'status'        => 'success',
+                'enroll_status' => 'active',
+                'program_name'  => $class->program_name,
+                'price'         => $class->price,
+                'description'   => $class->description ?? "Materi belajar tersedia.",
+                'materi'        => $materiRes->json()['data'] ?? [],
+                'tryouts'       => $tryoutRes->json()['data'] ?? [],
+                'practice_questions' => $practiceRes->json()['data'] ?? [],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Microservice Offline'], 500);
+        }
     }
-}
 
     /**
      * 6. CHECK PROMO
@@ -183,11 +181,10 @@ public function getClassContent(Request $request): JsonResponse {
         $alreadyUsed = DB::table('payments')->where('user_id', $user->usersID)->where('promo_code', $promoCode)->whereIn('status', ['success', 'pending'])->exists();
         if ($alreadyUsed) return response()->json(['status' => 'error', 'message' => 'Promo sudah pernah digunakan'], 400);
 
-        // Hitung diskon (mendukung persen & nominal fixed)
         if ($promo->discount_type == 'percent') {
             $potongan = ($class->price * $promo->discount_percent) / 100;
         } else {
-            $potongan = $promo->discount_percent; // Nilai nominal
+            $potongan = $promo->discount_percent;
         }
 
         $hargaBaru = max(1000, $class->price - $potongan);
@@ -200,38 +197,69 @@ public function getClassContent(Request $request): JsonResponse {
     }
 
     /**
-     * 7. SUBMIT TRYOUT (Sinkronisasi Laravel & Go)
+     * 7. SUBMIT TRYOUT (via Microservice Go)
      */
     public function submitTryout(Request $request): JsonResponse {
         $userAnswers = $request->input('answers');
         $tryoutId = $request->tryout_id;
         $user = Auth::user();
-        $correctCount = 0;
+
+        $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
 
         try {
-            $response = Http::get(env('GO_TRYOUT_URL') . "/api/questions?tryout_id=$tryoutId");
-            $questions = $response->json()['data'] ?? [];
-
-            foreach ($questions as $q) {
-                $qId = $q['question_id'];
-                if (isset($userAnswers[$qId]) && strtoupper($userAnswers[$qId]) == strtoupper($q['correct_answer'])) $correctCount++;
-            }
-
-            $score = count($questions) > 0 ? round(($correctCount / count($questions)) * 100) : 0;
-
-            DB::table('tryout_results')->insert([
-                'user_id' => $user->usersID, 'tryout_id' => $tryoutId, 'score' => $score,
-                'total_correct' => $correctCount, 'created_at' => now(), 'updated_at' => now()
+            $response = Http::post("$goUrl/api/tryouts/$tryoutId/submit", [
+                'tryout_id' => (int) $tryoutId,
+                'user_id'   => (int) $user->usersID,
+                'answers'   => $userAnswers
             ]);
 
-            return response()->json(['status' => 'success', 'score' => (int)$score]);
+            if ($response->successful()) {
+                $data = $response->json();
+                return response()->json([
+                    'status' => 'success',
+                    'score' => $data['score'] ?? 0,
+                    'correct' => $data['correct'] ?? 0
+                ]);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Gagal menyimpan tryout'], 500);
+
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'Gagal simpan skor'], 500);
+            Log::error("Submit Tryout Error: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Microservice tidak merespon'], 500);
         }
     }
 
     /**
-     * 8. UPDATE PROFILE, LOGOUT, GET SCHEDULE
+     * 8. GET TRYOUT HISTORY (via Microservice Go)
+     */
+    public function getTryoutHistory(Request $request): JsonResponse {
+        $user = Auth::user();
+
+        $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
+
+        try {
+            $response = Http::get("$goUrl/api/tryouts/history", [
+                'user_id' => $user->usersID
+            ]);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $response->json()['data'] ?? []
+                ]);
+            }
+
+            return response()->json(['status' => 'error', 'data' => []], 500);
+
+        } catch (\Exception $e) {
+            Log::error("Get Tryout History Error: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'data' => []], 500);
+        }
+    }
+
+    /**
+     * 9. UPDATE PROFILE
      */
     public function updateProfile(Request $request): JsonResponse {
         $v = Validator::make($request->all(), [
@@ -246,18 +274,23 @@ public function getClassContent(Request $request): JsonResponse {
         return response()->json(['status' => 'success', 'message' => 'Profil diperbarui']);
     }
 
+    /**
+     * 10. LOGOUT
+     */
     public function logout(Request $request): JsonResponse {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['status' => 'success', 'message' => 'Berhasil Logout']);
     }
 
+    /**
+     * 11. GET SISWA SCHEDULE
+     */
     public function getSiswaSchedule(Request $request): JsonResponse {
         $user = Auth::user();
-        // Ambil kelas yang enrollments-nya aktif
         $classIds = DB::table('enrollments')->where('user_id', $user->usersID)->where('status', 'active')->pluck('class_id');
 
         $schedules = Schedule::whereIn('class_id', $classIds)
-                    ->with(['class', 'subject']) // Load relasi subject agar nampak nama mapelnya
+                    ->with(['class', 'subject'])
                     ->orderBy('date', 'asc')
                     ->get();
 
@@ -265,64 +298,61 @@ public function getClassContent(Request $request): JsonResponse {
     }
 
     /**
-     * GET PROFILE (Dinamis untuk Halaman Akun)
+     * 12. GET PROFILE
      */
-   public function getProfile(Request $request): JsonResponse {
-    $user = Auth::user();
+    public function getProfile(Request $request): JsonResponse {
+        Log::info('=== getProfile() DIPANGGIL ===');
 
-    // Ambil data student
-    $student = DB::table('students')->where('user_id', $user->usersID)->first();
+        $user = Auth::user();
+        $student = DB::table('students')->where('user_id', $user->usersID)->first();
 
-    $enrolledClasses = [];
-    $joinedDate = '-';
+        $enrolledClasses = [];
+        $joinedDate = '-';
 
-    if ($student) {
-        // Format tanggal bergabung
-        if ($student->created_at) {
+        $enrollments = DB::table('enrollments')
+            ->where('user_id', $user->usersID)
+            ->where('status', 'active')
+            ->get();
+
+        foreach ($enrollments as $enrollment) {
+            $classData = DB::table('classes')->where('class_id', $enrollment->class_id)->first();
+            if ($classData) {
+                $enrolledClasses[] = [
+                    'id'           => $classData->class_id,
+                    'program_name' => $classData->program_name,
+                    'enrolled_at'  => $enrollment->created_at,
+                    'expires_at'   => $enrollment->expires_at,
+                ];
+            }
+        }
+
+        if ($enrollments->isNotEmpty()) {
+            $firstEnrollment = $enrollments->first();
+            if ($firstEnrollment && $firstEnrollment->created_at) {
+                $joinedDate = Carbon::parse($firstEnrollment->created_at)->translatedFormat('d F Y');
+            }
+        } else if ($student && $student->created_at) {
             $joinedDate = Carbon::parse($student->created_at)->translatedFormat('d F Y');
         }
 
-        // Ambil kelas dari tabel 'classes'
-        if ($student->class_id) {
-            $classData = DB::table('classes')->where('class_id', $student->class_id)->first();
+        $roleName = DB::table('roles')->where('rolesID', $user->role_id)->value('name') ?? 'STUDENT';
 
-            // Debug log
-            Log::info('Student class_id: ' . $student->class_id);
-            if ($classData) {
-                Log::info('Class found: ' . $classData->program_name);
-                $enrolledClasses[] = [
-                    'id' => $classData->class_id,
-                    'program_name' => $classData->program_name
-                ];
-            } else {
-                Log::warning('No class found for class_id: ' . $student->class_id);
-            }
-        } else {
-            Log::warning('Student has no class_id for user: ' . $user->usersID);
-        }
-    } else {
-        Log::warning('No student record found for user: ' . $user->usersID);
+        return response()->json([
+            'status' => 'success',
+            'user' => [
+                'id'               => $user->usersID,
+                'name'             => $user->name,
+                'email'            => $user->email,
+                'photo_url'        => $user->photo_url,
+                'role'             => strtoupper($roleName),
+                'joined_date'      => $joinedDate,
+                'enrolled_classes' => $enrolledClasses
+            ]
+        ]);
     }
 
-    // Ambil role name
-    $roleName = DB::table('roles')->where('rolesID', $user->role_id)->value('name') ?? 'STUDENT';
-
-    return response()->json([
-        'status' => 'success',
-        'user' => [
-            'id' => $user->usersID,
-            'name' => $user->name,
-            'email' => $user->email,
-            'photo_url' => $user->photo_url,
-            'role' => strtoupper($roleName),
-            'joined_date' => $joinedDate,
-            'enrolled_classes' => $enrolledClasses
-        ]
-    ]);
-}
-
     /**
-     * UPLOAD FOTO PROFIL
+     * 13. UPLOAD FOTO PROFIL
      */
     public function updatePhoto(Request $request): JsonResponse {
         $request->validate(['photo' => 'required|image|mimes:jpeg,png,jpg|max:2048']);
@@ -331,15 +361,11 @@ public function getClassContent(Request $request): JsonResponse {
         $user = Auth::user();
 
         if ($request->hasFile('photo')) {
-            // Hapus foto lama jika ada
             if ($user->photo && Storage::disk('public')->exists($user->photo)) {
                 Storage::disk('public')->delete($user->photo);
             }
 
-            // Simpan foto baru
             $path = $request->file('photo')->store('profile_photos', 'public');
-
-            // Update database
             $user->update(['photo' => $path]);
 
             return response()->json([

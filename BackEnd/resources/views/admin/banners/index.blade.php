@@ -4,9 +4,16 @@
 @section('subtitle', 'Kelola banner carousel homepage mobile')
 
 @section('content')
+@php
+    $bannersCollection = method_exists($banners, 'getCollection') ? $banners->getCollection() : collect($banners);
+    $totalBanners = method_exists($banners, 'total') ? $banners->total() : $bannersCollection->count();
+    $activeBanners = $bannersCollection->where('is_active', true)->count();
+    $inactiveBanners = max($totalBanners - $activeBanners, 0);
+@endphp
+
 <div class="bn-page">
 
-    {{-- HEADER --}}
+    {{-- ── 1. HEADER (STYLISH CAPSULE & BOLD TITLE) ── --}}
     <section class="bn-header">
         <div class="bn-header-text">
             <span class="bn-kicker">Promosi & Informasi</span>
@@ -23,18 +30,40 @@
         </div>
     @endif
 
-    {{-- TOTAL BANNER SUMMARY STRIP --}}
-    <section class="bn-summary-strip">
-        <div class="bn-summary-icon">
-            <i class="fa-solid fa-images"></i>
+    {{-- ── 2. STATS GRID (KINI BERJUMLAH 3 DAN SEIMBANG) ── --}}
+    <section class="bn-stats">
+        <!-- Total Banner -->
+        <div class="bn-stat-card card-red">
+            <div class="bn-stat-icon red"><i class="fa-solid fa-images"></i></div>
+            <div class="bn-stat-info">
+                <p>Total Banner</p>
+                <h2>{{ number_format($totalBanners) }}</h2>
+            </div>
         </div>
-        <div class="bn-summary-info">
-            <p>Total Keseluruhan Banner</p>
-            <h2>{{ number_format($banners->total() ?? $banners->count()) }} <span>Banner Carousel</span></h2>
+
+        <!-- Banner Aktif -->
+        <div class="bn-stat-card card-teal">
+            <div class="bn-stat-icon teal"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="bn-stat-info">
+                <p>Banner Aktif</p>
+                <h2>{{ number_format($activeBanners) }}</h2>
+            </div>
+            @if($activeBanners > 0)
+                <span class="bn-pulse-dot"></span>
+            @endif
+        </div>
+
+        <!-- Banner Nonaktif -->
+        <div class="bn-stat-card card-gray">
+            <div class="bn-stat-icon gray"><i class="fa-solid fa-circle-xmark"></i></div>
+            <div class="bn-stat-info">
+                <p>Nonaktif</p>
+                <h2>{{ number_format($inactiveBanners) }}</h2>
+            </div>
         </div>
     </section>
 
-    {{-- MAIN CONTENT --}}
+    {{-- ── 3. MAIN CONTENT (LIST PANEL) ── --}}
     <section class="bn-main-grid">
 
         <div class="bn-list-panel">
@@ -44,10 +73,13 @@
                     <p>Atur banner promosi yang muncul pada aplikasi mobile.</p>
                 </div>
 
-                <a href="{{ route('admin.banners.create') }}" class="bn-primary-btn">
-                    <i class="fa-solid fa-plus"></i>
-                    Tambah Banner Baru
-                </a>
+                <!-- Sembunyikan tombol di kanan atas jika data kosong untuk menghindari redundansi -->
+                @if($totalBanners > 0)
+                    <a href="{{ route('admin.banners.create') }}" class="bn-primary-btn">
+                        <i class="fa-solid fa-plus"></i>
+                        Tambah Banner Baru
+                    </a>
+                @endif
             </div>
 
             <div class="bn-banner-list">
@@ -92,9 +124,20 @@
                                 </div>
 
                                 @if($banner->is_active)
-                                    <span class="bn-status active">Aktif</span>
+                                    <span class="bn-status active">
+                                        <span class="bn-dot-wrapper">
+                                            <i class="bn-dot"></i>
+                                            <i class="bn-dot-pulse"></i>
+                                        </span>
+                                        Aktif
+                                    </span>
                                 @else
-                                    <span class="bn-status inactive">Nonaktif</span>
+                                    <span class="bn-status inactive">
+                                        <span class="bn-dot-wrapper">
+                                            <i class="bn-dot"></i>
+                                        </span>
+                                        Nonaktif
+                                    </span>
                                 @endif
                             </div>
 
@@ -153,11 +196,31 @@
 </div>
 
 <style>
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
+    }
+
     /* BASE LAYOUT */
     .bn-page {
         width: 100%;
-        font-family: 'Inter', system-ui, sans-serif;
-        color: #334155;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     /* HEADER */
@@ -167,27 +230,33 @@
         align-items: flex-start;
         margin-bottom: 24px;
         gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
     }
     .bn-kicker {
-        display: block;
-        color: #d90429;
-        font-size: 11px;
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
     .bn-header h1 {
-        margin: 0 0 8px;
-        color: #0f172a;
-        font-size: 28px;
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
         font-weight: 900;
         letter-spacing: -0.02em;
     }
     .bn-header p {
         margin: 0;
-        color: #64748b;
-        font-size: 14px;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
     }
 
     /* PRIMARY BUTTON */
@@ -195,145 +264,173 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: #d90429;
-        color: #fff;
+        background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%);
+        color: var(--spekta-white);
+        border: none;
         border-radius: 12px;
         padding: 12px 20px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
         text-decoration: none;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.2);
         white-space: nowrap;
+        cursor: pointer;
     }
     .bn-primary-btn:hover {
-        background: #b80222;
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(229, 57, 53, 0.3);
+        color: var(--spekta-white);
     }
 
     /* ALERTS */
     .bn-alert {
         border-radius: 12px;
-        padding: 16px;
+        padding: 12px 16px;
         margin-bottom: 24px;
         display: flex;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
-        font-size: 14px;
-        font-weight: 700;
+        font-size: 13px;
+        font-weight: 800;
     }
-    .bn-alert.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .bn-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0; }
 
-    /* SUMMARY STRIP (TOTAL BANNER) */
-    .bn-summary-strip {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 24px 30px;
+    /* STATS SUMMARY GRID (3 KOLOM SEIMBANG) */
+    .bn-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .bn-stat-card {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px;
         display: flex;
         align-items: center;
-        gap: 20px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
+        position: relative;
     }
-    .bn-summary-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
+    .bn-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .bn-stat-card.card-red:hover { border-color: var(--spekta-red); }
+    .bn-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .bn-stat-card.card-gray:hover { border-color: var(--spekta-gray); }
+
+    .bn-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
         display: grid;
         place-items: center;
-        font-size: 28px;
-        background: #fff1f2;
-        color: #d90429;
-        flex-shrink: 0;
-    }
-    .bn-summary-info p {
-        margin: 0 0 4px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .bn-summary-info h2 {
-        margin: 0;
-        font-size: 32px;
-        font-weight: 900;
-        color: #0f172a;
-        line-height: 1;
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
-    }
-    .bn-summary-info h2 span {
         font-size: 16px;
-        font-weight: 600;
-        color: #94a3b8;
+    }
+    .bn-stat-icon.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+    .bn-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .bn-stat-icon.gray { background: var(--spekta-gray-light); color: var(--text-muted); }
+
+    .bn-stat-info p {
+        margin: 0 0 4px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .bn-stat-info h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1;
     }
 
-    /* MAIN PANEL (FULL WIDTH) */
+    /* Indikator denyut untuk banner aktif */
+    .bn-pulse-dot {
+        position: absolute;
+        top: 14px; right: 14px;
+        width: 6px; height: 6px;
+        background: var(--spekta-teal);
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(46, 168, 171, 0.7);
+        animation: pulseTeal 1.5s infinite;
+    }
+    @keyframes pulseTeal {
+        0% { box-shadow: 0 0 0 0 rgba(46, 168, 171, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(46, 168, 171, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 168, 171, 0); }
+    }
+
+    /* MAIN PANEL */
     .bn-main-grid {
         display: block;
         margin-bottom: 24px;
     }
     .bn-list-panel {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
     }
     .bn-panel-heading {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--spekta-gray-light);
         flex-wrap: wrap;
         gap: 15px;
     }
     .bn-panel-heading h2 {
-        margin: 0 0 6px;
-        font-size: 20px;
+        margin: 0 0 4px;
+        font-size: 15px;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-main);
     }
     .bn-panel-heading p {
         margin: 0;
-        font-size: 14px;
-        color: #64748b;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
     }
 
     /* BANNER LIST & CARDS */
     .bn-banner-list {
         display: grid;
-        gap: 20px;
+        gap: 16px;
     }
     .bn-banner-card {
         display: grid;
-        grid-template-columns: 320px minmax(0, 1fr);
-        gap: 24px;
-        padding: 20px;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        background: #fff;
-        transition: all 0.2s ease;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 20px;
+        padding: 16px;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        background: var(--spekta-white);
+        transition: all 0.25s ease;
     }
     .bn-banner-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        border-color: var(--spekta-gray);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.03);
         transform: translateY(-2px);
     }
 
     /* CARD IMAGE */
     .bn-banner-image {
-        height: 180px;
-        border-radius: 12px;
+        height: 150px;
+        border-radius: 10px;
         overflow: hidden;
         position: relative;
-        background: #f8fafc;
-        border: 1px solid #f1f5f9;
+        background: var(--spekta-gray-light);
+        border: 1px solid var(--border-soft);
     }
     .bn-banner-image img {
         width: 100%;
@@ -348,24 +445,24 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
     }
     .bn-no-image i {
-        font-size: 32px;
-        color: #cbd5e1;
-        margin-bottom: 8px;
+        font-size: 24px;
+        color: var(--spekta-gray);
+        margin-bottom: 6px;
     }
     .bn-image-badge {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        padding: 4px 12px;
-        border-radius: 8px;
-        background: rgba(15, 23, 42, 0.85);
-        color: #fff;
-        font-size: 12px;
+        top: 10px;
+        left: 10px;
+        padding: 3px 10px;
+        border-radius: 6px;
+        background: rgba(31, 41, 55, 0.85);
+        color: var(--spekta-white);
+        font-size: 11px;
         font-weight: 800;
         backdrop-filter: blur(4px);
     }
@@ -380,57 +477,84 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 20px;
+        gap: 16px;
     }
     .bn-banner-title-row h3 {
-        margin: 0 0 8px;
-        color: #0f172a;
-        font-size: 18px;
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 15px;
         font-weight: 800;
     }
     .bn-banner-title-row p {
         margin: 0;
-        color: #475569;
-        font-size: 13px;
-        line-height: 1.6;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.5;
     }
 
     /* STATUS BADGE */
     .bn-status {
-        flex-shrink: 0;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
         font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
     }
-    .bn-status.active { background: #dcfce7; color: #16a34a; }
-    .bn-status.inactive { background: #f1f5f9; color: #64748b; }
+    .bn-dot-wrapper {
+        position: relative;
+        width: 5px; height: 5px;
+        display: inline-block;
+    }
+    .bn-dot {
+        width: 5px; height: 5px;
+        border-radius: 99px;
+        background: currentColor;
+        display: block;
+        position: absolute;
+        left: 0; top: 0;
+    }
+    .bn-dot-pulse {
+        width: 5px; height: 5px;
+        border-radius: 99px;
+        background: currentColor;
+        display: block;
+        position: absolute;
+        left: 0; top: 0;
+        opacity: 0.4;
+        transform: scale(1);
+        animation: dotGlow 1.8s infinite ease-in-out;
+    }
+    @keyframes dotGlow {
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(3.2); opacity: 0; }
+    }
+    .bn-status.active { color: #15803d; }
+    .bn-status.inactive { color: var(--spekta-gray); }
 
     /* META INFO GRID */
     .bn-meta-grid {
         display: grid;
         grid-template-columns: 1.5fr 1fr 1fr;
-        gap: 16px;
-        padding: 16px;
-        border-radius: 12px;
-        background: #f8fafc;
-        margin: 16px 0;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 10px;
+        background: var(--spekta-gray-light);
+        margin: 12px 0;
     }
     .bn-meta-grid span {
         display: block;
-        color: #64748b;
-        font-size: 11px;
-        font-weight: 700;
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
     .bn-meta-grid strong {
         display: block;
-        color: #0f172a;
-        font-size: 13px;
+        color: var(--text-main);
+        font-size: 12px;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
@@ -442,62 +566,61 @@
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 10px;
+        gap: 8px;
     }
     .bn-actions form { margin: 0; }
     .bn-actions a, .bn-actions button {
-        height: 40px;
+        height: 32px;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 0 16px;
-        font-size: 12px;
-        font-weight: 700;
+        gap: 6px;
+        padding: 0 12px;
+        font-size: 11px;
+        font-weight: 800;
         cursor: pointer;
         font-family: inherit;
         text-decoration: none;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
     }
-    .bn-actions .edit { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
-    .bn-actions .edit:hover { background: #e2e8f0; }
-    .bn-actions .delete { background: #fef2f2; color: #dc2626; }
+    .bn-actions .edit { background: var(--spekta-gray-light); color: var(--text-main); }
+    .bn-actions .edit:hover { background: var(--border-soft); }
+    .bn-actions .delete { background: var(--spekta-red-light); color: var(--spekta-red); }
     .bn-actions .delete:hover { background: #fecaca; }
 
     /* EMPTY STATE */
     .bn-empty {
         text-align: center;
-        padding: 80px 20px;
-        background: #f8fafc;
+        padding: 48px;
+        background: var(--spekta-gray-light);
         border-radius: 16px;
-        border: 1px dashed #cbd5e1;
+        border: 1px dashed var(--border-soft);
     }
     .bn-empty-icon {
-        width: 72px;
-        height: 72px;
-        background: #fff;
+        width: 48px;
+        height: 48px;
+        background: var(--spekta-white);
         border-radius: 50%;
         display: grid;
         place-items: center;
-        font-size: 28px;
-        color: #94a3b8;
-        margin: 0 auto 20px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        font-size: 18px;
+        color: var(--spekta-gray);
+        margin: 0 auto 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
-    .bn-empty strong { display: block; font-size: 18px; color: #0f172a; margin-bottom: 6px;}
-    .bn-empty p { margin: 0; font-size: 14px; color: #64748b; }
+    .bn-empty strong { display: block; font-size: 14px; color: var(--text-main); margin-bottom: 4px; font-weight: 800;}
+    .bn-empty p { margin: 0; font-size: 12px; color: var(--text-muted); font-weight: 600; }
 
-    .bn-pagination { margin-top: 24px; }
+    .bn-pagination { margin-top: 20px; }
 
     /* RESPONSIVE */
     @media (max-width: 768px) {
-        .bn-header { flex-direction: column; align-items: flex-start; }
-        .bn-summary-strip { flex-direction: column; text-align: center; gap: 12px; padding: 20px;}
-        .bn-summary-info h2 { justify-content: center;}
+        .bn-header { flex-direction: column; align-items: flex-start; gap: 14px; }
+        .bn-stats { grid-template-columns: 1fr; }
         .bn-banner-card { grid-template-columns: 1fr; }
-        .bn-banner-image { height: 200px; }
+        .bn-banner-image { height: 160px; }
         .bn-meta-grid { grid-template-columns: 1fr; gap: 12px; }
         .bn-panel-heading { flex-direction: column; align-items: stretch;}
         .bn-primary-btn { justify-content: center; }

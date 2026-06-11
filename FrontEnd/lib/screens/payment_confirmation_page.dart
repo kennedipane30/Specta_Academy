@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'midtrans_payment_page.dart';
+import '../../services/auth_service.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
   final int classId;
@@ -38,7 +39,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi harga akhir dengan harga asli kelas
     finalPrice = widget.basePrice;
   }
 
@@ -67,9 +67,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
       if (response.statusCode == 200) {
         setState(() {
-          // Simpan kode yang berhasil dipasang
           appliedPromoCode = inputCode;
-          // Ambil nominal diskon dan harga akhir dari respons server
           discountAmount = int.tryParse(data['discount_amount'].toString()) ?? 0;
           finalPrice = int.tryParse(data['final_price'].toString()) ?? widget.basePrice;
         });
@@ -82,7 +80,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           )
         );
       } else {
-        // Jika kode salah atau tidak valid
         setState(() {
           appliedPromoCode = null;
           discountAmount = 0;
@@ -97,7 +94,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     }
   }
 
-  // --- FUNGSI PROSES PEMBAYARAN KE MIDTRANS ---
+  // --- ✅ MODIFIKASI: FUNGSI PROSES PEMBAYARAN KE MIDTRANS ---
   Future<void> _processPayment() async {
     showDialog(
       context: context, 
@@ -106,42 +103,41 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     );
 
     try {
-      // 🔥 PENTING: Mengirim promo_code ke Backend agar Midtrans menghitung harga diskon
-      final response = await http.post(
-        Uri.parse("http://10.0.2.2:8000/api/payment/snap-token"),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Accept': 'application/json'
-        },
-        body: {
-          "class_id": widget.classId.toString(),
-          "promo_code": appliedPromoCode ?? "", // Mengirim kode promo yang sedang aktif
-        },
+      // ✅ Gunakan AuthService.getSnapToken
+      final result = await AuthService.getSnapToken(
+        classId: widget.classId,
+        token: widget.token,
+        promoCode: appliedPromoCode,
       );
 
-      if (mounted) Navigator.pop(context); // Tutup Loading Spinner
+      if (mounted) Navigator.pop(context); // Tutup Loading
 
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        String snapUrl = data['snap_url'];
+      if (result != null && result['status'] == 'success') {
+        String snapUrl = result['snap_url'];
+        String orderId = result['order_id']; // ✅ Ambil order_id dari response
         
-        // Buka WebView Midtrans
-        final result = await Navigator.push(
+        // ✅ Buka WebView Midtrans dengan order_id dan token
+        final paymentResult = await Navigator.push(
           context, 
-          MaterialPageRoute(builder: (_) => MidtransPaymentPage(url: snapUrl))
+          MaterialPageRoute(
+            builder: (_) => MidtransPaymentPage(
+              url: snapUrl,
+              orderId: orderId,
+              token: widget.token,
+            )
+          )
         );
 
-        // Jika user menyelesaikan pembayaran di WebView (Midtrans melempar success)
-        if (result == true) {
-          if (mounted) Navigator.pop(context, true); 
+        // Jika pembayaran sukses
+        if (paymentResult == true) {
+          if (mounted) Navigator.pop(context, true);
         }
       } else {
-        var errorData = jsonDecode(response.body);
-        _showError(errorData['message'] ?? "Gagal memproses pembayaran");
+        _showError(result?['message'] ?? "Gagal memproses pembayaran");
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _showError("Terjadi kesalahan teknis saat menghubungi sistem pembayaran.");
+      _showError("Terjadi kesalahan teknis: $e");
     }
   }
 
@@ -179,7 +175,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             ),
             const SizedBox(height: 16),
             
-            // --- KARTU RINCIAN HARGA ---
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -195,7 +190,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   _buildRowItem("Program", widget.className),
                   _buildRowItem("Harga Normal", currency.format(widget.basePrice)),
                   
-                  // Munculkan baris potongan hanya jika ada diskon
                   if (discountAmount > 0)
                     _buildRowItem(
                       "Potongan Promo (${appliedPromoCode})", 
@@ -223,7 +217,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 12),
             
-            // --- INPUT KODE PROMO ---
             Row(
               children: [
                 Expanded(
@@ -259,7 +252,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
             const SizedBox(height: 50),
             
-            // --- TOMBOL BAYAR ---
             SizedBox(
               width: double.infinity,
               height: 58,

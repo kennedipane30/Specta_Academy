@@ -1,246 +1,173 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Pengajar;
 
 use App\Http\Controllers\Controller;
+use App\Models\TeacherAssignment;
+use App\Models\ClassModel;
+use App\Models\TryoutDraft;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Models\TryoutResult;
+use Illuminate\Support\Facades\Http;
 
 class TryoutController extends Controller
 {
-    /**
-     * Helper untuk URL Go Service
-     */
-    private function goUrl(): string
+    public function index()
     {
-        return env('GO_TRYOUT_URL', 'http://127.0.0.1:9003');
-    }
+        $userId = Auth::user()->usersID;
 
-    /**
-     * OTOMATISASI KELAS: Mendapatkan Class ID Siswa secara dinamis.
-     */
-    private function getClassId(Request $request): ?int
-    {
-        $user = $request->user();
-        if (!$user) return null;
-
-        $userId = $user->usersID ?? $user->id;
-
-        $enrollment = DB::table('enrollments')
+        $assignments = TeacherAssignment::with(['classModel', 'subject'])
             ->where('user_id', $userId)
-            ->where('status', 'active')
-            ->first();
+            ->get();
 
-        if ($enrollment) return (int) $enrollment->class_id;
+        foreach ($assignments as $assignment) {
+            $subjectName = strtolower(trim($assignment->subject->name ?? ''));
 
-        $studentClass = $user->student?->class_id;
-        if ($studentClass) return (int) $studentClass;
+            $assignment->total_soal = TryoutDraft::where('user_id', $userId)
+                ->where('class_id', $assignment->class_id)
+                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subjectName])
+                ->count();
+        }
 
-        return null;
+        return view('pengajar.tryout.index', compact('assignments'));
     }
 
-    /**
-     * 1. DAFTAR TRYOUT (Index)
-     */
-    public function index(Request $request)
+    public function create($class_id, $subject_name)
     {
+        $classModel = ClassModel::findOrFail($class_id);
+        $cleanSubject = strtolower(trim($subject_name));
+        $userId = Auth::user()->usersID;
+
+        $existingSoal = TryoutDraft::where('class_id', $class_id)
+            ->where('user_id', $userId)
+            ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$cleanSubject])
+            ->latest()
+            ->get();
+
+        return view('pengajar.tryout.create', [
+            'classId'      => $class_id,
+            'classModel'   => $classModel,
+            'subjectName'  => trim($subject_name),
+            'existingSoal' => $existingSoal
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'draft_id'       => 'nullable|exists:tryout_drafts,id',
+            'class_id'       => 'required',
+            'subject_name'   => 'required',
+            'question'       => 'required',
+            'option_a'       => 'required',
+            'option_b'       => 'required',
+            'option_c'       => 'required',
+            'option_d'       => 'required',
+            'option_e'       => 'required',
+            'correct_answer' => 'required|in:A,B,C,D,E',
+        ]);
+
         try {
-            $user = $request->user();
-            $classId = $this->getClassId($request);
+            TryoutDraft::updateOrCreate(
+                ['id' => $request->draft_id],
+                [
+                    'class_id'       => $request->class_id,
+                    'user_id'        => Auth::user()->usersID,
+                    'subject_name'   => trim($request->subject_name),
+                    'question'       => $request->question,
+                    'option_a'       => trim($request->option_a),
+                    'option_b'       => trim($request->option_b),
+                    'option_c'       => trim($request->option_c),
+                    'option_d'       => trim($request->option_d),
+                    'option_e'       => trim($request->option_e),
+                    'correct_answer' => strtoupper($request->correct_answer),
+                    'explanation'    => $request->explanation,
+                ]
+            );
 
-            if ($classId === null) {
-                return response()->json(['status' => 'success', 'data' => []]);
-            }
+            return back()->with('success', 'Berhasil! Soal telah disimpan ke draf.');
 
-            $response = Http::timeout(5)->get($this->goUrl() . '/api/tryouts', [
-                'class_id' => $classId
-            ]);
-
-            if ($response->successful()) {
-                $rawTryouts = $response->json()['data'] ?? [];
-                if (!is_array($rawTryouts)) return response()->json(['status' => 'success', 'data' => []]);
-
-                // Ambil daftar tryout_id yang sudah dikerjakan
-                $completedIds = TryoutResult::where('user_id', $user->usersID ?? $user->id)
-                    ->pluck('tryout_id')
-                    ->toArray();
-
-                $finalData = array_map(function($to) use ($completedIds) {
-                    $currentId = $to['id'] ?? $to['tryout_id'] ?? null;
-                    if ($currentId !== null) {
-                        $to['id'] = $currentId;
-                        $to['is_completed'] = in_array($currentId, $completedIds);
-                    } else {
-                        $to['is_completed'] = false;
-                    }
-                    return $to;
-                }, $rawTryouts);
-
-                return response()->json(['status' => 'success', 'data' => $finalData]);
-            }
-            return response()->json(['status' => 'error', 'message' => 'Gagal sinkronisasi data'], 502);
         } catch (\Exception $e) {
-            Log::error("Index Tryout API Error: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Internal Server Error'], 500);
+            Log::error("Store Draft Error: " . $e->getMessage());
+            return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
     }
 
-    /**
-     * 2. AMBIL SOAL (Questions)
-     */
-    public function questions(Request $request, $id)
+    public function importCSV(Request $request)
     {
+        $request->validate([
+            'file_csv'     => 'required|mimes:csv,txt',
+            'class_id'     => 'required',
+            'subject_name' => 'required'
+        ]);
+
+        $file = $request->file('file_csv');
+        $handle = fopen($file->getRealPath(), "r");
+
+        fgetcsv($handle, 2000, ";");
+        $count = 0;
+        $userId = Auth::user()->usersID;
+        $forcedSubject = trim($request->subject_name);
+
+        DB::beginTransaction();
         try {
-            $user = $request->user();
-            $userId = $user->usersID ?? $user->id;
+            while (($row = fgetcsv($handle, 2000, ";")) !== FALSE) {
+                if (!isset($row[1]) || empty(trim($row[1]))) continue;
 
-            // ✨ PROTEKSI: Gunakan tryout_id untuk mengecek apakah sudah dikerjakan
-            $alreadyDone = TryoutResult::where('user_id', $userId)->where('tryout_id', $id)->exists();
-
-            if ($alreadyDone) {
-                return response()->json(['status' => 'error', 'message' => 'Anda sudah mengerjakan Tryout ini.'], 403); 
+                TryoutDraft::create([
+                    'class_id'       => (int) $request->class_id,
+                    'user_id'        => (int) $userId,
+                    'subject_name'   => $forcedSubject,
+                    'question'       => trim($row[1]),
+                    'option_a'       => trim($row[2] ?? '-'),
+                    'option_b'       => trim($row[3] ?? '-'),
+                    'option_c'       => trim($row[4] ?? '-'),
+                    'option_d'       => trim($row[5] ?? '-'),
+                    'option_e'       => trim($row[6] ?? '-'),
+                    'correct_answer' => strtoupper(substr(trim($row[7] ?? 'A'), 0, 1)),
+                    'explanation'    => trim($row[8] ?? ''),
+                ]);
+                $count++;
             }
+            fclose($handle);
+            DB::commit();
 
-            $response = Http::timeout(5)->get($this->goUrl() . '/api/questions', ['tryout_id' => (int) $id]);
-            if ($response->successful()) {
-                return response()->json(['status' => 'success', 'data' => $response->json()['data'] ?? []]);
-            }
-            return response()->json(['status' => 'error', 'message' => 'Gagal memuat soal'], 500);
+            return back()->with('success', "Sukses! $count soal berhasil diimport ke mata pelajaran $forcedSubject.");
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'Service Offline'], 500);
+            DB::rollBack();
+            Log::error("Import CSV Error: " . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
         }
     }
 
-    /**
-     * 3. SUBMIT JAWABAN
-     */
-    public function submit(Request $request, $id)
+    public function destroy($id)
     {
-        $user = $request->user();
-        $userId = $user->usersID ?? $user->id;
-
-        $alreadySubmitted = TryoutResult::where('user_id', $userId)->where('tryout_id', $id)->exists();
-        if ($alreadySubmitted) {
-            return response()->json(['success' => false, 'message' => 'Jawaban sudah terkirim sebelumnya.'], 400);
-        }
-
-        $userAnswers = $request->input('answers') ?? []; 
-
         try {
-            $response = Http::get($this->goUrl() . '/api/questions', ['tryout_id' => $id]);
-            $questions = $response->json()['data'] ?? [];
-            $correct = 0;
+            TryoutDraft::where('id', $id)
+                ->where('user_id', Auth::user()->usersID)
+                ->delete();
 
-            foreach ($questions as $q) {
-                $qId = (string) ($q['id'] ?? $q['question_id'] ?? '');
-                if (isset($userAnswers[$qId])) {
-                    if (strtoupper(trim($userAnswers[$qId])) == strtoupper(trim($q['correct_answer']))) {
-                        $correct++;
-                    }
-                }
-            }
-
-            $totalSoal = count($questions);
-            $score = ($totalSoal > 0) ? round(($correct / $totalSoal) * 100) : 0;
-
-            // ✨ SIMPAN: Laravel otomatis mengisi result_id jika primary key diset di model
-            $result = TryoutResult::create([
-                'user_id'       => (int) $userId,
-                'tryout_id'     => (int) $id,
-                'score'         => (int) $score,
-                'total_correct' => (int) $correct,
-            ]);
-
-            Http::post($this->goUrl() . '/api/tryouts/submissions/sync', [
-                'user_id'      => (int) $userId,
-                'tryout_id'    => (int) $id,
-                'answers'      => json_encode($userAnswers), 
-                'score'        => (float) $score,
-                'submitted_at' => now()->toDateTimeString()
-            ]);
-
-            return response()->json(['success' => true, 'score' => $score, 'submission_id' => $result->result_id]);
+            return back()->with('success', 'Soal berhasil dihapus dari draf.');
         } catch (\Exception $e) {
-            Log::error("Submit Error: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Gagal memproses jawaban'], 500);
+            return back()->with('error', 'Gagal menghapus soal.');
         }
     }
 
-    /**
-     * 4. DAFTAR RIWAYAT
-     */
-    public function history(Request $request)
+    public function deleteAllDrafts(Request $request)
     {
-        $userId = $request->user()->usersID ?? $request->user()->id;
-        $results = TryoutResult::where('user_id', $userId)->latest()->get();
-        
-        // ✨ Pastikan mengirimkan result_id agar Flutter bisa memakainya
-        return response()->json(['status' => 'success', 'data' => $results]);
-    }
-
-    /**
-     * 5. HASIL PEMBAHASAN (Results)
-     * ✨ FIX TERBESAR: Mengganti 'id' menjadi 'result_id' sesuai database PostgreSQL Anda.
-     */
-    public function results(Request $request, $id)
-    {
-        $user = $request->user();
-        $userId = $user->usersID ?? $user->id;
-
         try {
-            // ✨ FIX: Cari berdasarkan result_id, bukan id
-            $resultRecord = TryoutResult::where('result_id', $id)
-                ->where('user_id', $userId)
-                ->first();
+            $subject = strtolower(trim($request->subject_name));
 
-            if (!$resultRecord) {
-                return response()->json(['status' => 'error', 'message' => 'Riwayat pengerjaan tidak ditemukan.'], 404);
-            }
+            TryoutDraft::where('user_id', Auth::user()->usersID)
+                ->where('class_id', $request->class_id)
+                ->whereRaw('LOWER(TRIM(subject_name)) = ?', [$subject])
+                ->delete();
 
-            // 2. Ambil Soal dari Go Service
-            $qResponse = Http::timeout(5)->get($this->goUrl() . '/api/questions', ['tryout_id' => $resultRecord->tryout_id]);
-            if (!$qResponse->successful()) {
-                throw new \Exception("Gagal mengambil data soal dari Go Service.");
-            }
-            $questions = $qResponse->json()['data'] ?? [];
-
-            // 3. Ambil Detail Jawaban User
-            $sResponse = Http::timeout(5)->get($this->goUrl() . '/api/tryouts/submissions/detail', [
-                'user_id'   => (int) $userId,
-                'tryout_id' => (int) $resultRecord->tryout_id
-            ]);
-
-            $userAnswers = [];
-            if ($sResponse->successful()) {
-                $submissionData = $sResponse->json()['data'] ?? null;
-                if ($submissionData && isset($submissionData['answers'])) {
-                    $userAnswers = is_array($submissionData['answers']) 
-                                   ? $submissionData['answers'] 
-                                   : json_decode($submissionData['answers'], true);
-                }
-            }
-
-            // 4. Gabungkan Data (Mapping)
-            $finalData = array_map(function($q) use ($userAnswers) {
-                $qId = (string) ($q['id'] ?? $q['question_id'] ?? '');
-                $q['user_answer'] = $userAnswers[$qId] ?? '-'; 
-                return $q;
-            }, $questions);
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $finalData
-            ]);
-
+            return back()->with('success', "Seluruh draf untuk mata pelajaran ini telah dihapus.");
         } catch (\Exception $e) {
-            Log::error("DETAIL PEMBAHASAN ERROR [ResultID $id]: " . $e->getMessage());
-            return response()->json([
-                'status' => 'error', 
-                'message' => 'Gagal memuat pembahasan: ' . $e->getMessage()
-            ], 500);
+            return back()->with('error', 'Gagal membersihkan draf.');
         }
     }
 }

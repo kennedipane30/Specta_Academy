@@ -1,3 +1,9 @@
+<?php $__env->startSection('head'); ?>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<?php $__env->stopSection(); ?>
+
 <?php $__env->startSection('title', 'Kelola Latihan ' . $subject_name); ?>
 <?php $__env->startSection('subtitle', 'Import dan kelola latihan soal mingguan'); ?>
 
@@ -179,8 +185,15 @@
                                 </span>
                             </td>
 
+                            
+                            
+                            
                             <td>
-                                <form action="<?php echo e(route('pengajar.latihan.destroy_week', [$class->class_id, $subject_name, $p->week])); ?>"
+                                <form action="<?php echo e(route('pengajar.latihan.destroy_week', [
+                                    'class_id' => $class->class_id,
+                                    'subject_name' => $subject_name,
+                                    'week' => $p->week
+                                ])); ?>"
                                       method="POST"
                                       onsubmit="return confirm('Hapus semua soal di Minggu ke-<?php echo e($p->week); ?>?')">
                                     <?php echo csrf_field(); ?>
@@ -242,6 +255,7 @@
         font-size: 11px;
         font-weight: 900;
         margin-bottom: 18px;
+        text-decoration: none;
     }
 
     .pq-detail-header span {
@@ -694,4 +708,5 @@
     }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/Latihan/pilih.blade.php ENDPATH**/ ?>

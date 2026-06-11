@@ -11,38 +11,17 @@ use Exception;
 
 class AdminDedicatedTutorController extends Controller
 {
-    /**
-     * Menampilkan halaman utama manajemen tutor untuk Admin.
-     * Fix: relasi 'material' di-load dengan try-catch terpisah
-     * agar jika koneksi pgsql_materi gagal, halaman tetap bisa dibuka.
-     */
     public function index()
     {
-        // ✅ FIX 1: Load tutors tanpa relasi 'material' dulu
-        // karena material pakai koneksi DB berbeda (pgsql_materi)
-        // yang sering jadi penyebab Exception → redirect ke back()
         try {
+            // ✅ Tanpa relasi material
             $tutors = DedicatedTutor::with(['student.user', 'teacher'])
                 ->latest()
                 ->get();
         } catch (Exception $e) {
-            // Jika DB utama pun error, baru benar-benar gagal
-            return back()->with('error', 'Gagal koneksi database utama: ' . $e->getMessage());
+            return back()->with('error', 'Gagal koneksi database: ' . $e->getMessage());
         }
 
-        // ✅ FIX 2: Load relasi 'material' secara terpisah
-        // Jika gagal (misal pgsql_materi tidak tersambung), lanjut saja
-        // dengan material = null, halaman tetap terbuka
-        foreach ($tutors as $tutor) {
-            try {
-                $tutor->load('material');
-            } catch (Exception $e) {
-                // Material gagal load — set null, jangan crash seluruh halaman
-                $tutor->setRelation('material', null);
-            }
-        }
-
-        // ✅ FIX 3: Load daftar pengajar tersedia
         try {
             $availableTeachers = User::whereHas('role', function ($q) {
                 $q->where('role_name', 'pengajar');
@@ -51,8 +30,6 @@ class AdminDedicatedTutorController extends Controller
             $availableTeachers = collect();
         }
 
-        // ✅ FIX 4: Pre-load TeacherAssignment untuk hindari N+1 query
-        // Dikelompokkan by "subject_name_classId" untuk lookup cepat di blade
         try {
             $teacherAssignments = TeacherAssignment::with('user')
                 ->get()
@@ -61,8 +38,6 @@ class AdminDedicatedTutorController extends Controller
             $teacherAssignments = collect();
         }
 
-        // ✅ Kirim semua variable ke view
-        // Nama variable 'tutors' dipakai di blade (bukan 'availableTeachers' → 'allTeachers')
         return view('admin.dedicated_tutor.index', compact(
             'tutors',
             'availableTeachers',
@@ -70,18 +45,11 @@ class AdminDedicatedTutorController extends Controller
         ));
     }
 
-    /**
-     * Memproses keputusan Admin (Konfirmasi/Tolak) dan Penugasan Guru.
-     */
     public function updateAssignment(Request $request, $id)
     {
         $request->validate([
             'status'     => 'required|in:confirmed,rejected',
             'teacher_id' => 'required_if:status,confirmed|nullable|exists:users,usersID',
-        ], [
-            'status.required'          => 'Status konfirmasi wajib dipilih.',
-            'teacher_id.required_if'   => 'Admin wajib memilih Pengajar untuk permintaan yang disetujui.',
-            'teacher_id.exists'        => 'Pengajar yang dipilih tidak terdaftar di sistem.',
         ]);
 
         try {
@@ -101,9 +69,6 @@ class AdminDedicatedTutorController extends Controller
         }
     }
 
-    /**
-     * Menghapus data pengajuan tutor.
-     */
     public function destroy($id)
     {
         try {
