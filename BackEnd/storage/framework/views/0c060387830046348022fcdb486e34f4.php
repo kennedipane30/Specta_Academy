@@ -1,28 +1,26 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Hasil Nilai Siswa'); ?>
 
-@section('title', 'Hasil Nilai Siswa')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="cp-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Student Score Center</span>
             <!-- Menampilkan judul dinamis dari variabel $tryoutTitle di controller Anda -->
-            <h1>Hasil: <span style="color: var(--spekta-teal);">{{ $tryoutTitle ?? 'Paket Tryout' }}</span></h1>
+            <h1>Hasil: <span style="color: var(--spekta-teal);"><?php echo e($tryoutTitle ?? 'Paket Tryout'); ?></span></h1>
             <!-- FIX: Menggunakan count($results) untuk menghitung array biasa -->
-            <p>Total {{ count($results) }} siswa telah menyelesaikan ujian ini secara nasional.</p>
+            <p>Total <?php echo e(count($results)); ?> siswa telah menyelesaikan ujian ini secara nasional.</p>
         </div>
         
         <div class="cp-header-actions">
-            <a href="{{ route('admin.scores.index') }}" class="cp-secondary-btn">
+            <a href="<?php echo e(route('admin.scores.index')); ?>" class="cp-secondary-btn">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
         </div>
     </section>
 
-    {{-- ── 2. TABLE CARD (DENGAN PENANGANAN OBJEK REKURSIF) ── --}}
+    
     <div class="cp-main-card">
         <div class="cp-table-wrap">
             <table class="cp-table">
@@ -35,49 +33,51 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($results as $res)
-                        @if($res)
-                            @php
+                    <?php $__empty_1 = true; $__currentLoopData = $results; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $res): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php if($res): ?>
+                            <?php
                                 // Konversi paksa array bersarang (nested array) dari Go ke Object secara rekursif
                                 $resObj = (object) json_decode(json_encode($res));
                                 $studentName = $resObj->user_data->name ?? 'Siswa tidak ditemukan';
                                 $studentEmail = $resObj->user_data->email ?? '-';
                                 $createdAt = isset($resObj->created_at) ? \Carbon\Carbon::parse($resObj->created_at) : null;
-                            @endphp
+                            ?>
                             <tr>
-                                {{-- Profil Siswa --}}
+                                
                                 <td>
                                     <div class="cp-student-cell">
                                         <div class="cp-student-avatar">
-                                            {{ strtoupper(substr($studentName, 0, 1)) }}
+                                            <?php echo e(strtoupper(substr($studentName, 0, 1))); ?>
+
                                         </div>
                                         <div class="cp-student-info">
-                                            <strong>{{ $studentName }}</strong>
-                                            <span>{{ $studentEmail }}</span>
+                                            <strong><?php echo e($studentName); ?></strong>
+                                            <span><?php echo e($studentEmail); ?></span>
                                         </div>
                                     </div>
                                 </td>
 
-                                {{-- Benar --}}
+                                
                                 <td class="text-correct">
-                                    <i class="fa-solid fa-circle-check"></i> {{ $resObj->total_correct ?? 0 }} Soal
+                                    <i class="fa-solid fa-circle-check"></i> <?php echo e($resObj->total_correct ?? 0); ?> Soal
                                 </td>
 
-                                {{-- Skor Akhir --}}
+                                
                                 <td>
                                     <span class="cp-score-badge">
-                                        {{ $resObj->score ?? 0 }}
+                                        <?php echo e($resObj->score ?? 0); ?>
+
                                     </span>
                                 </td>
 
-                                {{-- Tanggal --}}
+                                
                                 <td class="cp-date-cell">
                                     <i class="fa-regular fa-clock"></i> 
-                                    {{ $createdAt ? $createdAt->format('d M Y, H:i') : '-' }} WIB
+                                    <?php echo e($createdAt ? $createdAt->format('d M Y, H:i') : '-'); ?> WIB
                                 </td>
                             </tr>
-                        @endif
-                    @empty
+                        <?php endif; ?>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="4">
                             <div class="cp-empty-state">
@@ -86,7 +86,7 @@
                             </div>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -242,4 +242,5 @@
         .cp-header { flex-direction: column; align-items: flex-start; gap: 14px; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/tryout/scores.blade.php ENDPATH**/ ?>

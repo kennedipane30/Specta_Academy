@@ -20,23 +20,21 @@
 
 <div class="pq-page">
 
-    {{-- HEADER --}}
+    {{-- ── 1. HEADER MINIMALIS DENGAN PROGRESS BAR GLOWING TEAL ── --}}
     <section class="pq-detail-header">
-        <div>
-            <a href="{{ route('pengajar.latihan.index') }}" class="pq-back">
-                <i class="fa-solid fa-arrow-left"></i>
-                Kembali
+        <div class="pq-header-left">
+            <a href="{{ route('pengajar.latihan.index') }}" class="pq-back-btn">
+                <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
-
-            <span>Practice Weekly Manager</span>
+            <span class="pq-breadcrumb-capsule">Practice Weekly Manager</span>
             <h1>{{ $subject_name }}</h1>
-            <p>{{ $class->program_name }} • Kelola latihan soal untuk 20 minggu.</p>
+            <p>{{ $class->program_name }} • Kelola latihan soal untuk 20 minggu pertemuan.</p>
         </div>
 
         <div class="pq-progress-box">
             <strong>{{ $filledWeeks }}/20</strong>
-            <span>Minggu terisi</span>
-            <div>
+            <span>Minggu Terisi</span>
+            <div class="progress-bar-wrap">
                 <em style="width: {{ $progress }}%"></em>
             </div>
         </div>
@@ -70,11 +68,10 @@
         </div>
     @endif
 
-    {{-- UPLOAD PANEL --}}
+    {{-- ── 2. UPLOAD PANEL (DENGAN TAMPILAN MODERN CAPSULE) ── --}}
     <section class="pq-upload-panel">
         <div class="pq-upload-head">
             <div>
-                <span>CSV Import</span>
                 <h2>Import Latihan Soal</h2>
                 <p>Pilih minggu pembelajaran, lalu unggah file CSV berisi soal latihan.</p>
             </div>
@@ -92,7 +89,7 @@
 
             <div class="pq-field">
                 <label>Pilih Minggu</label>
-                <div>
+                <div class="pq-input-wrap">
                     <i class="fa-solid fa-calendar-week"></i>
                     <select name="week" required>
                         @for($i = 1; $i <= 20; $i++)
@@ -106,34 +103,33 @@
 
             <div class="pq-field file">
                 <label>File CSV</label>
-                <div>
+                <div class="pq-input-wrap">
                     <i class="fa-solid fa-file-csv"></i>
                     <input type="file" name="file_csv" accept=".csv,text/csv" required>
                 </div>
             </div>
 
             <button type="submit" class="pq-submit">
-                <i class="fa-solid fa-file-import"></i>
-                Proses Import
+                <i class="fa-solid fa-file-import"></i> Proses Import
             </button>
         </form>
 
         <div class="pq-format-note">
             <i class="fa-solid fa-circle-info"></i>
-            <span>Pastikan format CSV sudah sesuai template sistem agar seluruh soal dapat terbaca dengan benar.</span>
+            <span>Pastikan format CSV sudah sesuai template sistem agar seluruh soal dapat terbaca dengan benar di aplikasi siswa.</span>
         </div>
     </section>
 
-    {{-- WEEK OVERVIEW --}}
+    {{-- ── 3. WEEK OVERVIEW (RINGKASAN DOTS MINGGU 1-20) ── --}}
     <section class="pq-week-panel">
         <div class="pq-panel-head">
             <div>
-                <span>Weekly Question Bank</span>
                 <h2>Ringkasan Soal Terupload</h2>
                 <p>Pantau minggu yang sudah memiliki bank soal dan kelola data latihan per pertemuan.</p>
             </div>
         </div>
 
+        <!-- Dots Mingguan Berpendar -->
         <div class="pq-week-strip">
             @for($i = 1; $i <= 20; $i++)
                 @php $hasPractice = $practiceByWeek->has($i); @endphp
@@ -144,6 +140,7 @@
             @endfor
         </div>
 
+        {{-- Tabel Manajemen Latihan --}}
         <div class="pq-table-wrap">
             <table class="pq-table">
                 <thead>
@@ -152,7 +149,7 @@
                         <th>Status Konten</th>
                         <th>Jumlah Soal</th>
                         <th>Keterangan</th>
-                        <th>Aksi</th>
+                        <th class="text-right">Aksi</th>
                     </tr>
                 </thead>
 
@@ -167,7 +164,10 @@
 
                             <td>
                                 <span class="pq-content-status active">
-                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span class="pq-dot-wrapper">
+                                        <i class="pq-dot"></i>
+                                        <i class="pq-dot-pulse"></i>
+                                    </span>
                                     Tersedia
                                 </span>
                             </td>
@@ -185,23 +185,20 @@
                                 </span>
                             </td>
 
-                            {{-- ============================================================ --}}
-                            {{-- 🔥 MODIFIKASI: Form Delete dengan parameter yang benar --}}
-                            {{-- ============================================================ --}}
-                            <td>
+                            <td class="text-right">
                                 <form action="{{ route('pengajar.latihan.destroy_week', [
                                     'class_id' => $class->class_id,
                                     'subject_name' => $subject_name,
                                     'week' => $p->week
                                 ]) }}"
                                       method="POST"
-                                      onsubmit="return confirm('Hapus semua soal di Minggu ke-{{ $p->week }}?')">
+                                      onsubmit="return confirm('Hapus semua soal di Minggu ke-{{ $p->week }}?')"
+                                      style="display: inline-flex;">
                                     @csrf
                                     @method('DELETE')
 
                                     <button type="submit" class="pq-delete">
-                                        <i class="fa-solid fa-trash"></i>
-                                        Hapus
+                                        <i class="fa-solid fa-trash-can"></i> Hapus
                                     </button>
                                 </form>
                             </td>
@@ -210,7 +207,7 @@
                         <tr>
                             <td colspan="5">
                                 <div class="pq-empty">
-                                    <i class="fa-solid fa-file-circle-plus"></i>
+                                    <div class="pq-empty-icon"><i class="fa-solid fa-file-circle-plus"></i></div>
                                     <strong>Belum ada latihan soal yang diunggah.</strong>
                                     <span>Gunakan form import di atas untuk mengunggah bank soal pertama.</span>
                                 </div>
@@ -225,139 +222,129 @@
 </div>
 
 <style>
-    .pq-page {
-        width: 100%;
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
     }
 
+    .pq-page {
+        width: 100%;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header Minimalis */
     .pq-detail-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        gap: 24px;
-        margin-bottom: 22px;
-        padding: 28px 30px;
-        border-radius: 24px;
-        color: #fff;
-        background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%);
-        box-shadow: 0 18px 38px rgba(134, 0, 24, .18);
+        margin-bottom: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
     }
-
-    .pq-back {
+    
+    .pq-back-btn {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        min-height: 34px;
-        padding: 0 12px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.13);
-        border: 1px solid rgba(255,255,255,.17);
-        color: #fff;
+        gap: 6px;
+        border: 1px solid var(--border-soft);
+        background: var(--spekta-white);
+        color: var(--text-muted);
+        border-radius: 8px;
+        padding: 6px 12px;
         font-size: 11px;
-        font-weight: 900;
-        margin-bottom: 18px;
+        font-weight: 800;
         text-decoration: none;
+        transition: all 0.2s;
+        margin-bottom: 12px;
+    }
+    .pq-back-btn:hover {
+        background: var(--spekta-gray-light);
+        color: var(--text-main);
+        border-color: var(--spekta-gray);
     }
 
-    .pq-detail-header span {
-        display: block;
-        color: rgba(255,255,255,.78);
+    .pq-breadcrumb-capsule {
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
         font-size: 10px;
-        font-weight: 900;
+        font-weight: 800;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        letter-spacing: .16em;
-        margin-bottom: 9px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
-
     .pq-detail-header h1 {
-        margin: 0 0 8px;
-        color: #fff;
-        font-size: 30px;
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
         font-weight: 900;
-        letter-spacing: -0.04em;
-        text-transform: uppercase;
+        letter-spacing: -0.02em;
     }
-
     .pq-detail-header p {
         margin: 0;
-        color: rgba(255,255,255,.86);
+        color: var(--text-muted);
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
     }
 
+    /* Progres Box di Kanan */
     .pq-progress-box {
-        width: 230px;
+        width: 200px;
         flex-shrink: 0;
-        padding: 18px;
-        border-radius: 20px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.17);
-        backdrop-filter: blur(12px);
+        padding: 14px;
+        border-radius: 12px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
     }
+    .pq-progress-box strong { display: block; font-size: 22px; font-weight: 900; color: var(--text-main); line-height: 1; }
+    .pq-progress-box span { display: block; margin: 4px 0 10px; color: var(--text-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .progress-bar-wrap { height: 6px; border-radius: 999px; background: var(--spekta-gray-light); overflow: hidden; }
+    .progress-bar-wrap em { display: block; height: 100%; border-radius: 999px; background: var(--spekta-teal); box-shadow: 0 0 8px rgba(46,168,171,0.3); transition: width 0.6s ease; }
 
-    .pq-progress-box strong {
-        display: block;
-        color: #fff;
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .pq-progress-box span {
-        margin: 8px 0 14px;
-        color: rgba(255,255,255,.75);
-        letter-spacing: 0;
-    }
-
-    .pq-progress-box div {
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.25);
-        overflow: hidden;
-    }
-
-    .pq-progress-box em {
-        display: block;
-        height: 100%;
-        border-radius: 999px;
-        background: #fff;
-    }
-
+    /* Alerts */
     .pq-alert {
         display: flex;
         align-items: flex-start;
         gap: 10px;
-        padding: 14px 16px;
-        border-radius: 15px;
-        margin-bottom: 18px;
-        font-size: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-size: 13px;
         font-weight: 800;
     }
+    .pq-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0; }
+    .pq-alert.error { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .pq-alert ul { margin: 4px 0 0; padding-left: 18px; }
 
-    .pq-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
-
-    .pq-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
-
-    .pq-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
-
+    /* Panel Card */
     .pq-upload-panel,
     .pq-week-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
-        padding: 22px;
-        box-shadow: 0 14px 35px rgba(15,23,42,.05);
-        margin-bottom: 22px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        margin-bottom: 24px;
     }
 
     .pq-upload-head,
@@ -367,344 +354,206 @@
         align-items: flex-start;
         gap: 18px;
         margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--spekta-gray-light);
     }
-
-    .pq-upload-head span,
-    .pq-panel-head span {
-        display: block;
-        color: #d90429;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .16em;
-        margin-bottom: 8px;
-    }
-
     .pq-upload-head h2,
-    .pq-panel-head h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
-        font-weight: 900;
-    }
-
+    .pq-panel-head h2 { margin: 0; color: var(--text-main); font-size: 15px; font-weight: 800; }
     .pq-upload-head p,
-    .pq-panel-head p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 600;
-    }
+    .pq-panel-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 11px; font-weight: 600; }
 
     .pq-total-box {
-        min-width: 120px;
-        padding: 14px 16px;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid #edf0f4;
+        min-width: 100px;
+        padding: 10px;
+        border-radius: 10px;
+        background: var(--spekta-gray-light);
+        border: 1px solid var(--border-soft);
         text-align: center;
     }
+    .pq-total-box strong { display: block; color: var(--text-main); font-size: 20px; font-weight: 900; line-height: 1; }
+    .pq-total-box span { margin-top: 2px; color: var(--text-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 
-    .pq-total-box strong {
-        display: block;
-        color: #111827;
-        font-size: 25px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .pq-total-box span {
-        margin: 7px 0 0;
-        color: #6b7280;
-        font-size: 10px;
-        letter-spacing: 0;
-    }
-
+    /* Form Layout */
     .pq-upload-form {
         display: grid;
-        grid-template-columns: 180px minmax(0, 1fr) 170px;
-        gap: 14px;
+        grid-template-columns: 180px minmax(0, 1fr) 160px;
+        gap: 15px;
         align-items: end;
     }
 
     .pq-field label {
         display: block;
-        color: #374151;
+        color: var(--text-muted);
         font-size: 10px;
-        font-weight: 900;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: .06em;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
-
-    .pq-field div {
-        position: relative;
-    }
-
-    .pq-field i {
+    .pq-input-wrap { position: relative; display: flex; }
+    .pq-input-wrap i {
         position: absolute;
-        left: 15px;
+        left: 14px;
         top: 50%;
         transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 13px;
+        color: var(--spekta-gray);
+        font-size: 12px;
+        pointer-events: none;
     }
 
     .pq-field select,
     .pq-field input {
         width: 100%;
-        height: 48px;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        background: #f8fafc;
-        padding: 0 15px 0 42px;
-        color: #111827;
+        height: 40px;
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        background: var(--spekta-gray-light);
+        padding: 0 14px 0 38px;
+        color: var(--text-main);
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 600;
         outline: none;
         font-family: inherit;
+        transition: all 0.25s;
     }
-
-    .pq-field input[type="file"] {
-        padding-top: 13px;
-    }
-
+    .pq-field input[type="file"] { padding-top: 10px; }
     .pq-field select:focus,
     .pq-field input:focus {
-        background: #fff;
-        border-color: #fecdd3;
-        box-shadow: 0 0 0 4px rgba(217, 4, 41, .08);
+        background: var(--spekta-white);
+        border-color: var(--spekta-teal);
+        box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12);
     }
 
+    /* Buttons */
     .pq-submit {
-        height: 48px;
+        height: 40px;
         border: none;
-        border-radius: 14px;
-        background: #d90429;
-        color: #fff;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%);
+        color: var(--spekta-white);
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        gap: 9px;
-        font-size: 11px;
-        font-weight: 900;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 800;
         text-transform: uppercase;
         cursor: pointer;
         font-family: inherit;
-        box-shadow: 0 14px 28px rgba(217, 4, 41, .20);
+        box-shadow: 0 4px 10px rgba(229, 57, 53, 0.15);
+        transition: all 0.2s ease;
+    }
+    .pq-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.25);
     }
 
     .pq-format-note {
         display: flex;
         align-items: flex-start;
-        gap: 10px;
-        margin-top: 16px;
-        padding: 13px 14px;
-        border-radius: 15px;
-        background: #f8fafc;
-        color: #6b7280;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 10px;
+        background: #fff7f9;
+        color: var(--text-muted);
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 600;
         line-height: 1.5;
     }
+    .pq-format-note i { color: var(--spekta-red); margin-top: 2px; }
 
-    .pq-format-note i {
-        color: #d90429;
-        margin-top: 2px;
-    }
-
+    /* 20-Week Progress Strip */
     .pq-week-strip {
         display: grid;
         grid-template-columns: repeat(20, minmax(0, 1fr));
         gap: 6px;
-        padding: 14px;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid #edf0f4;
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--spekta-gray-light);
+        border: 1px solid var(--border-soft);
         margin-bottom: 18px;
     }
-
     .pq-week-dot {
-        min-height: 34px;
+        min-height: 30px;
         display: grid;
         place-items: center;
-        border-radius: 10px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
     }
+    .pq-week-dot span { color: var(--spekta-gray); font-size: 10px; font-weight: 800; }
+    .pq-week-dot.filled { background: #e6f7ed; border-color: #bbf7d0; }
+    .pq-week-dot.filled span { color: #15803d; }
 
-    .pq-week-dot span {
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 900;
-    }
-
-    .pq-week-dot.filled {
-        background: #dcfce7;
-        border-color: #bbf7d0;
-    }
-
-    .pq-week-dot.filled span {
-        color: #16a34a;
-    }
-
-    .pq-table-wrap {
-        overflow-x: auto;
-    }
-
-    .pq-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .pq-table th {
-        text-align: left;
-        padding: 14px 12px;
-        border-bottom: 1px solid #edf0f4;
-        color: #6b7280;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        white-space: nowrap;
-    }
-
-    .pq-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid #edf0f4;
-        vertical-align: middle;
-    }
-
-    .pq-table tbody tr:hover {
-        background: #fff7f9;
-    }
-
-    .pq-week-badge,
-    .pq-content-status {
-        display: inline-flex;
-        align-items: center;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
+    /* Table */
+    .pq-table-wrap { overflow-x: auto; }
+    .pq-table { width: 100%; border-collapse: collapse; min-width: 750px; }
+    .pq-table th { text-align: left; padding: 12px 14px; border-bottom: 2px solid var(--spekta-gray-light); color: var(--text-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+    .pq-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
+    .pq-table tbody tr:hover { background: #fafbfc; }
 
     .pq-week-badge {
-        background: #fff1f2;
-        color: #d90429;
-    }
-
-    .pq-content-status {
-        gap: 7px;
-    }
-
-    .pq-content-status.active {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .pq-question-count strong {
-        color: #111827;
-        font-size: 17px;
-        font-weight: 900;
-    }
-
-    .pq-question-count span {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 800;
-        margin-left: 4px;
-    }
-
-    .pq-note-text {
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .pq-delete {
-        height: 34px;
-        border: none;
-        border-radius: 11px;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 0 12px;
-        background: #fee2e2;
-        color: #dc2626;
+        height: 24px;
+        padding: 0 10px;
+        border-radius: 6px;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
         font-size: 10px;
-        font-weight: 900;
+        font-weight: 800;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    /* Glowing Badge Status */
+    .pq-content-status { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .pq-dot-wrapper { position: relative; width: 5px; height: 5px; display: inline-block; }
+    .pq-dot { width: 5px; height: 5px; border-radius: 99px; background: currentColor; display: block; position: absolute; left: 0; top: 0; }
+    .pq-dot-pulse { width: 5px; height: 5px; border-radius: 99px; background: currentColor; display: block; position: absolute; left: 0; top: 0; opacity: 0.4; transform: scale(1); animation: dotGlow 1.8s infinite ease-in-out; }
+    @keyframes dotGlow { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3.2); opacity: 0; } }
+    .pq-content-status.active { color: #15803d; }
+
+    .pq-question-count strong { color: var(--text-main); font-size: 15px; font-weight: 900; }
+    .pq-question-count span { color: var(--text-muted); font-size: 11px; font-weight: 800; margin-left: 4px; }
+    .pq-note-text { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+
+    .pq-delete {
+        height: 30px;
+        border: none;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red);
+        font-size: 10px;
+        font-weight: 800;
         text-transform: uppercase;
         cursor: pointer;
         font-family: inherit;
+        transition: all 0.2s;
     }
+    .pq-delete:hover { background: #fecaca; color: #991b1b; transform: scale(1.05); }
 
-    .pq-empty {
-        padding: 42px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .pq-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
-    }
-
-    .pq-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
+    .pq-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .pq-empty-icon { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 50%; background: var(--spekta-gray-light); color: var(--spekta-gray); font-size: 18px; }
+    .pq-empty strong { display: block; color: var(--text-main); font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    .text-right { text-align: right; }
 
     @media (max-width: 1200px) {
-        .pq-upload-form {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .pq-submit {
-            grid-column: 1 / -1;
-        }
-
-        .pq-week-strip {
-            grid-template-columns: repeat(10, minmax(0, 1fr));
-        }
+        .pq-upload-form { grid-template-columns: 1fr 1fr; }
+        .pq-submit { grid-column: 1 / -1; }
+        .pq-week-strip { grid-template-columns: repeat(10, minmax(0, 1fr)); }
     }
 
     @media (max-width: 760px) {
-        .pq-detail-header,
-        .pq-upload-head {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .pq-progress-box,
-        .pq-total-box {
-            width: 100%;
-        }
-
-        .pq-upload-form {
-            grid-template-columns: 1fr;
-        }
-
-        .pq-week-strip {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
+        .pq-detail-header, .pq-upload-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+        .pq-progress-box, .pq-total-box { width: 100%; }
+        .pq-upload-form { grid-template-columns: 1fr; }
+        .pq-week-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     }
 </style>
 @endsection

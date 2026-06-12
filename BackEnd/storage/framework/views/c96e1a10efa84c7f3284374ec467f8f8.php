@@ -1,25 +1,23 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Pilih Paket Tryout'); ?>
 
-@section('title', 'Pilih Paket Tryout')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="cp-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Student Score Center</span>
-            <h1>Paket Tryout: <span style="color: var(--spekta-teal);">{{ $class->program_name }}</span></h1>
+            <h1>Paket Tryout: <span style="color: var(--spekta-teal);"><?php echo e($class->program_name); ?></span></h1>
             <p>Pilih salah satu paket di bawah ini untuk melihat rekapitulasi daftar nilai siswa.</p>
         </div>
         <div class="cp-header-actions">
-            <a href="{{ route('admin.scores.index') }}" class="cp-secondary-btn">
+            <a href="<?php echo e(route('admin.scores.index')); ?>" class="cp-secondary-btn">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
         </div>
     </section>
 
-    {{-- ── 2. TABLE CARD (DENGAN PENANGANAN AMAN NULL & ARRAY) ── --}}
+    
     <div class="cp-main-card">
         <div class="cp-table-wrap">
             <table class="cp-table">
@@ -31,40 +29,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($tryouts as $to)
+                    <?php $__empty_1 = true; $__currentLoopData = $tryouts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $to): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <!-- Pengaman 1: Pastikan elemen $to tidak bernilai NULL -->
-                        @if($to)
-                            @php
+                        <?php if($to): ?>
+                            <?php
                                 // Pengaman 2: Konversi paksa array ke Object agar bisa dibaca dengan tanda ->
                                 $toObj = (object) $to;
                                 $duration = $toObj->duration ?? ($toObj->duration_minutes ?? 0);
                                 $tryoutId = $toObj->tryout_id ?? ($toObj->id ?? 0);
-                            @endphp
+                            ?>
                             <tr>
-                                {{-- Nama Paket --}}
+                                
                                 <td class="to-package-title">
                                     <div class="to-package-cell">
                                         <div class="to-package-icon">
                                             <i class="fa-solid fa-file-invoice"></i>
                                         </div>
-                                        <strong>{{ $toObj->title ?? 'Untitled Package' }}</strong>
+                                        <strong><?php echo e($toObj->title ?? 'Untitled Package'); ?></strong>
                                     </div>
                                 </td>
 
-                                {{-- Durasi --}}
+                                
                                 <td class="to-duration-cell">
-                                    <i class="fa-regular fa-clock"></i> {{ $duration }} Menit
+                                    <i class="fa-regular fa-clock"></i> <?php echo e($duration); ?> Menit
                                 </td>
 
-                                {{-- Aksi Rekap Nilai --}}
+                                
                                 <td class="text-right">
-                                    <a href="{{ route('admin.scores.result', $tryoutId) }}" class="to-btn-rekap">
+                                    <a href="<?php echo e(route('admin.scores.result', $tryoutId)); ?>" class="to-btn-rekap">
                                         <span>REKAP NILAI</span> <i class="fa-solid fa-chevron-right"></i>
                                     </a>
                                 </td>
                             </tr>
-                        @endif
-                    @empty
+                        <?php endif; ?>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="3">
                             <div class="cp-empty-state">
@@ -73,7 +71,7 @@
                             </div>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -232,4 +230,5 @@
         .cp-header { flex-direction: column; align-items: flex-start; gap: 14px; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/tryout/pilih_paket.blade.php ENDPATH**/ ?>

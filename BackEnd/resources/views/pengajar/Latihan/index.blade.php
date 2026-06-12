@@ -1,491 +1,299 @@
 @extends('layouts.spekta')
 
-@section('title', 'Pilih Program Latihan')
-@section('subtitle', 'Kelola bank latihan soal sesuai penugasan')
+@section('title', 'Materi Saya - Spekta Academy')
 
 @section('content')
 @php
-    $assignmentCollection = collect($assignmentsWithSubjects ?? []);
-    $totalAssignment = $assignmentCollection->count();
-    $totalProgram = $assignmentCollection->pluck('class_id')->unique()->count();
-    $totalSubject = $assignmentCollection->pluck('subject_name')->unique()->count();
+    $totalAssignment = count($assignmentsWithSubjects ?? []);
 @endphp
 
-<div class="pq-page">
+<div class="tm-container">
 
-    {{-- HERO --}}
-    <section class="pq-hero">
-        <div>
-            <span>Practice Question Center</span>
-            <h1>Latihan Soal</h1>
-            <p>
-                Kelola bank soal latihan berbasis CSV sesuai program kelas dan bidang ajar yang Anda ampu.
-            </p>
+    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    <section class="tm-header">
+        <div class="tm-header-text">
+            <span class="tm-breadcrumb-capsule">Teacher Portal</span>
+            <h1>Materi Pembelajaran</h1>
+            <p>Pilih bidang ajar Anda untuk mengelola modul materi dan file PDF mingguan secara berkala.</p>
         </div>
+    </section>
 
-        <div class="pq-hero-summary">
-            <div>
-                <strong>{{ $totalProgram }}</strong>
-                <span>Program</span>
-            </div>
-
-            <div>
-                <strong>{{ $totalSubject }}</strong>
-                <span>Mapel</span>
-            </div>
-
-            <div>
-                <strong>{{ $totalAssignment }}</strong>
-                <span>Penugasan</span>
+    {{-- ── 2. STATS SUMMARY CARD ── --}}
+    <section class="tm-stats">
+        <div class="tm-stat-card card-teal">
+            <div class="tm-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="tm-stat-info">
+                <p>Total Penugasan</p>
+                <h2>{{ $totalAssignment }} <span>Kelas</span></h2>
             </div>
         </div>
     </section>
 
-    @if(session('success'))
-        <div class="pq-alert success">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="pq-alert error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="pq-alert error">
-            <i class="fa-solid fa-circle-exclamation"></i>
+    {{-- ── 3. LIST PANEL (DAFTAR BIDANG AJAR) ── --}}
+    <section class="tm-card">
+        <div class="tm-card-head">
             <div>
-                <strong>Data belum valid.</strong>
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    @endif
-
-    {{-- MAIN PANEL --}}
-    <section class="pq-panel">
-        <div class="pq-panel-head">
-            <div>
-                <span>Teaching Assignment</span>
-                <h2>Daftar Bank Soal yang Dapat Dikelola</h2>
-                <p>Pilih salah satu program dan bidang soal untuk mengunggah latihan mingguan.</p>
+                <h2>Daftar Bidang Ajar</h2>
+                <small>Semua kombinasi kelas dan mata pelajaran yang Anda ampu</small>
             </div>
         </div>
 
-        @if($assignmentCollection->isEmpty())
-            <div class="pq-empty">
-                <i class="fa-solid fa-clipboard-question"></i>
-                <strong>Belum ada penugasan latihan soal.</strong>
-                <span>Admin perlu menugaskan Anda pada program dan mata pelajaran tertentu terlebih dahulu.</span>
-            </div>
-        @else
-            <div class="pq-table-wrap">
-                <table class="pq-table">
-                    <thead>
+        <div class="tm-table-responsive">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Program Kelas</th>
+                        <th style="width: 30%">Mata Pelajaran</th>
+                        <th style="width: 20%">Durasi</th>
+                        <th class="text-end" style="width: 20%">Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @forelse($assignmentsWithSubjects ?? [] as $assign)
                         <tr>
-                            <th>Program Kelas</th>
-                            <th>Bidang Soal</th>
-                            <th>Format Upload</th>
-                            <th>Struktur</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
+                            {{-- Program Kelas --}}
+                            <td>
+                                <div class="tm-class-info">
+                                    <strong>{{ $assign->classModel->program_name ?? 'Kelas' }}</strong>
+                                    <small>ID #{{ $assign->class_id }}</small>
+                                </div>
+                            </td>
+
+                            {{-- Mata Pelajaran --}}
+                            <td>
+                                <span class="tm-subject-pill">
+                                    <i class="fa-solid fa-book-bookmark"></i>
+                                    {{ $assign->subject_name ?? 'Mata Pelajaran' }}
+                                </span>
+                            </td>
+
+                            {{-- Durasi --}}
+                            <td>
+                                <span class="tm-muted">20 Minggu</span>
+                            </td>
+
+                            {{-- Tombol Aksi Buka --}}
+                            <td class="text-end">
+                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}"
+                                   class="tm-btn-manage">
+                                    <span>Kelola Materi</span> <i class="fa-solid fa-arrow-right-long"></i>
+                                </a>
+                            </td>
                         </tr>
-                    </thead>
-
-                    <tbody>
-                        @foreach($assignmentsWithSubjects as $assign)
-                            <tr>
-                                <td>
-                                    <div class="pq-program">
-                                        <div>
-                                            {{ strtoupper(substr($assign->classModel->program_name ?? 'P', 0, 1)) }}
-                                        </div>
-
-                                        <section>
-                                            <strong>{{ $assign->classModel->program_name ?? 'Program Kelas' }}</strong>
-                                            <span>ID Kelas: {{ $assign->class_id }}</span>
-                                        </section>
-                                    </div>
-                                </td
-                                <td>
-                                    <span class="pq-subject">
-                                        {{ $assign->subject_name }}
-                                    </span>
-                                </td
-                                <td>
-                                    <span class="pq-format">
-                                        <i class="fa-solid fa-file-csv"></i>
-                                        CSV
-                                    </span>
-                                </td
-                                <td>
-                                    <div class="pq-structure">
-                                        <strong>20 Minggu</strong>
-                                        <span>Bank soal latihan bertahap</span>
-                                    </div>
-                                </td
-                                <td>
-                                    <span class="pq-status">
-                                        <i class="fa-solid fa-circle"></i>
-                                        Aktif
-                                    </span>
-                                </td
-                                <td>
-                                    <a href="{{ route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_name]) }}" class="pq-action">
-                                        Kelola Bank Soal
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </a>
-                                </td
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                    @empty
+                        <tr>
+                            <td colspan="4">
+                                <div class="tm-empty">
+                                    <div class="tm-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                                    <strong>Belum ada penugasan mengajar</strong>
+                                    <span>Admin akademik belum mendaftarkan kelas pengampu untuk Anda saat ini.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </section>
-
 </div>
 
 <style>
-    .pq-page {
-        width: 100%;
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
     }
 
-    .pq-hero {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%);
-        border-radius: 24px;
-        padding: 30px 34px;
-        color: #fff;
+    .tm-container {
+        padding: 10px;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header Minimalis */
+    .tm-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 24px;
-        margin-bottom: 22px;
-        box-shadow: 0 18px 38px rgba(134, 0, 24, .20);
-    }
-
-    .pq-hero::after {
-        content: "";
-        width: 280px;
-        height: 280px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.09);
-        position: absolute;
-        right: -95px;
-        top: -130px;
-    }
-
-    .pq-hero > div {
-        position: relative;
-        z-index: 2;
-    }
-
-    .pq-hero span,
-    .pq-panel-head span {
-        display: block;
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .16em;
-        text-transform: uppercase;
-    }
-
-    .pq-hero > div:first-child > span {
-        color: rgba(255,255,255,.78);
-        margin-bottom: 10px;
-    }
-
-    .pq-hero h1 {
-        margin: 0 0 8px;
-        color: #fff;
-        font-size: 31px;
-        font-weight: 900;
-        letter-spacing: -0.04em;
-        text-transform: uppercase;
-    }
-
-    .pq-hero p {
-        margin: 0;
-        color: rgba(255,255,255,.86);
-        font-size: 13px;
-        font-weight: 600;
-        line-height: 1.6;
-        max-width: 760px;
-    }
-
-    .pq-hero-summary {
-        display: flex;
-        gap: 12px;
-        flex-shrink: 0;
-    }
-
-    .pq-hero-summary div {
-        min-width: 112px;
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.16);
-        backdrop-filter: blur(12px);
-        text-align: center;
-    }
-
-    .pq-hero-summary strong {
-        display: block;
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .pq-hero-summary span {
-        margin-top: 7px;
-        color: rgba(255,255,255,.75);
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0;
-    }
-
-    .pq-alert {
-        display: flex;
         align-items: flex-start;
-        gap: 10px;
-        padding: 14px 16px;
-        border-radius: 15px;
-        margin-bottom: 18px;
-        font-size: 12px;
+        margin-bottom: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
+    }
+    .tm-breadcrumb-capsule {
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
         font-weight: 800;
-    }
-
-    .pq-alert.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-    }
-
-    .pq-alert.error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
-
-    .pq-alert ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-    }
-
-    .pq-panel {
-        background: #fff;
-        border: 1px solid #edf0f4;
-        border-radius: 22px;
-        padding: 22px;
-        box-shadow: 0 14px 35px rgba(15,23,42,.05);
-    }
-
-    .pq-panel-head {
-        margin-bottom: 18px;
-    }
-
-    .pq-panel-head span {
-        color: #d90429;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 6px;
         margin-bottom: 8px;
     }
-
-    .pq-panel-head h2 {
-        margin: 0;
-        color: #111827;
-        font-size: 18px;
+    .tm-header h1 {
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
         font-weight: 900;
+        letter-spacing: -0.02em;
     }
-
-    .pq-panel-head p {
-        margin: 6px 0 0;
-        color: #6b7280;
-        font-size: 12px;
+    .tm-header p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
         font-weight: 600;
     }
 
-    .pq-table-wrap {
-        overflow-x: auto;
+    /* Stats summary */
+    .tm-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
     }
-
-    .pq-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .pq-table th {
-        text-align: left;
-        padding: 14px 12px;
-        border-bottom: 1px solid #edf0f4;
-        color: #6b7280;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        white-space: nowrap;
-    }
-
-    .pq-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid #edf0f4;
-        vertical-align: middle;
-    }
-
-    .pq-table tbody tr:hover {
-        background: #fff7f9;
-    }
-
-    .pq-program {
+    .tm-stat-card {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
     }
+    .tm-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .tm-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
 
-    .pq-program > div {
+    .tm-stat-icon {
         width: 42px;
         height: 42px;
+        border-radius: 10px;
         display: grid;
         place-items: center;
-        border-radius: 14px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 14px;
-        font-weight: 900;
-        flex-shrink: 0;
+        font-size: 16px;
     }
+    .tm-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
 
-    .pq-program strong {
-        display: block;
-        color: #111827;
-        font-size: 13px;
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .pq-program span {
-        display: block;
-        margin-top: 4px;
-        color: #9ca3af;
+    .tm-stat-info p {
+        margin: 0 0 4px;
         font-size: 10px;
-        font-weight: 700;
-    }
-
-    .pq-subject,
-    .pq-format,
-    .pq-status {
-        display: inline-flex;
-        align-items: center;
-        height: 30px;
-        padding: 0 11px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 900;
+        font-weight: 800;
+        color: var(--text-muted);
         text-transform: uppercase;
-        white-space: nowrap;
+        letter-spacing: 0.04em;
     }
-
-    .pq-subject {
-        background: #fff1f2;
-        color: #d90429;
+    .tm-stat-info h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
     }
-
-    .pq-format {
-        gap: 7px;
-        background: #dbeafe;
-        color: #2563eb;
-    }
-
-    .pq-status {
-        gap: 7px;
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .pq-status i {
-        font-size: 7px;
-    }
-
-    .pq-structure strong {
-        display: block;
-        color: #111827;
+    .tm-stat-info h2 span {
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 600;
+        color: var(--text-muted);
     }
 
-    .pq-structure span {
-        display: block;
-        margin-top: 4px;
-        color: #6b7280;
+    /* Card panel */
+    .tm-card {
+        background: var(--spekta-white);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, .01);
+        border: 1px solid var(--border-soft);
+    }
+
+    .tm-card-head { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--spekta-gray-light); }
+    .tm-card-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    .tm-card-head small { color: var(--text-muted); font-size: 11px; font-weight: 600; margin-left: 28px; }
+
+    .tm-table { width: 100%; border-collapse: collapse; }
+    .tm-table th {
+        padding: 12px 14px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--spekta-gray-light);
+        text-align: left;
+        letter-spacing: 0.05em;
+    }
+
+    .tm-table th.text-end, .tm-table td.text-end { text-align: right; }
+    .tm-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
+    .tm-table tr:hover { background: #fafbfc; }
+
+    .tm-class-info strong { display: block; font-size: 13px; font-weight: 800; color: var(--text-main); }
+    .tm-class-info small { color: var(--text-muted); font-weight: 700; font-size: 10px; }
+
+    .tm-subject-pill {
+        background: var(--spekta-red-light);
+        padding: 6px 12px;
+        border-radius: 6px;
+        color: var(--spekta-red-dark);
         font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .pq-action {
-        height: 38px;
+        font-weight: 800;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 0 14px;
-        border-radius: 12px;
-        background: #d90429;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-        white-space: nowrap;
+        gap: 6px;
+        border: 1px solid rgba(229, 57, 53, 0.1);
+    }
+
+    /* BUTTONS */
+    .tm-btn-manage {
+        background: #1f2937;
+        padding: 8px 14px;
+        border-radius: 8px;
         text-decoration: none;
+        color: var(--spekta-white) !important;
+        font-size: 11px;
+        font-weight: 800;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        transition: all 0.2s ease;
     }
 
-    .pq-empty {
-        padding: 42px;
-        text-align: center;
-        background: #f8fafc;
-        border-radius: 18px;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 700;
+    .tm-btn-manage:hover {
+        background: var(--spekta-red);
+        box-shadow: 0 4px 10px rgba(229, 57, 53, 0.25);
     }
 
-    .pq-empty i {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #ffe8ee;
-        color: #d90429;
-        font-size: 22px;
+    .tm-muted { color: var(--text-muted); font-weight: 700; font-size: 12px; }
+    .tm-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .tm-empty-icon { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 50%; background: var(--spekta-gray-light); color: var(--spekta-gray); font-size: 18px; }
+
+    @media(max-width:1200px) {
+        .tm-stats { grid-template-columns: 1fr; }
     }
-
-    .pq-empty strong {
-        display: block;
-        color: #111827;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
-
-    @media (max-width: 900px) {
-        .pq-hero {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .pq-hero-summary {
-            width: 100%;
-        }
-
-        .pq-hero-summary div {
-            flex: 1;
-        }
+    @media(max-width:768px) {
+        .tm-table-responsive { overflow-x: auto; }
+        .tm-panel-heading { flex-direction: column; align-items: stretch;}
     }
 </style>
 @endsection

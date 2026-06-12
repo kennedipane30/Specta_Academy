@@ -1,18 +1,16 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Master Tryout - Spekta Academy'); ?>
 
-@section('title', 'Master Tryout - Spekta Academy')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     // Kalkulasi dinamis total draf soal yang masuk dari seluruh kelas pengajar
     $totalDraftsCount = collect($classes)->sum(function($c) use ($draftStatus) {
         return $draftStatus[$c->class_id]->total ?? 0;
     });
-@endphp
+?>
 
 <div class="cp-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN (BERSIH & ELEGAN TANPA TOMBOL MANUAL) ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Admin Tryout Center</span>
@@ -21,39 +19,39 @@
         </div>
     </section>
 
-    {{-- SYSTEM ALERTS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="tm-alert-modern success">
             <i class="fa-solid fa-circle-check"></i>
             <div>
                 <strong>OPERASI BERHASIL</strong>
-                <p>{{ session('success') }}</p>
+                <p><?php echo e(session('success')); ?></p>
             </div>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div class="tm-alert-modern error">
             <i class="fa-solid fa-circle-xmark"></i>
             <div>
                 <strong>OPERASI GAGAL</strong>
-                <p>{{ session('error') }}</p>
+                <p><?php echo e(session('error')); ?></p>
             </div>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ── 2. STATS SUMMARY GRID (3 KOLOM SEIMBANG) ── --}}
+    
     <section class="cp-stats">
         <!-- Paket Live -->
         <div class="cp-stat-card card-red">
             <div class="cp-stat-icon red"><i class="fa-solid fa-fire"></i></div>
             <div class="cp-stat-info">
                 <p>Paket TO Live</p>
-                <h2>{{ count($activePackages) }} <span>Paket</span></h2>
+                <h2><?php echo e(count($activePackages)); ?> <span>Paket</span></h2>
             </div>
-            @if(count($activePackages) > 0)
+            <?php if(count($activePackages) > 0): ?>
                 <span class="cp-pulse-dot"></span>
-            @endif
+            <?php endif; ?>
         </div>
 
         <!-- Antrean Setoran -->
@@ -61,7 +59,7 @@
             <div class="cp-stat-icon teal"><i class="fa-solid fa-hourglass-half"></i></div>
             <div class="cp-stat-info">
                 <p>Antrean Setoran</p>
-                <h2>{{ number_format($totalDraftsCount) }} <span>Soal</span></h2>
+                <h2><?php echo e(number_format($totalDraftsCount)); ?> <span>Soal</span></h2>
             </div>
         </div>
 
@@ -70,15 +68,15 @@
             <div class="cp-stat-icon gray"><i class="fa-solid fa-layer-group"></i></div>
             <div class="cp-stat-info">
                 <p>Target Program</p>
-                <h2>{{ count($classes) }} <span>Kelas</span></h2>
+                <h2><?php echo e(count($classes)); ?> <span>Kelas</span></h2>
             </div>
         </div>
     </section>
 
-    {{-- ── 3. MAIN WORKSPACE GRID ── --}}
+    
     <div class="tm-grid-layout">
 
-        {{-- PANEL KIRI: MONITORING DRAF GURU --}}
+        
         <section class="cp-main-card">
             <div class="card-header-flex">
                 <div class="title-with-icon">
@@ -100,10 +98,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($classes as $c)
-                            @php
+                        <?php $__currentLoopData = $classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
                                 $totalSoal = $draftStatus[$c->class_id]->total ?? 0;
-                            @endphp
+                            ?>
                             <tr>
                                 <td>
                                     <div class="program-info">
@@ -111,46 +109,46 @@
                                             <i class="fa-solid fa-school-flag"></i>
                                         </div>
                                         <div>
-                                            <strong>{{ $c->program_name }}</strong>
-                                            <small>ID Kelas: #{{ $c->class_id }}</small>
+                                            <strong><?php echo e($c->program_name); ?></strong>
+                                            <small>ID Kelas: #<?php echo e($c->class_id); ?></small>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    @if($totalSoal > 0)
+                                    <?php if($totalSoal > 0): ?>
                                         <span class="badge-status success">
                                             <span class="cp-dot-wrapper">
                                                 <i class="cp-dot"></i>
                                                 <i class="cp-dot-pulse"></i>
                                             </span>
-                                            {{ $totalSoal }} Soal Baru
+                                            <?php echo e($totalSoal); ?> Soal Baru
                                         </span>
-                                    @else
+                                    <?php else: ?>
                                         <span class="badge-status empty">0 Soal Masuk</span>
-                                    @endif
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-right">
                                     <div class="action-group-end">
-                                        @if($totalSoal > 0)
-                                            <a href="{{ route('admin.tryout.export_draft', $c->class_id) }}" class="btn-icon-sm green-soft" title="Download CSV">
+                                        <?php if($totalSoal > 0): ?>
+                                            <a href="<?php echo e(route('admin.tryout.export_draft', $c->class_id)); ?>" class="btn-icon-sm green-soft" title="Download CSV">
                                                 <i class="fa-solid fa-file-csv"></i>
                                             </a>
-                                        @endif
+                                        <?php endif; ?>
 
-                                        <a href="{{ route('admin.tryout.review', $c->class_id) }}" class="btn-review-main">
+                                        <a href="<?php echo e(route('admin.tryout.review', $c->class_id)); ?>" class="btn-review-main">
                                             <span>Review</span>
                                             <i class="fa-solid fa-arrow-right"></i>
                                         </a>
                                     </div>
                                 </td>
                             </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
         </section>
 
-        {{-- PANEL KANAN: PAKET YANG SUDAH TERBIT --}}
+        
         <section class="cp-main-card">
             <div class="card-header-flex">
                 <div class="title-with-icon">
@@ -163,31 +161,31 @@
             </div>
 
             <div class="active-list">
-                @forelse($activePackages as $pkg)
+                <?php $__empty_1 = true; $__currentLoopData = $activePackages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pkg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <div class="package-item-card">
                         <div class="pkg-icon">
-                            <i class="fa-solid {{ $pkg->total_questions > 0 ? 'fa-stopwatch-20' : 'fa-file-lines' }}"></i>
+                            <i class="fa-solid <?php echo e($pkg->total_questions > 0 ? 'fa-stopwatch-20' : 'fa-file-lines'); ?>"></i>
                         </div>
                         <div class="pkg-info">
-                            <strong>{{ $pkg->title }}</strong>
-                            <span>{{ $pkg->class_name }} • {{ $pkg->total_questions }} Soal • {{ $pkg->duration }} menit</span>
-                            <small class="pkg-id">ID: #{{ $pkg->tryout_id }}</small>
+                            <strong><?php echo e($pkg->title); ?></strong>
+                            <span><?php echo e($pkg->class_name); ?> • <?php echo e($pkg->total_questions); ?> Soal • <?php echo e($pkg->duration); ?> menit</span>
+                            <small class="pkg-id">ID: #<?php echo e($pkg->tryout_id); ?></small>
                         </div>
-                        <form action="{{ route('admin.tryout.destroy_package', $pkg->tryout_id) }}" method="POST" onsubmit="return confirm('Hapus paket ini dari HP siswa?')">
-                            @csrf
-                            @method('DELETE')
+                        <form action="<?php echo e(route('admin.tryout.destroy_package', $pkg->tryout_id)); ?>" method="POST" onsubmit="return confirm('Hapus paket ini dari HP siswa?')">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('DELETE'); ?>
                             <button type="submit" class="btn-del-pkg" title="Hapus Paket">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
                     </div>
-                @empty
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <div class="empty-state-lite">
                         <i class="fa-solid fa-ghost"></i>
                         <p>Belum ada paket dipublikasikan.</p>
                         <small>Publish paket tryout dari draf yang tersedia.</small>
                     </div>
-                @endforelse
+                <?php endif; ?>
             </div>
         </section>
     </div>
@@ -405,4 +403,5 @@
         .tm-grid-layout { grid-template-columns: 1fr; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/tryout/index.blade.php ENDPATH**/ ?>

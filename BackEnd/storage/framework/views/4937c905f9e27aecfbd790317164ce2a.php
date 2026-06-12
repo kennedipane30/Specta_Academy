@@ -1118,6 +1118,9 @@
         .activity-item { grid-template-columns: 36px 1fr; }
         .activity-right { grid-column: 2 / 3; text-align: left; margin-top: 4px; }
     }
+    /* test hapus disini kenn */
 </style>
 <?php $__env->stopSection(); ?>
+
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>

@@ -1,40 +1,38 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Kurasi Paket Tryout - Spekta Academy'); ?>
 
-@section('title', 'Kurasi Paket Tryout - Spekta Academy')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="cp-page">
 
-    {{-- SYSTEM ALERTS --}}
-    @if(session('error'))
+    
+    <?php if(session('error')): ?>
         <div class="sc-alert error">
             <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
+            <span><?php echo e(session('error')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ── 1. HEADER MINIMALIS MODERN (DENGAN TULISAN REVIEW & HITUNGAN SOAL) ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Reviewing Drafts</span>
-            <h1>Kurasi Soal: <span style="color: var(--spekta-teal);">{{ $class->program_name }}</span></h1>
+            <h1>Kurasi Soal: <span style="color: var(--spekta-teal);"><?php echo e($class->program_name); ?></span></h1>
             <p>Satukan draf soal terbaik dari para pengajar, atur batas durasi, lalu terbitkan ke aplikasi mobile siswa.</p>
         </div>
         
         <div class="cp-header-actions">
             <!-- Hitungan Draf Rapi -->
             <div class="cp-draft-badge-card">
-                <strong>{{ $drafts->count() }}</strong>
+                <strong><?php echo e($drafts->count()); ?></strong>
                 <span>Draf Soal</span>
             </div>
             
-            <a href="{{ route('admin.tryout.index') }}" class="cp-secondary-btn">
+            <a href="<?php echo e(route('admin.tryout.index')); ?>" class="cp-secondary-btn">
                 <i class="fa-solid fa-arrow-left"></i> Kembali ke Master
             </a>
         </div>
     </section>
 
-    {{-- ── 2. FORM KONFIGURASI PUBLISH (BENTO CARD STYLE) ── --}}
+    
     <section class="cp-publish-panel">
         <div class="cp-panel-heading">
             <div class="cp-heading-icon"><i class="fa-solid fa-paper-plane"></i></div>
@@ -44,9 +42,9 @@
             </div>
         </div>
 
-        <form action="{{ route('admin.tryout.publish') }}" method="POST">
-            @csrf
-            <input type="hidden" name="class_id" value="{{ $class->class_id }}">
+        <form action="<?php echo e(route('admin.tryout.publish')); ?>" method="POST">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="class_id" value="<?php echo e($class->class_id); ?>">
             
             <div class="cp-input-row">
                 <div class="cp-input-group">
@@ -66,20 +64,20 @@
         </form>
     </section>
 
-    {{-- ── 3. DAFTAR DETAIL SOAL (KARTU SOAL MODERN DENGAN ARSIRAN JAWABAN TEAL) ── --}}
+    
     <div class="cp-questions-wrapper">
         <h4 class="cp-section-title">Daftar Detail Soal (Tinjauan Admin)</h4>
         
-        @foreach($drafts as $index => $d)
+        <?php $__currentLoopData = $drafts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $d): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <div class="soal-card">
                 <div class="soal-card-header">
                     <div class="header-tags">
-                        <span class="soal-badge">SOAL #{{ $index + 1 }}</span>
-                        <span class="subject-badge">{{ $d->subject_name }}</span>
+                        <span class="soal-badge">SOAL #<?php echo e($index + 1); ?></span>
+                        <span class="subject-badge"><?php echo e($d->subject_name); ?></span>
                     </div>
                     
-                    <form action="{{ route('admin.tryout.draft.delete', $d->id) }}" method="POST" onsubmit="return confirm('Hapus soal ini dari draf?')">
-                        @csrf @method('DELETE')
+                    <form action="<?php echo e(route('admin.tryout.draft.delete', $d->id)); ?>" method="POST" onsubmit="return confirm('Hapus soal ini dari draf?')">
+                        <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                         <button type="submit" class="btn-delete-soal">
                             <i class="fa-solid fa-trash-can"></i> Hapus Soal
                         </button>
@@ -87,32 +85,32 @@
                 </div>
 
                 <div class="soal-body">
-                    <div class="soal-text">{!! $d->question !!}</div>
+                    <div class="soal-text"><?php echo $d->question; ?></div>
                     
                     <div class="options-grid">
-                        @foreach(['a','b','c','d','e'] as $opt)
-                            @php 
+                        <?php $__currentLoopData = ['a','b','c','d','e']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php 
                                 $isCorrect = (strtoupper($opt) == strtoupper($d->correct_answer)); 
-                            @endphp
-                            <div class="option-item {{ $isCorrect ? 'correct' : '' }}">
-                                <span class="opt-label">{{ strtoupper($opt) }}</span>
-                                <span class="opt-text">{{ $d->{'option_'.$opt} }}</span>
-                                @if($isCorrect) 
+                            ?>
+                            <div class="option-item <?php echo e($isCorrect ? 'correct' : ''); ?>">
+                                <span class="opt-label"><?php echo e(strtoupper($opt)); ?></span>
+                                <span class="opt-text"><?php echo e($d->{'option_'.$opt}); ?></span>
+                                <?php if($isCorrect): ?> 
                                     <i class="fa-solid fa-circle-check check-icon"></i> 
-                                @endif
+                                <?php endif; ?>
                             </div>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
 
-                    @if($d->explanation)
+                    <?php if($d->explanation): ?>
                         <div class="explanation-box">
                             <strong>PEMBAHASAN:</strong>
-                            <p>{{ $d->explanation }}</p>
+                            <p><?php echo e($d->explanation); ?></p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
 
@@ -379,4 +377,5 @@
         .options-grid { grid-template-columns: 1fr; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/tryout/review_drafts.blade.php ENDPATH**/ ?>

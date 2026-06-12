@@ -1,35 +1,33 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Materi Saya - Spekta Academy'); ?>
 
-@section('title', 'Materi Saya - Spekta Academy')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     $totalAssignment = count($assignmentsWithSubjects ?? []);
-@endphp
+?>
 
 <div class="tm-container">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="tm-header">
         <div class="tm-header-text">
             <span class="tm-breadcrumb-capsule">Teacher Portal</span>
             <h1>Materi Pembelajaran</h1>
-            <p>Pilih bidang ajar Anda di bawah ini untuk mulai mengunggah dan mengelola modul materi serta berkas PDF mingguan.</p>
+            <p>Pilih bidang ajar Anda untuk mengelola modul materi dan file PDF mingguan secara berkala.</p>
         </div>
     </section>
 
-    {{-- ── 2. STATS SUMMARY CARD (SEIMBANG & MODERN) ── --}}
+    
     <section class="tm-stats">
         <div class="tm-stat-card card-teal">
             <div class="tm-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
             <div class="tm-stat-info">
                 <p>Total Penugasan</p>
-                <h2>{{ $totalAssignment }} <span>Kelas</span></h2>
+                <h2><?php echo e($totalAssignment); ?> <span>Kelas</span></h2>
             </div>
         </div>
     </section>
 
-    {{-- ── 3. DAFTAR BIDANG AJAR (TABEL VERTIVAL PRESISI) ── --}}
+    
     <section class="tm-card">
         <div class="tm-card-head">
             <div>
@@ -50,38 +48,39 @@
                 </thead>
 
                 <tbody>
-                    @forelse($assignmentsWithSubjects ?? [] as $assign)
+                    <?php $__empty_1 = true; $__currentLoopData = $assignmentsWithSubjects ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
-                            {{-- Program Kelas --}}
+                            
                             <td>
                                 <div class="tm-class-info">
-                                    <strong>{{ $assign->classModel->program_name ?? 'Kelas' }}</strong>
-                                    <small>ID #{{ $assign->class_id }}</small>
+                                    <strong><?php echo e($assign->classModel->program_name ?? 'Kelas'); ?></strong>
+                                    <small>ID #<?php echo e($assign->class_id); ?></small>
                                 </div>
                             </td>
 
-                            {{-- Mata Pelajaran --}}
+                            
                             <td>
                                 <span class="tm-subject-pill">
                                     <i class="fa-solid fa-book-bookmark"></i>
-                                    {{ $assign->subject_name ?? 'Mata Pelajaran' }}
+                                    <?php echo e($assign->subject_name ?? 'Mata Pelajaran'); ?>
+
                                 </span>
                             </td>
 
-                            {{-- Durasi --}}
+                            
                             <td>
                                 <span class="tm-muted">20 Minggu</span>
                             </td>
 
-                            {{-- Tombol Aksi Buka --}}
+                            
                             <td class="text-end">
-                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}"
+                                <a href="<?php echo e(route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name])); ?>"
                                    class="tm-btn-manage">
                                     <span>Kelola Materi</span> <i class="fa-solid fa-arrow-right-long"></i>
                                 </a>
                             </td>
                         </tr>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="4">
                                 <div class="tm-empty">
@@ -91,7 +90,7 @@
                                 </div>
                             </td>
                         </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -236,6 +235,7 @@
     .tm-table th {
         padding: 12px 14px;
         font-size: 10px;
+        font-weight: 800;
         color: var(--text-muted);
         text-transform: uppercase;
         border-bottom: 2px solid var(--spekta-gray-light);
@@ -295,4 +295,5 @@
         .tm-panel-heading { flex-direction: column; align-items: stretch;}
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/pengajar/Latihan/index.blade.php ENDPATH**/ ?>

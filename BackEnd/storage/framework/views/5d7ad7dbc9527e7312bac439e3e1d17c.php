@@ -1,30 +1,28 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Dashboard Portal Pengajar'); ?>
+<?php $__env->startSection('subtitle', 'Workspace pengajar Spekta Academy'); ?>
 
-@section('title', 'Dashboard Portal Pengajar')
-@section('subtitle', 'Workspace pengajar Spekta Academy')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     $teacher = Auth::user();
     $jadwalUtama = $jadwalMendatang->first();
-@endphp
+?>
 
 <div class="td-page">
 
-    {{-- ── GRID UTAMA DASHBOARD (ASIMETRIS MODERN) ── --}}
+    
     <div class="td-dashboard-grid">
 
-        {{-- KOLOM KIRI (65% LEBAR - KONTEN UTAMA) --}}
+        
         <div class="td-main-col">
             
-            {{-- Sapaan Hangat Minimalis --}}
+            
             <header class="td-welcome-header">
                 <span class="td-breadcrumb-capsule">Spekta Teacher Workspace</span>
-                <h1>Selamat Datang, <span>{{ $teacher->name }}!</span> 👋</h1>
+                <h1>Selamat Datang, <span><?php echo e($teacher->name); ?>!</span> 👋</h1>
                 <p>Pantau agenda mengajar, kelola materi, dan tinjau aktivitas kelas Anda secara terpusat.</p>
             </header>
 
-            {{-- KARTU STATISTIK INTERAKTIF (GABUNGAN STATS & QUICK ACTIONS) --}}
+            
             <section class="td-stats-grid">
                 <!-- Card 1: Kelas & Mapel (Info Utama) -->
                 <div class="td-stat-card card-gray">
@@ -33,48 +31,48 @@
                     </div>
                     <div class="td-stat-info">
                         <p>Kelas Diampu</p>
-                        <h2>{{ number_format($totalKelas) }} <span>Kelas</span></h2>
+                        <h2><?php echo e(number_format($totalKelas)); ?> <span>Kelas</span></h2>
                     </div>
                 </div>
 
                 <!-- Card 2: Upload Materi (Clickable) -->
-                <a href="{{ route('pengajar.materi.index') }}" class="td-stat-card card-teal clickable-card" title="Klik untuk kelola materi belajar">
+                <a href="<?php echo e(route('pengajar.materi.index')); ?>" class="td-stat-card card-teal clickable-card" title="Klik untuk kelola materi belajar">
                     <div class="td-stat-icon teal">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <div class="td-stat-info">
                         <p>Materi Diupload</p>
-                        <h2>{{ number_format($totalMateri) }} <span>Berkas</span></h2>
+                        <h2><?php echo e(number_format($totalMateri)); ?> <span>Berkas</span></h2>
                     </div>
                     <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
                 </a>
 
                 <!-- Card 3: Latihan Soal (Clickable) -->
-                <a href="{{ route('pengajar.latihan.index') }}" class="td-stat-card card-orange clickable-card" title="Klik untuk upload tugas harian">
+                <a href="<?php echo e(route('pengajar.latihan.index')); ?>" class="td-stat-card card-orange clickable-card" title="Klik untuk upload tugas harian">
                     <div class="td-stat-icon orange">
                         <i class="fa-solid fa-clipboard-question"></i>
                     </div>
                     <div class="td-stat-info">
                         <p>Latihan Soal</p>
-                        <h2>{{ number_format($totalLatihan) }} <span>Tugas</span></h2>
+                        <h2><?php echo e(number_format($totalLatihan)); ?> <span>Tugas</span></h2>
                     </div>
                     <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
                 </a>
 
                 <!-- Card 4: Setor Soal TO (Clickable) -->
-                <a href="{{ route('pengajar.tryout.index') }}" class="td-stat-card card-red clickable-card" title="Klik untuk setor draf soal TO">
+                <a href="<?php echo e(route('pengajar.tryout.index')); ?>" class="td-stat-card card-red clickable-card" title="Klik untuk setor draf soal TO">
                     <div class="td-stat-icon red">
                         <i class="fa-solid fa-stopwatch"></i>
                     </div>
                     <div class="td-stat-info">
                         <p>Tryout Dibuat</p>
-                        <h2>{{ number_format($totalTryout) }} <span>Draf</span></h2>
+                        <h2><?php echo e(number_format($totalTryout)); ?> <span>Draf</span></h2>
                     </div>
                     <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
                 </a>
             </section>
 
-            {{-- JADWAL KELAS REGULER --}}
+            
             <div class="td-panel">
                 <div class="td-panel-heading">
                     <div class="heading-text">
@@ -82,58 +80,59 @@
                         <h2>Jadwal Kelas Reguler</h2>
                         <p>Agenda kelas reguler yang sudah ditetapkan oleh admin akademik.</p>
                     </div>
-                    <a href="{{ route('pengajar.absensi.index') }}" class="btn-outline-primary">
+                    <a href="<?php echo e(route('pengajar.absensi.index')); ?>" class="btn-outline-primary">
                         Cek Absensi <i class="fa-solid fa-arrow-right-long" style="margin-left: 4px;"></i>
                     </a>
                 </div>
 
                 <div class="td-schedule-list">
-                    @forelse($jadwalMendatang as $item)
-                        @php
+                    <?php $__empty_1 = true; $__currentLoopData = $jadwalMendatang; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
                             $isToday = \Carbon\Carbon::parse($item->date)->isToday();
                             $dateObj = \Carbon\Carbon::parse($item->date);
-                        @endphp
+                        ?>
 
-                        <article class="td-schedule-item {{ $isToday ? 'is-today' : '' }}">
+                        <article class="td-schedule-item <?php echo e($isToday ? 'is-today' : ''); ?>">
                             <div class="td-date-badge">
-                                <strong>{{ $dateObj->format('d') }}</strong>
-                                <span>{{ $dateObj->translatedFormat('M') }}</span>
+                                <strong><?php echo e($dateObj->format('d')); ?></strong>
+                                <span><?php echo e($dateObj->translatedFormat('M')); ?></span>
                             </div>
 
                             <div class="td-schedule-details">
                                 <div class="schedule-head">
-                                    <h3>{{ $item->title }}</h3>
-                                    @if($isToday)
+                                    <h3><?php echo e($item->title); ?></h3>
+                                    <?php if($isToday): ?>
                                         <span class="badge-live"><span class="live-dot-pulse"></span> Hari Ini</span>
-                                    @else
+                                    <?php else: ?>
                                         <span class="badge-scheduled">Terjadwal</span>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
-                                <p class="program-name">{{ $item->class->program_name ?? 'Program Kelas' }}</p>
+                                <p class="program-name"><?php echo e($item->class->program_name ?? 'Program Kelas'); ?></p>
 
                                 <div class="schedule-meta">
                                     <span>
                                         <i class="fa-regular fa-clock"></i>
-                                        {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }} WIB
+                                        <?php echo e(substr($item->start_time, 0, 5)); ?> - <?php echo e(substr($item->end_time, 0, 5)); ?> WIB
                                     </span>
                                     <span>
                                         <i class="fa-regular fa-calendar"></i>
-                                        {{ $dateObj->translatedFormat('l') }}
+                                        <?php echo e($dateObj->translatedFormat('l')); ?>
+
                                     </span>
                                 </div>
                             </div>
                         </article>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <div class="td-empty-state">
                             <div class="empty-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
                             <strong>Belum ada jadwal mengajar.</strong>
                             <p>Jadwal akan muncul setelah admin akademik mempublikasikan jadwal kelas.</p>
                         </div>
-                    @endforelse
+                    <?php endif; ?>
                 </div>
             </div>
 
-            {{-- JADWAL DEDICATED TUTOR --}}
+            
             <div class="td-panel" style="margin-top: 24px;">
                 <div class="td-panel-heading">
                     <div class="heading-text">
@@ -144,65 +143,66 @@
                 </div>
 
                 <div class="td-tutor-grid">
-                    @forelse($jadwalTutor as $tutor)
-                        @php
+                    <?php $__empty_1 = true; $__currentLoopData = $jadwalTutor; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tutor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
                             $studentName = $tutor->student->user->name ?? 'Nama Siswa';
                             $subjectName = $tutor->material->title ?? $tutor->material->material_name ?? 'Materi Privat Umum';
                             $dateObj = \Carbon\Carbon::parse($tutor->date);
                             $isTodayTutor = $dateObj->isToday();
-                        @endphp
+                        ?>
 
-                        <article class="td-tutor-card {{ $isTodayTutor ? 'is-today' : '' }}">
+                        <article class="td-tutor-card <?php echo e($isTodayTutor ? 'is-today' : ''); ?>">
                             <div class="tutor-header">
                                 <div class="student-avatar">
-                                    {{ strtoupper(substr($studentName, 0, 1)) }}
+                                    <?php echo e(strtoupper(substr($studentName, 0, 1))); ?>
+
                                 </div>
                                 <div class="student-info">
-                                    <h3>{{ $studentName }}</h3>
-                                    @if($isTodayTutor)
+                                    <h3><?php echo e($studentName); ?></h3>
+                                    <?php if($isTodayTutor): ?>
                                         <span class="badge-tutor today"><span class="live-dot-pulse"></span> Hari Ini</span>
-                                    @else
+                                    <?php else: ?>
                                         <span class="badge-tutor">Terkonfirmasi</span>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
                             <div class="tutor-body">
-                                <p class="subject-title">{{ $subjectName }}</p>
+                                <p class="subject-title"><?php echo e($subjectName); ?></p>
 
                                 <div class="tutor-meta-box">
                                     <div>
                                         <i class="fa-regular fa-calendar"></i>
-                                        <span>{{ $dateObj->translatedFormat('l, d M Y') }}</span>
+                                        <span><?php echo e($dateObj->translatedFormat('l, d M Y')); ?></span>
                                     </div>
                                     <div>
                                         <i class="fa-regular fa-clock"></i>
-                                        <span>{{ substr($tutor->time, 0, 5) }} WIB</span>
+                                        <span><?php echo e(substr($tutor->time, 0, 5)); ?> WIB</span>
                                     </div>
                                 </div>
                             </div>
                         </article>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <div class="td-empty-state">
                             <div class="empty-icon"><i class="fa-solid fa-headset"></i></div>
                             <strong>Belum ada jadwal Dedicated Tutor.</strong>
                             <p>Jika ada permintaan tutor dari siswa yang disetujui admin untuk Anda, jadwalnya akan muncul di sini.</p>
                         </div>
-                    @endforelse
+                    <?php endif; ?>
                 </div>
             </div>
 
         </div>
 
-        {{-- KOLOM KANAN (35% LEBAR - SIDEBAR AGENDA/KALENDER) ── --}}
+        
         <aside class="td-sidebar-col">
             
             <!-- Widget Kalender Hari Ini -->
             <div class="td-side-widget date-widget">
                 <div class="td-date-box">
-                    <span>{{ now()->translatedFormat('l') }}</span>
-                    <strong>{{ now()->translatedFormat('d') }}</strong>
-                    <small>{{ now()->translatedFormat('F Y') }}</small>
+                    <span><?php echo e(now()->translatedFormat('l')); ?></span>
+                    <strong><?php echo e(now()->translatedFormat('d')); ?></strong>
+                    <small><?php echo e(now()->translatedFormat('F Y')); ?></small>
                 </div>
             </div>
 
@@ -214,19 +214,19 @@
                 </div>
                 
                 <div class="widget-body">
-                    @if($jadwalUtama)
+                    <?php if($jadwalUtama): ?>
                         <div class="agenda-item-active">
-                            <span class="agenda-class-badge">{{ $jadwalUtama->class->program_name ?? 'Program Kelas' }}</span>
-                            <strong>{{ $jadwalUtama->title }}</strong>
-                            <small><i class="fa-regular fa-clock"></i> {{ substr($jadwalUtama->start_time, 0, 5) }} WIB</small>
+                            <span class="agenda-class-badge"><?php echo e($jadwalUtama->class->program_name ?? 'Program Kelas'); ?></span>
+                            <strong><?php echo e($jadwalUtama->title); ?></strong>
+                            <small><i class="fa-regular fa-clock"></i> <?php echo e(substr($jadwalUtama->start_time, 0, 5)); ?> WIB</small>
                         </div>
-                    @else
+                    <?php else: ?>
                         <div class="agenda-empty">
                             <i class="fa-solid fa-ghost"></i>
                             <strong>Tidak ada agenda</strong>
                             <span>Belum ada jadwal kelas terdekat untuk Anda.</span>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -630,4 +630,5 @@
         .td-schedule-list, .td-tutor-grid { grid-template-columns: 1fr; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/pengajar/dashboard.blade.php ENDPATH**/ ?>

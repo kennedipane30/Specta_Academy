@@ -1,20 +1,18 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Manajemen Absensi'); ?>
 
-@section('title', 'Manajemen Absensi')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     $totalAssignment = count($assignmentsWithSubjects ?? []);
 
     // Gunakan 'use' agar variabel dari luar bisa dibaca di dalam filter
     $activeToday = collect($assignmentsWithSubjects ?? [])->filter(function($as) use ($jadwalHariIni) {
         return in_array($as->class_id, $jadwalHariIni);
     })->count();
-@endphp
+?>
 
 <div class="abs-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="abs-header">
         <div class="abs-header-left">
             <span class="abs-breadcrumb-capsule">Attendance Management</span>
@@ -23,22 +21,22 @@
         </div>
     </section>
 
-    {{-- ALERTS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="abs-alert success">
             <i class="fa-solid fa-circle-check"></i>
-            <span>{{ session('success') }}</span>
+            <span><?php echo e(session('success')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ── 2. STATS SUMMARY GRID (SEIMBANG & MODERN) ── --}}
+    
     <section class="abs-stats">
         <!-- Total Penugasan Kelas -->
         <div class="abs-stat-card card-teal">
             <div class="abs-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
             <div class="abs-stat-info">
                 <p>Penugasan Kelas</p>
-                <h2>{{ $totalAssignment }} <span>Kelas</span></h2>
+                <h2><?php echo e($totalAssignment); ?> <span>Kelas</span></h2>
             </div>
         </div>
 
@@ -47,15 +45,15 @@
             <div class="abs-stat-icon red"><i class="fa-solid fa-calendar-day"></i></div>
             <div class="abs-stat-info">
                 <p>Jadwal Hari Ini</p>
-                <h2>{{ $activeToday }} <span>Kelas</span></h2>
+                <h2><?php echo e($activeToday); ?> <span>Kelas</span></h2>
             </div>
-            @if($activeToday > 0)
+            <?php if($activeToday > 0): ?>
                 <span class="abs-pulse-dot"></span>
-            @endif
+            <?php endif; ?>
         </div>
     </section>
 
-    {{-- ── 3. LIST PANEL (TABEL ABSENSI) ── --}}
+    
     <section class="abs-panel">
         <div class="abs-panel-head">
             <div>
@@ -64,13 +62,13 @@
             </div>
         </div>
 
-        @if(empty($assignmentsWithSubjects) || count($assignmentsWithSubjects) == 0)
+        <?php if(empty($assignmentsWithSubjects) || count($assignmentsWithSubjects) == 0): ?>
             <div class="abs-empty">
                 <div class="abs-empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                 <strong>Belum ada penugasan materi.</strong>
                 <span>Admin akademik perlu menugaskan Anda pada program dan mata pelajaran tertentu terlebih dahulu.</span>
             </div>
-        @else
+        <?php else: ?>
             <div class="abs-table-wrap">
                 <table class="abs-table">
                     <thead>
@@ -84,30 +82,31 @@
                     </thead>
 
                     <tbody>
-                        @foreach($assignmentsWithSubjects as $as)
-                            @php
+                        <?php $__currentLoopData = $assignmentsWithSubjects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $as): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
                                 $canAbsenToday = in_array($as->class_id, $jadwalHariIni);
-                            @endphp
+                            ?>
 
                             <tr>
-                                {{-- Nama Program --}}
+                                
                                 <td>
                                     <div class="abs-class-name">
-                                        <strong>{{ $as->classModel->program_name ?? 'Program Kelas' }}</strong>
-                                        <span>ID Kelas: #{{ $as->class_id }}</span>
+                                        <strong><?php echo e($as->classModel->program_name ?? 'Program Kelas'); ?></strong>
+                                        <span>ID Kelas: #<?php echo e($as->class_id); ?></span>
                                     </div>
                                 </td>
 
-                                {{-- Bidang Ajar --}}
+                                
                                 <td>
                                     <span class="abs-subject-badge">
-                                        {{ $as->subject_name }}
+                                        <?php echo e($as->subject_name); ?>
+
                                     </span>
                                 </td>
 
-                                {{-- Status Hari Ini --}}
+                                
                                 <td>
-                                    @if($canAbsenToday)
+                                    <?php if($canAbsenToday): ?>
                                         <span class="abs-status active">
                                             <span class="abs-dot-wrapper">
                                                 <i class="abs-dot"></i>
@@ -115,37 +114,37 @@
                                             </span>
                                             Aktif Hari Ini
                                         </span>
-                                    @else
+                                    <?php else: ?>
                                         <span class="abs-status neutral">
                                             <span class="abs-dot-wrapper"><i class="abs-dot"></i></span>
                                             Tidak Ada Jadwal
                                         </span>
-                                    @endif
+                                    <?php endif; ?>
                                 </td>
 
-                                {{-- Catatan Info --}}
+                                
                                 <td>
                                     <p class="abs-note">
-                                        @if($canAbsenToday)
+                                        <?php if($canAbsenToday): ?>
                                             Anda memiliki jadwal mengajar hari ini. Absensi dapat dilakukan melalui daftar minggu.
-                                        @else
+                                        <?php else: ?>
                                             Anda tetap dapat membuka rekap mingguan meskipun tidak ada jadwal mengajar hari ini.
-                                        @endif
+                                        <?php endif; ?>
                                     </p>
                                 </td>
 
-                                {{-- Tombol Aksi Buka --}}
+                                
                                 <td class="text-right">
-                                    <a href="{{ route('pengajar.absensi.weeks', [$as->class_id, $as->subject_name]) }}" class="abs-action">
+                                    <a href="<?php echo e(route('pengajar.absensi.weeks', [$as->class_id, $as->subject_name])); ?>" class="abs-action">
                                         <span>Buka Minggu</span> <i class="fa-solid fa-arrow-right-long"></i>
                                     </a>
                                 </td>
                             </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
-        @endif
+        <?php endif; ?>
     </section>
 
 </div>
@@ -347,4 +346,5 @@
         .abs-table-wrap th:nth-child(4), .abs-table-wrap td:nth-child(4) { display: none; } /* Sembunyikan catatan info di layar kecil */
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/pengajar/absensi/index.blade.php ENDPATH**/ ?>

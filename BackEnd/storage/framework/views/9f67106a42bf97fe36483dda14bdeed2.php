@@ -1,9 +1,7 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Bank Soal Tryout - Spekta Academy'); ?>
 
-@section('title', 'Bank Soal Tryout - Spekta Academy')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     // Menghitung total seluruh soal yang sudah dibuat oleh guru ini di semua kelas/mapel
     $totalSoalSelesai = \DB::table('tryout_drafts')
         ->where('user_id', Auth::user()->usersID)
@@ -11,11 +9,11 @@
 
     $assignmentCollection = collect($assignmentsWithSubjects ?? []);
     $totalAssignment = $assignmentCollection->count();
-@endphp
+?>
 
 <div class="cp-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Teacher Tryout Portal</span>
@@ -24,28 +22,28 @@
         </div>
     </section>
 
-    @if(session('success'))
+    <?php if(session('success')): ?>
         <div class="tm-alert-modern success">
             <i class="fa-solid fa-circle-check"></i>
-            <span>{{ session('success') }}</span>
+            <span><?php echo e(session('success')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div class="tm-alert-modern error">
             <i class="fa-solid fa-circle-xmark"></i>
-            <span>{{ session('error') }}</span>
+            <span><?php echo e(session('error')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ── 2. STATS SUMMARY GRID (3 KOLOM SEIMBANG) ── --}}
+    
     <section class="cp-stats">
         <!-- Penugasan Kelas -->
         <div class="cp-stat-card card-teal">
             <div class="cp-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
             <div class="cp-stat-info">
                 <p>Penugasan Kelas</p>
-                <h2>{{ $totalAssignment }} <span>Kelas</span></h2>
+                <h2><?php echo e($totalAssignment); ?> <span>Kelas</span></h2>
             </div>
         </div>
 
@@ -54,11 +52,11 @@
             <div class="cp-stat-icon red"><i class="fa-solid fa-file-circle-check"></i></div>
             <div class="cp-stat-info">
                 <p>Soal Disetor</p>
-                <h2>{{ $totalSoalSelesai }} <span>Soal</span></h2>
+                <h2><?php echo e($totalSoalSelesai); ?> <span>Soal</span></h2>
             </div>
-            @if($totalSoalSelesai > 0)
+            <?php if($totalSoalSelesai > 0): ?>
                 <span class="cp-pulse-dot"></span>
-            @endif
+            <?php endif; ?>
         </div>
 
         <!-- Target Target Selesai -->
@@ -66,12 +64,12 @@
             <div class="cp-stat-icon gray"><i class="fa-solid fa-flag-checkered"></i></div>
             <div class="cp-stat-info">
                 <p>Target Publikasi</p>
-                <h2>{{ $totalAssignment }} <span>Paket TO</span></h2>
+                <h2><?php echo e($totalAssignment); ?> <span>Paket TO</span></h2>
             </div>
         </div>
     </section>
 
-    {{-- ── 3. MAIN TABLE ── --}}
+    
     <section class="cp-main-card">
         <div class="card-header-flex">
             <div>
@@ -91,8 +89,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($assignmentsWithSubjects as $assign)
-                        @php
+                    <?php $__empty_1 = true; $__currentLoopData = $assignmentsWithSubjects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
                             // Ambil nama mapel
                             $subjectName = $assign->subject_name;
 
@@ -102,7 +100,7 @@
                                 ->where('class_id', $assign->class_id)
                                 ->where('subject_name', trim($subjectName))
                                 ->count();
-                        @endphp
+                        ?>
                         <tr>
                             <td>
                                 <div class="program-info">
@@ -110,54 +108,55 @@
                                         <i class="fa-solid fa-school-flag"></i>
                                     </div>
                                     <div>
-                                        <strong>{{ $assign->classModel->program_name ?? 'Program' }}</strong>
-                                        <small>ID Kelas: #{{ $assign->class_id }}</small>
+                                        <strong><?php echo e($assign->classModel->program_name ?? 'Program'); ?></strong>
+                                        <small>ID Kelas: #<?php echo e($assign->class_id); ?></small>
                                     </div>
                                 </div>
                             </td>
                             <td class="text-center">
                                 <span class="subject-tag">
                                     <i class="fa-solid fa-book-bookmark mr-1"></i>
-                                    {{ $subjectName }}
+                                    <?php echo e($subjectName); ?>
+
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="progress-container-flex">
-                                    <div class="contribution-info {{ $count > 0 ? 'active' : '' }}">
+                                    <div class="contribution-info <?php echo e($count > 0 ? 'active' : ''); ?>">
                                         <div class="info-content">
-                                            <strong>{{ $count }} Soal</strong>
-                                            <span>{{ $count > 0 ? 'TERUPLOAD' : 'BELUM ADA' }}</span>
+                                            <strong><?php echo e($count); ?> Soal</strong>
+                                            <span><?php echo e($count > 0 ? 'TERUPLOAD' : 'BELUM ADA'); ?></span>
                                         </div>
-                                        @if($count > 0)
+                                        <?php if($count > 0): ?>
                                             <i class="fa-solid fa-circle-check check-icon" style="color: #10b981;"></i>
-                                        @else
+                                        <?php else: ?>
                                             <i class="fa-solid fa-circle-minus" style="color: #cbd5e1;"></i>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
 
-                                    @if($count > 0)
-                                        <form action="{{ route('pengajar.tryout.deleteAll') }}" method="POST" onsubmit="return confirm('Tarik kembali semua soal {{ $subjectName }}?')">
-                                            @csrf
-                                            <input type="hidden" name="class_id" value="{{ $assign->class_id }}">
-                                            <input type="hidden" name="subject_name" value="{{ $subjectName }}">
+                                    <?php if($count > 0): ?>
+                                        <form action="<?php echo e(route('pengajar.tryout.deleteAll')); ?>" method="POST" onsubmit="return confirm('Tarik kembali semua soal <?php echo e($subjectName); ?>?')">
+                                            <?php echo csrf_field(); ?>
+                                            <input type="hidden" name="class_id" value="<?php echo e($assign->class_id); ?>">
+                                            <input type="hidden" name="subject_name" value="<?php echo e($subjectName); ?>">
                                             <button type="submit" class="btn-action-delete" title="Tarik/Hapus Semua Draf Mapel Ini">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         </form>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td class="text-right">
-                                <a href="{{ route('pengajar.tryout.create', [$assign->class_id, $subjectName]) }}"
-                                   class="btn-input-modern {{ $count > 0 ? 'btn-has-content' : '' }}">
-                                    <span>{{ $count > 0 ? 'EDIT / TAMBAH' : 'INPUT SOAL' }}</span>
+                                <a href="<?php echo e(route('pengajar.tryout.create', [$assign->class_id, $subjectName])); ?>"
+                                   class="btn-input-modern <?php echo e($count > 0 ? 'btn-has-content' : ''); ?>">
+                                    <span><?php echo e($count > 0 ? 'EDIT / TAMBAH' : 'INPUT SOAL'); ?></span>
                                     <div class="icon-circle">
-                                        <i class="fa-solid fa-{{ $count > 0 ? 'pen-to-square' : 'pen-nib' }}"></i>
+                                        <i class="fa-solid fa-<?php echo e($count > 0 ? 'pen-to-square' : 'pen-nib'); ?>"></i>
                                     </div>
                                 </a>
                             </td>
                         </tr>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="4">
                                 <div class="cp-empty-state">
@@ -166,7 +165,7 @@
                                 </div>
                             </td>
                         </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -384,4 +383,5 @@
         .cp-table-modern th:nth-child(3), .cp-table-modern td:nth-child(3) { display: none; } /* Sembunyikan progress bar di layar kecil agar tidak sesak */
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/pengajar/tryout/index.blade.php ENDPATH**/ ?>
