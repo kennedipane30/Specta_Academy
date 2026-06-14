@@ -17,7 +17,19 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
   List<TextEditingController> controllers = List.generate(6, (index) => TextEditingController());
   List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
   
-  final Color spektaRed = const Color(0xFF990000);
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  
   Timer? _timer;
   int _start = 60;
   bool _isResendClickable = false;
@@ -54,7 +66,7 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
   void handleResendOtp() async {
     if (!_isResendClickable) return;
 
-    showDialog(context: context, builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed)));
+    showDialog(context: context, builder: (_) => Center(child: CircularProgressIndicator(color: accentTeal)));
     
     // Gunakan fungsi forgotPassword untuk mengirim ulang kode ke email tersebut
     var resp = await AuthService.forgotPassword(widget.email);
@@ -63,29 +75,82 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
     Navigator.pop(context);
 
     if (resp.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("Kode OTP baru telah dikirim ke email!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: darkTeal, 
+          content: const Text("Kode OTP baru telah dikirim ke email!"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )
+      );
       startTimer();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.red, content: Text("Gagal mengirim ulang kode.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: primaryRed, 
+          content: const Text("Gagal mengirim ulang kode."),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(elevation: 0, backgroundColor: Colors.white, foregroundColor: spektaRed, title: const Text("Verifikasi Reset Password")),
+      backgroundColor: pageBg,
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: const Text(
+          "Verifikasi Reset Password",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             const SizedBox(height: 30),
-            Icon(Icons.lock_reset_rounded, size: 80, color: spektaRed),
+            Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: accentTeal.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.lock_reset_rounded, size: 80, color: accentTeal),
+            ),
             const SizedBox(height: 30),
-            const Text("Masukkan Kode OTP", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text(
+              "Masukkan Kode OTP", 
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textDark)
+            ),
             const SizedBox(height: 10),
-            Text("Kami telah mengirimkan 6 digit kode ke email:", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
-            Text(widget.email, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+            Text(
+              "Kami telah mengirimkan 6 digit kode ke email:", 
+              textAlign: TextAlign.center, 
+              style: TextStyle(color: neutralGray)
+            ),
+            Text(
+              widget.email, 
+              style: const TextStyle(fontWeight: FontWeight.bold, color: textDark)
+            ),
             const SizedBox(height: 50),
             
             // --- BOX INPUT OTP (6 BOXES) ---
@@ -97,19 +162,31 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
             const SizedBox(height: 60),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: spektaRed,
+                backgroundColor: accentTeal,
                 minimumSize: const Size(double.infinity, 60),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                elevation: 5,
+                shadowColor: accentTeal.withOpacity(0.3),
               ),
               onPressed: () {
                 String otp = getOtpCode();
                 if (otp.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Masukkan 6 digit kode lengkap!")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: primaryRed,
+                      content: const Text("Masukkan 6 digit kode lengkap!"),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    )
+                  );
                   return;
                 }
                 Navigator.push(context, MaterialPageRoute(builder: (_) => NewPasswordPage(email: widget.email, otp: otp)));
               },
-              child: const Text("VERIFIKASI KODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: const Text(
+                "VERIFIKASI KODE", 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+              ),
             ),
             const SizedBox(height: 30),
             
@@ -118,7 +195,10 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
               onPressed: _isResendClickable ? handleResendOtp : null,
               child: Text(
                 _isResendClickable ? "Kirim Ulang Kode" : "Kirim Ulang dalam $_start s",
-                style: TextStyle(color: _isResendClickable ? spektaRed : Colors.grey, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _isResendClickable ? accentTeal : neutralGray, 
+                  fontWeight: FontWeight.bold
+                ),
               ),
             ),
           ],
@@ -132,9 +212,12 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
       width: 45,
       height: 55,
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: focusNodes[index].hasFocus ? Colors.white : lightBlueBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: focusNodes[index].hasFocus ? spektaRed : Colors.grey.shade300, width: 2),
+        border: Border.all(
+          color: focusNodes[index].hasFocus ? accentTeal : outlineVariant, 
+          width: 2
+        ),
       ),
       child: Center(
         child: TextField(
@@ -144,7 +227,7 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           maxLength: 1,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textDark),
           decoration: const InputDecoration(counterText: "", border: InputBorder.none, hintText: "-"),
           onChanged: (value) {
             if (value.isNotEmpty && index < 5) {

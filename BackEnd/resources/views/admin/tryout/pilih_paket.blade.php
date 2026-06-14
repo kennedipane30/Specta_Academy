@@ -64,6 +64,13 @@
                                 </td>
                             </tr>
                         @endif
+                        @if(isset($serviceError) && $serviceError)
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Server tryout sedang bermasalah. Data mungkin tidak lengkap.
+    </div>
+@endif
+
                     @empty
                     <tr>
                         <td colspan="3">
@@ -95,10 +102,10 @@
         --border-soft: #e5e7eb;
     }
 
-    .cp-page { 
-        font-family: 'Montserrat', sans-serif; 
-        padding: 10px; 
-        animation: fadeIn 0.4s ease-out; 
+    .cp-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
+        animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 

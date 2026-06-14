@@ -62,6 +62,13 @@
                                 </td>
                             </tr>
                         <?php endif; ?>
+                        <?php if(isset($serviceError) && $serviceError): ?>
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Server tryout sedang bermasalah. Data mungkin tidak lengkap.
+    </div>
+<?php endif; ?>
+
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="3">
@@ -93,10 +100,10 @@
         --border-soft: #e5e7eb;
     }
 
-    .cp-page { 
-        font-family: 'Montserrat', sans-serif; 
-        padding: 10px; 
-        animation: fadeIn 0.4s ease-out; 
+    .cp-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
+        animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -231,4 +238,5 @@
     }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\perkuliahan\PA 2 - code\PAAAAA2\BackEnd\resources\views/admin/tryout/pilih_paket.blade.php ENDPATH**/ ?>

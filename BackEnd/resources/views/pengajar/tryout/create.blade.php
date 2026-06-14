@@ -34,7 +34,14 @@
         </div>
     @endif
 
-    {{-- ── 2. BOX IMPORT CSV (DESAIN SEGARKAN DENGAN AKSEN LEMBUT) ── --}}
+    @if(session('warning'))
+        <div class="tm-alert-modern warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>{{ session('warning') }}</span>
+        </div>
+    @endif
+
+    {{-- ── 2. BOX IMPORT CSV ── --}}
     <section class="cp-main-card mb-4" style="border: 2px dashed var(--spekta-red); background: var(--spekta-red-light); margin-bottom: 24px; border-radius: 16px; padding: 20px;">
         <div class="card-header" style="margin-bottom: 14px;">
             <h2 style="color: var(--spekta-red-dark); font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0 0 4px 0;"><i class="fa-solid fa-file-csv"></i> Import Soal via CSV</h2>
@@ -60,7 +67,7 @@
 
     {{-- ── 3. MAIN WORKSPACE GRID ── --}}
     <div class="tm-grid-layout">
-        
+
         {{-- KOLOM KIRI: FORM INPUT SOAL (MANUAL) --}}
         <section class="cp-main-card">
             <div class="card-header" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--spekta-gray-light);">
@@ -71,7 +78,7 @@
             <form action="{{ route('pengajar.tryout.store') }}" method="POST" id="soalForm" class="sc-form">
                 @csrf
                 {{-- ID Hidden untuk proses Update --}}
-                <input type="hidden" name="draft_id" id="draft_id">
+                <input type="hidden" name="draft_id" id="draft_id" value="">
                 <input type="hidden" name="class_id" value="{{ $classId }}">
                 <input type="hidden" name="subject_name" value="{{ $subjectName }}">
 
@@ -87,7 +94,7 @@
                         <input type="text" name="option_{{ $opt }}" id="option_{{ $opt }}" class="tm-input" required>
                     </div>
                     @endforeach
-                    
+
                     <div class="form-group mb-3">
                         <label class="tm-label">Kunci Jawaban</label>
                         <select name="correct_answer" id="correct_answer" class="tm-input" required>
@@ -109,7 +116,7 @@
                     <button type="submit" id="btn-submit" class="cp-primary-btn" style="flex: 2; background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; font-size: 13px; box-shadow: 0 4px 10px rgba(229,57,53,0.15);">
                         <i class="fa-solid fa-paper-plane"></i> <span id="btn-text">Kirim Soal ke Admin</span>
                     </button>
-                    
+
                     <button type="button" id="btn-cancel" onclick="cancelEdit()" style="display: none; flex: 1; background: var(--spekta-gray); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 13px;">
                         Batal
                     </button>
@@ -120,24 +127,25 @@
         {{-- KOLOM KANAN: DAFTAR SOAL TERUPLOAD --}}
         <section class="cp-main-card">
             <div class="card-header" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--spekta-gray-light);">
-                <h2 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">Soal Terkirim ({{ $existingSoal->count() }})</h2>
+                <h2 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">Soal Terkirim ({{ count($existingSoal) }})</h2>
                 <p style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin: 0;">Berikut adalah draf soal yang sudah Anda buat.</p>
             </div>
 
             <div class="soal-list-scroll">
                 @forelse($existingSoal as $index => $soal)
-                    <div class="soal-item" id="soal-{{ $soal->id }}">
+                    <div class="soal-item" id="soal-{{ $soal['id'] ?? $soal->id }}">
                         <div class="soal-header">
-                            <span class="soal-number">#{{ $existingSoal->count() - $index }}</span>
+                            <span class="soal-number">#{{ count($existingSoal) - $index }}</span>
                             <div style="display: flex; gap: 8px;">
                                 {{-- Tombol Edit --}}
-                                <button type="button" onclick="editSoal({{ $soal->toJson() }})" class="btn-action-edit" title="Edit Soal">
+                                <button type="button" onclick='editSoal(@json($soal))' class="btn-action-edit" title="Edit Soal">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
 
                                 {{-- Tombol Hapus --}}
-                                <form action="{{ route('pengajar.tryout.destroy_draft', $soal->id) }}" method="POST">
-                                    @csrf @method('DELETE')
+                                <form action="{{ route('pengajar.tryout.destroy_draft', $soal['id'] ?? $soal->id) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
                                     <button type="submit" class="btn-action-delete-item" title="Hapus Draf" onclick="return confirm('Apakah Anda yakin ingin menghapus draf soal ini?')">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
@@ -145,11 +153,20 @@
                             </div>
                         </div>
                         <p class="soal-preview">
-                            {!! Str::limit(strip_tags($soal->question), 120) !!}
+                            {{ Str::limit(strip_tags($soal['question'] ?? $soal->question), 120) }}
                         </p>
                         <div class="soal-footer">
-                            <span class="key-badge">Kunci: <strong>{{ $soal->correct_answer }}</strong></span>
-                            <small class="date-text">Dibuat: {{ $soal->created_at->format('d/m H:i') }} WIB</small>
+                            <span class="key-badge">Kunci: <strong>{{ $soal['correct_answer'] ?? $soal->correct_answer }}</strong></span>
+                            <small class="date-text">Dibuat:
+                                @php
+                                    $createdAt = $soal['created_at'] ?? ($soal->created_at ?? null);
+                                    if ($createdAt) {
+                                        echo date('d/m H:i', strtotime($createdAt)) . ' WIB';
+                                    } else {
+                                        echo 'Baru saja';
+                                    }
+                                @endphp
+                            </small>
                         </div>
                     </div>
                 @empty
@@ -164,26 +181,26 @@
     </div>
 </div>
 
-{{-- SCRIPT LOGIKA EDIT (DIPERTAHANKAN) --}}
+{{-- SCRIPT LOGIKA EDIT --}}
 <script>
     function editSoal(data) {
         // 1. Ganti Tampilan Form ke Mode Edit
-        document.getElementById('form-title').innerText = "Edit Draf Soal #" + data.id;
+        document.getElementById('form-title').innerText = "Edit Draf Soal #" + (data.id || data.draft_id);
         document.getElementById('form-subtitle').innerText = "Pastikan perubahan Anda sudah benar sebelum menekan tombol perbarui.";
         document.getElementById('btn-text').innerText = "Perbarui Soal Sekarang";
         document.getElementById('btn-cancel').style.display = "block";
         document.getElementById('btn-submit').style.background = "#d97706"; // Oranye
 
         // 2. Isi Input dengan Data Terpilih
-        document.getElementById('draft_id').value = data.id;
-        document.getElementById('question').value = data.question;
-        document.getElementById('option_a').value = data.option_a;
-        document.getElementById('option_b').value = data.option_b;
-        document.getElementById('option_c').value = data.option_c;
-        document.getElementById('option_d').value = data.option_d;
-        document.getElementById('option_e').value = data.option_e;
-        document.getElementById('correct_answer').value = data.correct_answer;
-        document.getElementById('explanation').value = data.explanation || "";
+        document.getElementById('draft_id').value = data.id || data.draft_id || '';
+        document.getElementById('question').value = data.question || '';
+        document.getElementById('option_a').value = data.option_a || '';
+        document.getElementById('option_b').value = data.option_b || '';
+        document.getElementById('option_c').value = data.option_c || '';
+        document.getElementById('option_d').value = data.option_d || '';
+        document.getElementById('option_e').value = data.option_e || '';
+        document.getElementById('correct_answer').value = data.correct_answer || 'A';
+        document.getElementById('explanation').value = data.explanation || '';
 
         // 3. Fokus ke Form (Scroll ke atas)
         window.scrollTo({ top: 150, behavior: 'smooth' });
@@ -192,6 +209,14 @@
     function cancelEdit() {
         document.getElementById('soalForm').reset();
         document.getElementById('draft_id').value = "";
+        document.getElementById('question').value = "";
+        document.getElementById('option_a').value = "";
+        document.getElementById('option_b').value = "";
+        document.getElementById('option_c').value = "";
+        document.getElementById('option_d').value = "";
+        document.getElementById('option_e').value = "";
+        document.getElementById('explanation').value = "";
+        document.getElementById('correct_answer').value = "A";
         document.getElementById('form-title').innerText = "Tambah Soal Baru (Manual)";
         document.getElementById('form-subtitle').innerText = "Isi detail pertanyaan dan pilihan jawaban di bawah ini.";
         document.getElementById('btn-text').innerText = "Kirim Soal ke Admin";
@@ -204,7 +229,7 @@
 <style>
     .cp-page { padding: 10px; font-family: 'Montserrat', sans-serif; animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
+
     /* Header Minimalis */
     .cp-header {
         display: flex;
@@ -260,19 +285,19 @@
         color: var(--text-main);
         border-color: var(--spekta-gray);
     }
-    
+
     /* Layout Grid */
     .tm-grid-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
     .cp-main-card { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
 
     /* Inputs */
     .tm-label { display: block; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 8px; }
-    .tm-input { 
-        width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border-soft); 
-        background: var(--spekta-gray-light); font-weight: 600; font-size: 12px; outline: none; transition: 0.25s; 
+    .tm-input {
+        width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border-soft);
+        background: var(--spekta-gray-light); font-weight: 600; font-size: 12px; outline: none; transition: 0.25s;
     }
     .tm-input:focus { border-color: var(--spekta-teal); background: var(--spekta-white); box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12); }
-    
+
     /* Options Layout */
     .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -282,7 +307,7 @@
     .soal-item:hover { border-color: var(--spekta-gray); background: var(--spekta-white); box-shadow: 0 4px 12px rgba(0,0,0,0.02); transform: translateY(-2px); }
     .soal-header { display: flex; justify-content: space-between; align-items: center; }
     .soal-number { font-weight: 900; color: var(--spekta-red); font-size: 11px; background: var(--spekta-red-light); padding: 3px 8px; border-radius: 6px; }
-    
+
     .btn-action-edit, .btn-action-delete-item {
         border: none; cursor: pointer; width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; transition: 0.2s;
     }
@@ -299,6 +324,7 @@
     .tm-alert-modern { padding: 12px 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13px; }
     .tm-alert-modern.success { background: #e6f7ed; color: #15803d; border-left: 5px solid #22c55e; }
     .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-left: 5px solid #ef4444; }
+    .tm-alert-modern.warning { background: #fef3c7; color: #92400e; border-left: 5px solid #f59e0b; }
 
     /* Empty State */
     .empty-state {

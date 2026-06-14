@@ -1,93 +1,110 @@
 @extends('layouts.spekta')
 
-@section('title', 'Materi Saya - Spekta Academy')
+@section('title', 'Latihan Soal - Spekta Academy')
 
 @section('content')
 @php
-    $totalAssignment = count($assignmentsWithSubjects ?? []);
+    $assignmentCollection = collect($assignmentsWithSubjects ?? []);
+    $totalAssignment = $assignmentCollection->count();
 @endphp
 
-<div class="tm-container">
+<div class="cp-page">
 
     {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
-    <section class="tm-header">
-        <div class="tm-header-text">
-            <span class="tm-breadcrumb-capsule">Teacher Portal</span>
-            <h1>Materi Pembelajaran</h1>
-            <p>Pilih bidang ajar Anda untuk mengelola modul materi dan file PDF mingguan secara berkala.</p>
+    <section class="cp-header">
+        <div class="cp-header-left">
+            <span class="cp-breadcrumb-capsule">Teacher Portal</span>
+            <h1>Latihan Soal</h1>
+            <p>Pilih bidang ajar Anda untuk mengelola kumpulan bank soal latihan mingguan secara berkala.</p>
         </div>
     </section>
 
-    {{-- ── 2. STATS SUMMARY CARD ── --}}
-    <section class="tm-stats">
-        <div class="tm-stat-card card-teal">
-            <div class="tm-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
-            <div class="tm-stat-info">
+    @if(session('success'))
+        <div class="tm-alert-modern success">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="tm-alert-modern error">
+            <i class="fa-solid fa-circle-xmark"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    {{-- ── 2. STATS SUMMARY GRID (1 KOLOM) ── --}}
+    <section class="cp-stats">
+        <div class="cp-stat-card card-teal" style="max-width: 320px;">
+            <div class="cp-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="cp-stat-info">
                 <p>Total Penugasan</p>
                 <h2>{{ $totalAssignment }} <span>Kelas</span></h2>
             </div>
         </div>
     </section>
 
-    {{-- ── 3. LIST PANEL (DAFTAR BIDANG AJAR) ── --}}
-    <section class="tm-card">
-        <div class="tm-card-head">
+    {{-- ── 3. MAIN CARD / DAFTAR TABEL ── --}}
+    <section class="cp-main-card">
+        <div class="card-header-flex" style="margin-bottom: 20px;">
             <div>
                 <h2>Daftar Bidang Ajar</h2>
-                <small>Semua kombinasi kelas dan mata pelajaran yang Anda ampu</small>
+                <p>Semua kombinasi kelas dan mata pelajaran latihan yang Anda ampu.</p>
             </div>
         </div>
 
-        <div class="tm-table-responsive">
-            <table class="tm-table">
+        <div class="table-responsive">
+            <table class="cp-table-modern">
                 <thead>
                     <tr>
-                        <th style="width: 30%">Program Kelas</th>
-                        <th style="width: 30%">Mata Pelajaran</th>
-                        <th style="width: 20%">Durasi</th>
-                        <th class="text-end" style="width: 20%">Aksi</th>
+                        <th width="35%">PROGRAM KELAS</th>
+                        <th width="25%" class="text-center">MATA PELAJARAN</th>
+                        <th width="20%" class="text-center">DURASI</th>
+                        <th width="20%" class="text-right">AKSI</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    @forelse($assignmentsWithSubjects ?? [] as $assign)
+                    @forelse($assignmentsWithSubjects as $assign)
                         <tr>
-                            {{-- Program Kelas --}}
                             <td>
-                                <div class="tm-class-info">
-                                    <strong>{{ $assign->classModel->program_name ?? 'Kelas' }}</strong>
-                                    <small>ID #{{ $assign->class_id }}</small>
+                                <div class="program-info">
+                                    <div class="program-icon-box">
+                                        <i class="fa-solid fa-school-flag"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ $assign->classModel->program_name ?? 'Program' }}</strong>
+                                        <small>ID Kelas: #{{ $assign->class_id }}</small>
+                                    </div>
                                 </div>
                             </td>
-
-                            {{-- Mata Pelajaran --}}
-                            <td>
-                                <span class="tm-subject-pill">
-                                    <i class="fa-solid fa-book-bookmark"></i>
-                                    {{ $assign->subject_name ?? 'Mata Pelajaran' }}
+                            <td class="text-center">
+                                <span class="subject-tag">
+                                    <i class="fa-solid fa-book-bookmark mr-1"></i>
+                                    {{ $assign->subject_name }}
                                 </span>
                             </td>
-
-                            {{-- Durasi --}}
-                            <td>
-                                <span class="tm-muted">20 Minggu</span>
+                            <td class="text-center">
+                                <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+                                    20 Minggu
+                                </span>
                             </td>
-
-                            {{-- Tombol Aksi Buka --}}
-                            <td class="text-end">
-                                <a href="{{ route('pengajar.materi.pilih', ['class_id' => $assign->class_id, 'subject_name' => $assign->subject_name]) }}"
-                                   class="tm-btn-manage">
-                                    <span>Kelola Materi</span> <i class="fa-solid fa-arrow-right-long"></i>
+                            <td class="text-right">
+                                <!-- Memanggil rute pengajar.latihan.pilih -->
+                                <a href="{{ route('pengajar.latihan.pilih', [$assign->class_id, $assign->subject_name]) }}"
+                                   class="btn-input-modern">
+                                    <span>Kelola Latihan</span>
+                                    <div class="icon-circle">
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </div>
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="4">
-                                <div class="tm-empty">
-                                    <div class="tm-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
-                                    <strong>Belum ada penugasan mengajar</strong>
-                                    <span>Admin akademik belum mendaftarkan kelas pengampu untuk Anda saat ini.</span>
+                                <div class="cp-empty-state">
+                                    <i class="fa-solid fa-file-circle-xmark"></i>
+                                    <span>Belum ada penugasan bidang ajar untuk Anda saat ini.</span>
                                 </div>
                             </td>
                         </tr>
@@ -113,20 +130,15 @@
         --border-soft: #e5e7eb;
     }
 
-    .tm-container {
-        padding: 10px;
+    .cp-page {
         font-family: 'Montserrat', sans-serif;
-        color: var(--text-main);
+        padding: 10px;
         animation: fadeIn 0.4s ease-out;
     }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Header Minimalis */
-    .tm-header {
+    /* ── Header ── */
+    .cp-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
@@ -135,7 +147,7 @@
         border-bottom: 1px solid var(--border-soft);
         padding-bottom: 20px;
     }
-    .tm-breadcrumb-capsule {
+    .cp-breadcrumb-capsule {
         display: inline-block;
         background: var(--spekta-red-light);
         color: var(--spekta-red-dark);
@@ -147,45 +159,53 @@
         border-radius: 6px;
         margin-bottom: 8px;
     }
-    .tm-header h1 {
+    .cp-header h1 {
         margin: 0 0 6px;
         color: var(--text-main);
         font-size: 24px;
         font-weight: 900;
         letter-spacing: -0.02em;
     }
-    .tm-header p {
+    .cp-header p {
         margin: 0;
         color: var(--text-muted);
         font-size: 13px;
         font-weight: 600;
     }
 
-    /* Stats summary */
-    .tm-stats {
+    /* Alerts */
+    .tm-alert-modern { padding: 12px 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13px; }
+    .tm-alert-modern.success { background: #e6f7ed; color: #15803d; border-left: 5px solid #22c55e; }
+    .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-left: 5px solid #ef4444; }
+
+    /* Stats Grid */
+    .cp-stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 16px;
         margin-bottom: 24px;
     }
-    .tm-stat-card {
+    @media (max-width: 768px) {
+        .cp-stats { grid-template-columns: 1fr; }
+    }
+    .cp-stat-card {
         background: var(--spekta-white);
-        border: 1px solid var(--border-soft);
         border-radius: 14px;
         padding: 16px;
         display: flex;
         align-items: center;
         gap: 14px;
+        border: 1px solid var(--border-soft);
         box-shadow: 0 2px 10px rgba(0,0,0,0.01);
-        transition: all 0.2s ease;
+        transition: all 0.25s ease;
     }
-    .tm-stat-card:hover {
+    .cp-stat-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(0,0,0,0.03);
     }
-    .tm-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .cp-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
 
-    .tm-stat-icon {
+    .cp-stat-icon {
         width: 42px;
         height: 42px;
         border-radius: 10px;
@@ -193,9 +213,9 @@
         place-items: center;
         font-size: 16px;
     }
-    .tm-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .cp-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
 
-    .tm-stat-info p {
+    .cp-stat-info p {
         margin: 0 0 4px;
         font-size: 10px;
         font-weight: 800;
@@ -203,7 +223,7 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
-    .tm-stat-info h2 {
+    .cp-stat-info h2 {
         margin: 0;
         font-size: 24px;
         font-weight: 800;
@@ -213,87 +233,55 @@
         align-items: baseline;
         gap: 4px;
     }
-    .tm-stat-info h2 span {
+    .cp-stat-info h2 span {
         font-size: 12px;
         font-weight: 600;
         color: var(--text-muted);
     }
 
-    /* Card panel */
-    .tm-card {
-        background: var(--spekta-white);
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, .01);
-        border: 1px solid var(--border-soft);
+    /* Table Panel */
+    .cp-main-card { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
+
+    .card-header-flex h2 { font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0; }
+    .card-header-flex p { font-size: 11px; color: var(--text-muted); margin: 0; font-weight: 600; }
+
+    .cp-table-modern { width: 100%; border-collapse: collapse; }
+    .cp-table-modern th { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; padding: 12px 14px; border-bottom: 2px solid var(--spekta-gray-light); letter-spacing: 0.05em; }
+    .cp-table-modern td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
+    .cp-table-modern tbody tr:last-child td { border-bottom: none; }
+    .cp-table-modern tbody tr:hover { background: #fafbfc; }
+
+    .program-info { display: flex; align-items: center; gap: 10px; }
+    .program-icon-box { width: 34px; height: 34px; background: var(--spekta-gray-light); border-radius: 8px; display: grid; place-items: center; font-size: 14px; color: var(--text-muted); border: 1px solid var(--border-soft); }
+    .program-info strong { display: block; font-size: 13px; font-weight: 800; color: var(--text-main); }
+    .program-info small { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+    .subject-tag { background: var(--spekta-red-light); color: var(--spekta-red-dark); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; text-transform: uppercase; border: 1px solid rgba(229, 57, 53, 0.1); display: inline-flex; align-items: center; }
+
+    .btn-input-modern {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: #1f2937; color: white !important; padding: 4px 4px 4px 12px;
+        border-radius: 8px; text-decoration: none; transition: 0.2s;
+        white-space: nowrap; font-weight: 800; font-size: 11px;
     }
+    .btn-input-modern:hover { transform: translateX(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: #111827; }
 
-    .tm-card-head { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--spekta-gray-light); }
-    .tm-card-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
-    .tm-card-head small { color: var(--text-muted); font-size: 11px; font-weight: 600; margin-left: 28px; }
+    .icon-circle { width: 24px; height: 24px; background: rgba(255,255,255,0.15); border-radius: 6px; display: grid; place-items: center; font-size: 10px; }
 
-    .tm-table { width: 100%; border-collapse: collapse; }
-    .tm-table th {
-        padding: 12px 14px;
-        font-size: 10px;
-        font-weight: 800;
+    .cp-empty-state {
+        padding: 40px;
+        text-align: center;
         color: var(--text-muted);
-        text-transform: uppercase;
-        border-bottom: 2px solid var(--spekta-gray-light);
-        text-align: left;
-        letter-spacing: 0.05em;
-    }
-
-    .tm-table th.text-end, .tm-table td.text-end { text-align: right; }
-    .tm-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
-    .tm-table tr:hover { background: #fafbfc; }
-
-    .tm-class-info strong { display: block; font-size: 13px; font-weight: 800; color: var(--text-main); }
-    .tm-class-info small { color: var(--text-muted); font-weight: 700; font-size: 10px; }
-
-    .tm-subject-pill {
-        background: var(--spekta-red-light);
-        padding: 6px 12px;
-        border-radius: 6px;
-        color: var(--spekta-red-dark);
         font-size: 11px;
-        font-weight: 800;
-        display: inline-flex;
+        font-weight: 700;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 6px;
-        border: 1px solid rgba(229, 57, 53, 0.1);
+        gap: 8px;
     }
+    .cp-empty-state i { font-size: 20px; color: var(--spekta-gray); }
 
-    /* BUTTONS */
-    .tm-btn-manage {
-        background: #1f2937;
-        padding: 8px 14px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: var(--spekta-white) !important;
-        font-size: 11px;
-        font-weight: 800;
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        transition: all 0.2s ease;
-    }
-
-    .tm-btn-manage:hover {
-        background: var(--spekta-red);
-        box-shadow: 0 4px 10px rgba(229, 57, 53, 0.25);
-    }
-
-    .tm-muted { color: var(--text-muted); font-weight: 700; font-size: 12px; }
-    .tm-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .tm-empty-icon { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 50%; background: var(--spekta-gray-light); color: var(--spekta-gray); font-size: 18px; }
-
-    @media(max-width:1200px) {
-        .tm-stats { grid-template-columns: 1fr; }
-    }
-    @media(max-width:768px) {
-        .tm-table-responsive { overflow-x: auto; }
-        .tm-panel-heading { flex-direction: column; align-items: stretch;}
-    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
 </style>
 @endsection

@@ -6,6 +6,20 @@ class AnnouncementDetailPage extends StatelessWidget {
   
   const AnnouncementDetailPage({super.key, required this.data});
 
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  static const Color spektaYellow    = Color(0xFFF5A623);
+
   /// ✅ Perbaiki URL gambar (sama seperti di ReportPage)
   String _fixImageUrl(String path) {
     if (path.isEmpty) return '';
@@ -57,13 +71,22 @@ class AnnouncementDetailPage extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: pageBg,
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: const Text(
           "Detail Pengumuman", 
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
         ),
-        backgroundColor: const Color(0xFF990000),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -90,7 +113,7 @@ class AnnouncementDetailPage extends StatelessWidget {
                       width: double.infinity,
                       color: Colors.grey[200],
                       child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: accentTeal),
                       ),
                     );
                   },
@@ -101,9 +124,9 @@ class AnnouncementDetailPage extends StatelessWidget {
                     child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                        Icon(Icons.broken_image, size: 50, color: neutralGray),
                         SizedBox(height: 8),
-                        Text("Gambar tidak tersedia", style: TextStyle(color: Colors.grey)),
+                        Text("Gambar tidak tersedia", style: TextStyle(color: neutralGray)),
                       ],
                     ),
                   ),
@@ -113,7 +136,7 @@ class AnnouncementDetailPage extends StatelessWidget {
               Container(
                 height: 200, 
                 color: Colors.grey[200], 
-                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                child: Icon(Icons.image_not_supported, size: 50, color: neutralGray),
               ),
 
             Padding(
@@ -127,7 +150,7 @@ class AnnouncementDetailPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 22, 
                       fontWeight: FontWeight.w900, 
-                      color: Color(0xFF333333),
+                      color: textDark,
                       height: 1.3,
                     ),
                   ),
@@ -138,17 +161,17 @@ class AnnouncementDetailPage extends StatelessWidget {
                   if (formattedDate.isNotEmpty)
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                        Icon(Icons.calendar_today, size: 14, color: neutralGray),
                         const SizedBox(width: 6),
                         Text(
                           formattedDate,
-                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          style: TextStyle(color: neutralGray, fontSize: 12),
                         ),
                       ],
                     ),
                   
                   const SizedBox(height: 12),
-                  const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+                  Divider(thickness: 1, color: outlineVariant.withOpacity(0.5)),
                   const SizedBox(height: 16),
                   
                   // ✅ DESKRIPSI
@@ -156,7 +179,7 @@ class AnnouncementDetailPage extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 15, 
-                      color: Colors.grey[700], 
+                      color: textDarkVariant, 
                       height: 1.6,
                       fontWeight: FontWeight.w500,
                     ),

@@ -41,9 +41,22 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   List practiceQuestions = [];
   bool isLoading = true;
 
-  final Color spektaRed = const Color(0xFF990000);
-  final currency =
-      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  static const Color spektaYellow    = Color(0xFFF5A623);
+  static const Color softRed         = Color(0xFFFEE2E2);
+
+  final currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -196,7 +209,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   userId: currentUserId, 
               )
           )
-      // ✨ FIX PENTING: .then() ini wajib ada untuk merefresh nilai!
       ).then((_) {
           _fetchDetail();
       });
@@ -205,93 +217,109 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
 
   void _showWarningSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Colors.orange[800],
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating));
+        backgroundColor: primaryRed,
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
   }
 
   @override
   Widget build(BuildContext context) {
-    dynamic userRegisteredClassId =
-        currentLocalUserData['student']?['class_id'];
-    bool isActive = (status == 'active' ||
-        userRegisteredClassId?.toString() == widget.classId.toString());
-    bool hasOtherClass = userRegisteredClassId != null &&
-        userRegisteredClassId.toString() != widget.classId.toString();
+    dynamic userRegisteredClassId = currentLocalUserData['student']?['class_id'];
+    bool isActive = (status == 'active' || userRegisteredClassId?.toString() == widget.classId.toString());
+    bool hasOtherClass = userRegisteredClassId != null && userRegisteredClassId.toString() != widget.classId.toString();
 
     final subjectsCount = materi
-        .map((e) =>
-            (e['subject_name'] ?? e['material_name'] ?? e['subject'] ?? '')
-                .toString())
+        .map((e) => (e['subject_name'] ?? e['material_name'] ?? e['subject'] ?? '').toString())
         .where((s) => s.isNotEmpty)
         .toSet()
         .length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: pageBg,
       body: isLoading
-          ? Center(child: CircularProgressIndicator(color: spektaRed))
+          ? const Center(child: CircularProgressIndicator(color: accentTeal))
           : RefreshIndicator(
               onRefresh: _fetchDetail,
+              color: accentTeal,
               child: CustomScrollView(
                 slivers: [
                   _buildSliverAppBar(),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(25.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildStatusBadge(isActive),
-                          const SizedBox(height: 15),
-                          Text(displayClassName,
+                          const SizedBox(height: 16),
+                          Text(
+                            displayClassName,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: textDark,
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          
+                          // TENTANG KELAS CARD
+                          _buildTitleSection("Tentang Kelas", "💡"),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: outlineVariant.withOpacity(0.5)),
+                            ),
+                            child: Text(
+                              description.isEmpty ? "Kelas bimbingan belajar premium Spekta Academy." : description,
                               style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5)),
-                          const SizedBox(height: 25),
-                          const Text("Tentang Kelas",
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 10),
-                          Text(description,
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.grey[600],
-                                  height: 1.6)),
-                          const SizedBox(height: 35),
-                          const Text("Kurikulum & Fitur Belajar",
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 15),
+                                fontSize: 14.5,
+                                color: textDarkVariant,
+                                height: 1.6,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          // KURIKULUM & FITUR
+                          _buildTitleSection("Kurikulum & Fitur Belajar", "🎯"),
+                          const SizedBox(height: 16),
+                          
                           _buildFeatureButton(
-                            icon: Icons.menu_book_rounded,
+                            icon: Icons.import_contacts_rounded,
                             title: "Materi Video & PDF",
                             subtitle: subjectsCount == 0
                                 ? "Materi segera hadir"
                                 : "$subjectsCount Mata Pelajaran tersedia",
                             onTap: _navigateToMaterials,
                             isLocked: !isActive,
+                            color: primaryRed,
                           ),
                           _buildFeatureButton(
-                            icon: Icons.quiz_rounded,
+                            icon: Icons.check_circle_outline_rounded,
                             title: "Latihan Soal Mingguan",
                             subtitle: practiceQuestions.isEmpty
                                 ? "Belum tersedia"
                                 : "${practiceQuestions.length} Soal tersedia",
                             onTap: _navigateToPractice, 
                             isLocked: !isActive,
-                            color: Colors.blue,
+                            color: accentTeal,
                           ),
                           _buildFeatureButton(
-                            icon: Icons.assignment_rounded,
+                            icon: Icons.assignment_turned_in_rounded,
                             title: "Simulasi Tryout",
                             subtitle: tryouts.isEmpty
                                 ? "Belum tersedia"
                                 : "${tryouts.length} Paket Tryout tersedia",
                             onTap: _navigateToTryouts,
                             isLocked: !isActive,
-                            color: Colors.orange,
+                            color: accentTeal,
                           ),
                           const SizedBox(height: 100),
                         ],
@@ -301,122 +329,228 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 ],
               ),
             ),
-      bottomNavigationBar:
-          isActive ? null : _buildPremiumBottomBar(hasOtherClass),
+      bottomNavigationBar: isActive ? null : _buildPremiumBottomBar(hasOtherClass),
     );
   }
 
+  // HEADER KELAS DENGAN FLOATING BACK BUTTON & GRADIENT TRANSPARAN
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 280.0,
       pinned: true,
-      backgroundColor: spektaRed,
-      leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context)),
+      elevation: 0,
+      backgroundColor: primaryRed,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: CircleAvatar(
+          backgroundColor: Colors.black.withOpacity(0.35),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
-          background: Image.asset(_getLocalAsset(), fit: BoxFit.cover)),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              _getLocalAsset(),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [primaryRed, accentTeal],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+            // Gradient overlay agar teks putih di atasnya lebih kontras & sinematik
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Color(0x7F000000)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
+  // WIDGET JUDUL SEKSI DENGAN AKSEN EMOJI PREMIUM
+  Widget _buildTitleSection(String title, String emoji) {
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16.5, 
+            fontWeight: FontWeight.w900, 
+            color: textDark,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // STATUS BADGE PIL KAPSUL MODERN
   Widget _buildStatusBadge(bool enrolled) {
-    String txt = enrolled ? "TERDAFTAR" : "TERSEDIA";
-    Color col = enrolled ? Colors.green : Colors.blue;
+    String txt = enrolled ? "TERDAFTAR" : "TERSEDIA KELAS";
+    Color col = enrolled ? darkTeal : accentTeal;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-          color: col.withOpacity(0.1),
+          color: col.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: col.withOpacity(0.5))),
-      child: Text(txt,
-          style: TextStyle(
-              color: col,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              letterSpacing: 1)),
+          border: Border.all(color: col.withOpacity(0.3), width: 1.5)),
+      child: Text(
+        txt,
+        style: TextStyle(
+          color: col,
+          fontWeight: FontWeight.w900,
+          fontSize: 10,
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 
+  // FEATURE BUTTON PREMIUM BERGAYA GLASSMORPHISM DENGAN LOCK STATUS YANG JELAS
   Widget _buildFeatureButton(
       {required IconData icon,
       required String title,
       required String subtitle,
       required VoidCallback onTap,
       bool isLocked = true,
-      Color color = const Color(0xFF990000)}) {
+      Color color = primaryRed}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: outlineVariant.withOpacity(0.4)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 15,
-                offset: const Offset(0, 5))
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 12,
+                offset: const Offset(0, 4))
           ]),
       child: ListTile(
         onTap: isLocked
-            ? () =>
-                _showWarningSnack("Selesaikan pembayaran untuk akses fitur.")
+            ? () => _showWarningSnack("Selesaikan pembayaran untuk akses fitur.")
             : onTap,
-        contentPadding: const EdgeInsets.all(15),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         leading: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-                color: isLocked ? Colors.grey[100] : color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(15)),
-            child: Icon(isLocked ? Icons.lock_outline_rounded : icon,
-                color: isLocked ? Colors.grey : color)),
-        title: Text(title,
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isLocked ? Colors.grey : Colors.black)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded,
-            size: 14, color: Colors.grey),
+                color: isLocked ? Colors.grey[100] : color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12)),
+            child: Icon(
+                isLocked ? Icons.lock_outline_rounded : icon,
+                color: isLocked ? neutralGray : color,
+                size: 24,
+            )),
+        title: Text(
+          title,
+          style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: isLocked ? neutralGray : textDark,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            subtitle, 
+            style: const TextStyle(fontSize: 11.5, color: neutralGray, fontWeight: FontWeight.w600),
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: neutralGray),
       ),
     );
   }
 
+  // BOTTOM BAR MODERN MELAYANG (FLOATING CAPSULE BAR)
   Widget _buildPremiumBottomBar(bool hasOtherClass) {
     return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
             color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)]),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06), 
+                blurRadius: 20, 
+                offset: const Offset(0, -4),
+              )
+            ],
+        ),
         child: SafeArea(
-            child: Row(children: [
-          Expanded(
-              child: Text(currency.format(basePrice),
-                  style: TextStyle(
-                      color: spektaRed,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold))),
-          ElevatedButton(
-              onPressed: hasOtherClass
-                  ? () => _showWarningSnack(
-                      "Anda sudah memiliki kelas aktif lainnya.")
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => PaymentConfirmationPage(
-                              classId: widget.classId,
-                              className: displayClassName,
-                              basePrice: basePrice,
-                              token: widget.token,
-                              userData: currentLocalUserData))),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: hasOtherClass ? Colors.grey : spektaRed,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15))),
-              child: Text(
-                  hasOtherClass ? "KELAS LAIN AKTIF" : "DAFTAR SEKARANG",
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)))
-        ])));
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Total Biaya Kelas:",
+                        style: TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        currency.format(basePrice),
+                        style: const TextStyle(
+                          color: primaryRed,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: hasOtherClass
+                      ? () => _showWarningSnack("Anda sudah memiliki kelas aktif lainnya.")
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => PaymentConfirmationPage(
+                                  classId: widget.classId,
+                                  className: displayClassName,
+                                  basePrice: basePrice,
+                                  token: widget.token,
+                                  userData: currentLocalUserData))),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: hasOtherClass ? neutralGray : accentTeal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                      ),
+                  ),
+                  child: Text(
+                      hasOtherClass ? "KELAS LAIN AKTIF" : "DAFTAR SEKARANG",
+                      style: const TextStyle(
+                          color: Colors.white, 
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          letterSpacing: 0.5,
+                      ),
+                  ),
+                ),
+              ],
+            ),
+        ),
+    );
   }
 }

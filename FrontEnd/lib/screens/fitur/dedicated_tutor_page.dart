@@ -13,10 +13,19 @@ class DedicatedTutorPage extends StatefulWidget {
 }
 
 class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
-  final Color spektaRed = const Color(0xFF990000);
-  final Color spektaDark = const Color(0xFF1A1A2E);
-  final Color spektaGray = const Color(0xFF6C757D);
-  final Color spektaLightGray = const Color(0xFFF8F9FA);
+  // ============================================================
+  // 🎨 PALET WARNA BARU SPEKTA GEN-Z (KONTRAS TINGGI, CLEAN, PREMIUM)
+  // ============================================================
+  static const Color primaryRed = Color(0xFFC5352C);       // Merah Spekta
+  static const Color brightRed = Color(0xFFE53935);        // Aksen Merah Terang
+  static const Color accentTeal = Color(0xFF2EA8AB);       // Teal Estetik
+  static const Color darkTeal = Color(0xFF00696C);         // Teal Gelap
+  static const Color pageBg = Color(0xFFF8FAFC);           // Slate 50 (Abu Terang Bersih)
+  static const Color textDark = Color(0xFF0F172A);         // Slate 900
+  static const Color textDarkVariant = Color(0xFF334155);  // Slate 700
+  static const Color neutralGray = Color(0xFF64748B);      // Slate 500
+  static const Color outlineVariant = Color(0xFFE2E8F0);   // Border Abu Halus
+  static const Color lightBlueBg = Color(0xFFEFF4FF);      // Latar Ikon
   
   List materials = [];    
   List historyList = [];  
@@ -74,7 +83,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF990000)),
+            colorScheme: const ColorScheme.light(primary: primaryRed),
           ),
           child: child!,
         );
@@ -94,7 +103,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF990000)),
+            colorScheme: const ColorScheme.light(primary: primaryRed),
           ),
           child: child!,
         );
@@ -154,15 +163,14 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? primaryRed : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  // ✅ Perbaiki format tanggal tanpa localization
   String _formatDate(DateTime date) {
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     final weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -173,7 +181,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} WIB';
   }
 
-  // ✅ Perbaiki format tanggal dari API
   String _formatDateFromApi(String dateString) {
     try {
       DateTime date = DateTime.parse(dateString);
@@ -187,7 +194,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   String _formatTimeFromApi(String timeString) {
     if (timeString.isEmpty || timeString == '00:00:00') return '';
     try {
-      // Jika format sudah HH:MM:SS, ambil HH:MM saja
       if (timeString.contains(':')) {
         final parts = timeString.split(':');
         return '${parts[0]}:${parts[1]} WIB';
@@ -200,16 +206,16 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'confirmed': return Colors.green;
-      case 'rejected': return Colors.red;
-      case 'pending': return Colors.orange;
+      case 'confirmed': return const Color(0xFF10B981); // Hijau pastel
+      case 'rejected': return primaryRed;               // Merah pastel
+      case 'pending': return Colors.orange;             // Oranye pastel
       default: return Colors.grey;
     }
   }
 
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
-      case 'confirmed': return 'Disetujui';
+      case 'confirmed': return 'Selesai';
       case 'rejected': return 'Ditolak';
       case 'pending': return 'Menunggu';
       default: return status;
@@ -219,35 +225,33 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: spektaLightGray,
-      appBar: AppBar(
-        title: const Text(
-          "Dedicated Tutor",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: spektaRed,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: pageBg,
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF990000)),
+              child: CircularProgressIndicator(color: primaryRed),
             )
           : RefreshIndicator(
               onRefresh: _fetchPageData,
-              color: spektaRed,
+              color: primaryRed,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    _buildQuotaCard(),
-                    const SizedBox(height: 20),
-                    _buildRequestForm(),
-                    const SizedBox(height: 24),
-                    _buildHistorySection(),
+                    // 1. HEADER GRADIENT MELENGKUNG (Tinggi disesuaikan menjadi 310)
+                    _buildCurvedHeader(),
+
+                    // 2. KONTEN BODY MELAYANG (Geser awal top padding dari 210 menjadi 265 agar tidak menabrak)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 265, 16, 40),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildRequestForm(),
+                          const SizedBox(height: 24),
+                          _buildHistorySection(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -255,37 +259,81 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
+  // WIDGET HEADER LENGKUNG PREMIUM DENGAN GLASS-CARD KUOTA
+  Widget _buildCurvedHeader() {
+    return Container(
+      height: 310, // Ditingkatkan menjadi 310 agar kelengkungan bawah terlihat rapi
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primaryRed, accentTeal],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(40),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 48, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.15),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              const Text(
+                "Dedicated Tutor",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(width: 40), // Penyeimbang horizontal
+            ],
+          ),
+          const SizedBox(height: 18),
+          _buildQuotaCard(),
+        ],
+      ),
+    );
+  }
+
+  // KARTU KUOTA BERGAYA GLASSMORPHISM SANGAT ESTETIK
   Widget _buildQuotaCard() {
     final int usedQuota = maxQuota - remainingQuota;
     final double progress = (usedQuota / maxQuota).clamp(0.0, 1.0);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [spektaRed, spektaRed.withOpacity(0.7)],
-        ),
+        color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: spektaRed.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.verified_user, color: Colors.white, size: 20),
-              SizedBox(width: 8),
+              Icon(Icons.verified_user_rounded, color: Colors.white.withOpacity(0.9), size: 18),
+              const SizedBox(width: 8),
               Text(
                 "Sisa Kuota Bulan Ini",
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9), 
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
@@ -300,34 +348,35 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                     TextSpan(
                       text: "$remainingQuota",
                       style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
                         color: Colors.white,
                       ),
                     ),
                     TextSpan(
                       text: "/$maxQuota",
                       style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withOpacity(0.6),
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, size: 14, color: Colors.white.withOpacity(0.9)),
+                    Icon(Icons.check_circle_rounded, size: 12, color: Colors.white.withOpacity(0.9)),
                     const SizedBox(width: 4),
                     Text(
                       "Digunakan $usedQuota",
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -339,9 +388,9 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withOpacity(0.3),
+              backgroundColor: Colors.white.withOpacity(0.25),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 8,
+              minHeight: 6,
             ),
           ),
         ],
@@ -349,6 +398,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
+  // FORM REQUEST PENGAJUAN
   Widget _buildRequestForm() {
     final bool canSubmit = remainingQuota > 0;
 
@@ -357,11 +407,12 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: outlineVariant.withOpacity(0.4)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -370,46 +421,100 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
         children: [
           const Row(
             children: [
-              Icon(Icons.edit_note, color: Color(0xFF990000), size: 22),
+              Icon(Icons.edit_note_rounded, color: primaryRed, size: 24),
               SizedBox(width: 8),
               Text(
                 "Ajukan Permintaan",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: textDark),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          _buildInfoRow(
-            icon: Icons.person_outline,
-            label: "Nama Siswa",
-            value: widget.userData['name'] ?? 'Loading...',
+          
+          // Nama Siswa Box
+          const Text(
+            "Nama Siswa",
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: lightBlueBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFDBE5FF)),
+            ),
+            child: Text(
+              widget.userData['name'] ?? 'Kennedi Pane',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textDark),
+            ),
           ),
           const SizedBox(height: 16),
+          
+          // Pilih Topik Dropdown
+          const Text(
+            "Pilih Topik",
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
+          ),
+          const SizedBox(height: 6),
           _buildDropdownField(),
           const SizedBox(height: 16),
-          _buildDateField(canSubmit),
-          const SizedBox(height: 16),
-          _buildTimeField(canSubmit),
+          
+          // Tanggal & Waktu Row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Tanggal",
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildDateField(canSubmit),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Waktu",
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildTimeField(canSubmit),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
+          
+          // Submit Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: canSubmit ? _handlePost : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: spektaRed,
+                backgroundColor: primaryRed,
                 disabledBackgroundColor: Colors.grey.shade300,
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                elevation: 0,
               ),
               child: Text(
                 canSubmit ? "Ajukan Permintaan" : "Kuota Habis",
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
@@ -419,41 +524,21 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
-  Widget _buildInfoRow({required IconData icon, required String label, required String value}) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: spektaGray),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: TextStyle(color: spektaGray, fontSize: 13),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            ":  $value",
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
-    );
-  }
-
+  // DROPDOWN TOPIK PREMIUM
   Widget _buildDropdownField() {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: outlineVariant),
         borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
       ),
       child: DropdownButtonFormField<int>(
         isExpanded: true,
-        hint: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        hint: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             "Pilih Topik",
-            style: TextStyle(color: spektaGray),
+            style: TextStyle(color: neutralGray, fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
         value: selectedMaterialId,
@@ -462,7 +547,10 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             value: int.tryParse(item['material_id'].toString()),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(item['title'] ?? "Topik"),
+              child: Text(
+                item['title'] ?? "Topik",
+                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: textDark),
+              ),
             ),
           );
         }).toList(),
@@ -471,9 +559,9 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 14),
         ),
-        icon: Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Icon(Icons.arrow_drop_down, color: spektaRed),
+        icon: const Padding(
+          padding: EdgeInsets.only(right: 12),
+          child: Icon(Icons.arrow_drop_down_rounded, color: primaryRed, size: 24),
         ),
       ),
     );
@@ -483,29 +571,32 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     return InkWell(
       onTap: enabled ? _selectDate : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: outlineVariant),
           borderRadius: BorderRadius.circular(12),
           color: Colors.white,
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 20, color: spektaGray),
-            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 selectedDate != null ? _formatDate(selectedDate!) : "Pilih Tanggal",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selectedDate != null ? Colors.black : spektaGray,
-                  fontSize: 14,
+                  color: selectedDate != null ? textDark : neutralGray,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            if (selectedDate != null)
+            if (selectedDate == null)
+              const Icon(Icons.calendar_today_rounded, size: 16, color: neutralGray)
+            else
               IconButton(
                 onPressed: () => setState(() => selectedDate = null),
-                icon: Icon(Icons.close, size: 18, color: spektaGray),
+                icon: const Icon(Icons.close_rounded, size: 16, color: neutralGray),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -519,29 +610,32 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     return InkWell(
       onTap: enabled ? _selectTime : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: outlineVariant),
           borderRadius: BorderRadius.circular(12),
           color: Colors.white,
         ),
         child: Row(
           children: [
-            Icon(Icons.access_time, size: 20, color: spektaGray),
-            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 selectedTime != null ? _formatTime(selectedTime!) : "Pilih Waktu",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selectedTime != null ? Colors.black : spektaGray,
-                  fontSize: 14,
+                  color: selectedTime != null ? textDark : neutralGray,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            if (selectedTime != null)
+            if (selectedTime == null)
+              const Icon(Icons.access_time_rounded, size: 16, color: neutralGray)
+            else
               IconButton(
                 onPressed: () => setState(() => selectedTime = null),
-                icon: Icon(Icons.close, size: 18, color: spektaGray),
+                icon: const Icon(Icons.close_rounded, size: 16, color: neutralGray),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -551,26 +645,29 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
+  // RIWAYAT PENGAJUAN TUTOR PRIVATE BERGAYA BENTO CARD
   Widget _buildHistorySection() {
     if (historyList.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(40),
+        width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: outlineVariant.withOpacity(0.4)),
         ),
-        child: Column(
+        child: const Column(
           children: [
-            Icon(Icons.history, size: 48, color: Colors.grey.shade400),
+            Icon(Icons.history_rounded, size: 48, color: neutralGray),
             const SizedBox(height: 12),
             Text(
               "Belum ada riwayat pengajuan",
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: textDarkVariant, fontSize: 13, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
-              "Ajukan permintaan tutor di atas",
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              "Ajukan permintaan bimbingan privat di atas",
+              style: TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -581,6 +678,14 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: outlineVariant.withOpacity(0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.015),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,28 +694,28 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.history, color: Color(0xFF990000), size: 20),
+                Icon(Icons.history_rounded, color: primaryRed, size: 20),
                 SizedBox(width: 8),
                 Text(
                   "Riwayat Pengajuan",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textDark),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: outlineVariant),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: historyList.length,
-            separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+            padding: EdgeInsets.zero,
+            separatorBuilder: (context, index) => const Divider(height: 1, color: outlineVariant),
             itemBuilder: (context, index) {
               final item = historyList[index];
               final status = item['status'] ?? 'pending';
               final date = item['date'] ?? '';
               final time = item['time'] ?? '';
               
-              // Cari judul materi dari materials berdasarkan material_id
               final materialId = item['material_id'];
               final material = materials.firstWhere(
                 (m) => m['material_id'] == materialId,
@@ -618,55 +723,104 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
               );
               final topicTitle = material['title'] ?? 'Materi Umum';
 
-              return ListTile(
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    status == 'confirmed' ? Icons.check_circle : 
-                    status == 'rejected' ? Icons.cancel : 
-                    Icons.schedule,
-                    color: _getStatusColor(status),
-                    size: 24,
-                  ),
-                ),
-                title: Text(
-                  topicTitle,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Tentukan lencana warna pastel transparan sesuai status
+              Color badgeColor;
+              Color badgeText;
+              if (status.toString().toLowerCase() == 'confirmed') {
+                badgeColor = const Color(0xFFE8F5E9); // Hijau pastel
+                badgeText = const Color(0xFF2E7D32);
+              } else if (status.toString().toLowerCase() == 'rejected') {
+                badgeColor = const Color(0xFFFEE2E2); // Merah pastel
+                badgeText = const Color(0xFF991B1B);
+              } else {
+                badgeColor = const Color(0xFFFFF8E1); // Oranye pastel
+                badgeText = const Color(0xFFFFA000);
+              }
+
+              // Ikon topik dinamis yang berubah sesuai nama mata pelajaran
+              IconData topicIcon = Icons.school_rounded;
+              if (topicTitle.toLowerCase().contains('psych') || topicTitle.toLowerCase().contains('psiko')) {
+                topicIcon = Icons.psychology_rounded;
+              } else if (topicTitle.toLowerCase().contains('calculus') || topicTitle.toLowerCase().contains('math')) {
+                topicIcon = Icons.calculate_rounded;
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
                   children: [
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDateFromApi(date),
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                    ),
-                    if (time.isNotEmpty && time != '00:00:00')
-                      Text(
-                        _formatTimeFromApi(time),
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                  ],
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _getStatusText(status),
-                    style: TextStyle(
-                      color: _getStatusColor(status),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      child: Icon(
+                        topicIcon,
+                        color: badgeText,
+                        size: 24,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  topicTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: textDark),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: badgeColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _getStatusText(status),
+                                  style: TextStyle(
+                                    color: badgeText,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 12, color: neutralGray),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDateFromApi(date),
+                                style: const TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                              if (time.isNotEmpty && time != '00:00:00') ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.access_time_rounded, size: 12, color: neutralGray),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatTimeFromApi(time),
+                                  style: const TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              ]
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

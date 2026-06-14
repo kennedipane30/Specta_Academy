@@ -11,6 +11,7 @@ use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf; // Tambahkan ini di paling atas
 
 class AbsensiController extends Controller
 {
@@ -198,5 +199,147 @@ class AbsensiController extends Controller
             'week',
             'data'
         ));
+    }
+
+    /**
+     * ✅ EDIT: Menampilkan form edit untuk minggu tertentu
+     */
+    public function edit($class_id, $subject, $week)
+    {
+        $teacherId = Auth::user()->usersID;
+
+        if (!$this->hasAssignment($class_id, $subject)) {
+            abort(403, 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
+
+        $class = ClassModel::findOrFail($class_id);
+
+        $siswas = Enrollment::where('class_id', $class_id)
+            ->where('status', 'active')
+            ->with('user.student')
+            ->orderBy('user_id')
+            ->get();
+
+        $existingAttendance = Attendance::where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->pluck('status', 'user_id')
+            ->toArray();
+
+        return view('pengajar.absensi.edit', compact(
+            'class',
+            'subject',
+            'week',
+            'siswas',
+            'existingAttendance'
+        ));
+    }
+
+    /**
+     * ✅ UPDATE: Memperbarui data absensi
+     */
+    public function update(Request $request, $class_id, $subject, $week)
+    {
+        $request->validate([
+            'status' => 'required|array',
+        ]);
+
+        $teacherId = Auth::user()->usersID;
+
+        if (!$this->hasAssignment($class_id, $subject)) {
+            return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
+
+        // Hapus data lama untuk minggu ini
+        Attendance::where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->delete();
+
+        // Simpan data baru
+        foreach ($request->status as $siswaID => $statusValue) {
+            if (!in_array($statusValue, ['h', 'i', 'a'])) {
+                continue;
+            }
+
+            Attendance::create([
+                'user_id'      => $siswaID,
+                'class_id'     => $class_id,
+                'subject_name' => $subject,
+                'week'         => $week,
+                'teacher_id'   => $teacherId,
+                'status'       => $statusValue,
+                'date'         => now()->toDateString(),
+            ]);
+        }
+
+        return redirect()
+            ->route('pengajar.absensi.recap', [$class_id, $subject, $week])
+            ->with('success', "Absensi Minggu ke-{$week} berhasil diperbarui!");
+    }
+
+    /**
+     * ✅ DELETE: Menghapus seluruh data absensi untuk minggu tertentu
+     */
+    public function destroy($class_id, $subject, $week)
+    {
+        $teacherId = Auth::user()->usersID;
+
+        if (!$this->hasAssignment($class_id, $subject)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $deleted = Attendance::where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->delete();
+
+        if ($deleted) {
+            return redirect()
+                ->route('pengajar.absensi.weeks', [$class_id, $subject])
+                ->with('success', "Absensi Minggu ke-{$week} berhasil dihapus!");
+        }
+
+        return redirect()
+            ->route('pengajar.absensi.weeks', [$class_id, $subject])
+            ->with('error', 'Data tidak ditemukan');
+    }
+
+    /**
+     * ✅ EXPORT PDF: Mengekspor rekap absensi ke PDF
+     */
+    public function exportPdf($class_id, $subject, $week)
+    {
+        $teacherId = Auth::user()->usersID;
+
+        if (!$this->hasAssignment($class_id, $subject)) {
+            abort(403, 'Anda tidak ditugaskan untuk mata pelajaran ini.');
+        }
+
+        $class = ClassModel::findOrFail($class_id);
+
+        $data = Attendance::with('user')
+            ->where('teacher_id', $teacherId)
+            ->where('class_id', $class_id)
+            ->where('subject_name', $subject)
+            ->where('week', $week)
+            ->orderBy('user_id')
+            ->get();
+
+        $hadir = $data->where('status', 'h')->count();
+        $izin = $data->where('status', 'i')->count();
+        $alpa = $data->where('status', 'a')->count();
+        $total = $data->count();
+
+        $pdf = Pdf::loadView('pengajar.absensi.export-pdf', compact(
+            'class', 'subject', 'week', 'data', 'hadir', 'izin', 'alpa', 'total'
+        ));
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->download("Rekap_Absensi_{$class->program_name}_{$subject}_Week{$week}.pdf");
     }
 }

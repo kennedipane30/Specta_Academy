@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
-use App\Models\Tryout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -12,145 +11,239 @@ use Illuminate\Support\Facades\Log;
 class TryoutPackageController extends Controller
 {
     /**
-     * URL Go Service untuk Tryout
+     * URL Go Service untuk Tryout (Port 9002)
      */
     private function goUrl(): string
     {
-        return env('GO_TRYOUT_URL', 'http://127.0.0.1:9003');
+        return env('GO_TRYOUT_URL', 'http://127.0.0.1:9002');
     }
 
     /**
-     * 1. DAFTAR PAKET
+     * 1. DAFTAR PAKET - Ambil dari Microservice
      */
     public function index()
     {
-        // Mengambil paket dengan hitungan soal dan nama kelasnya
-        $tryouts = Tryout::with('classModel')
-                    ->withCount('questions')
-                    ->latest()
-                    ->paginate(10);
+        $classes = ClassModel::all();
+        $tryouts = [];
+        $serviceError = false;
 
-        return view('admin.tryout.index', compact('tryouts'));
+        try {
+            $response = Http::timeout(5)->get($this->goUrl() . '/api/tryouts');
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $tryoutsData = $data['data'] ?? $data ?? [];
+
+                foreach ($tryoutsData as $item) {
+                    $class = $classes->firstWhere('class_id', $item['class_id'] ?? 0);
+                    $tryouts[] = (object) [
+                        'id' => $item['tryout_id'] ?? 0,
+                        'title' => $item['title'] ?? 'Untitled',
+                        'class_id' => $item['class_id'] ?? 0,
+                        'class_name' => $class ? $class->program_name : 'Kelas #' . ($item['class_id'] ?? '?'),
+                        'duration' => $item['duration'] ?? $item['duration_minutes'] ?? 0,
+                        'total_questions' => $item['total_questions'] ?? 0,
+                        'status' => $item['status'] ?? 'draft',
+                        'is_active' => $item['is_active'] ?? false,
+                        'created_at' => $item['created_at'] ?? null,
+                    ];
+                }
+            } else {
+                $serviceError = true;
+            }
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            $serviceError = true;
+            Log::warning('Go Tryout Service tidak tersedia: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            $serviceError = true;
+            Log::error('Error mengambil tryout: ' . $e->getMessage());
+        }
+
+        return view('admin.tryout.packages', compact('tryouts', 'serviceError'));
     }
-    
+
     /**
      * 2. FORM TAMBAH PAKET
      */
     public function create()
     {
-        // ✨ DINAMIS: Mengambil semua kelas (7, 8, 9, dst) dari database
-        // Apapun kelas yang Anda buat di menu Program akan muncul di sini otomatis.
         $classes = ClassModel::orderBy('program_name')->get();
-        return view('admin.tryout.create', compact('classes'));
+        return view('admin.tryout.create_package', compact('classes'));
     }
-    
+
     /**
-     * 3. SIMPAN PAKET & SYNC KE GO SERVICE
+     * 3. SIMPAN PAKET - Langsung ke Microservice
      */
     public function store(Request $request)
     {
         $request->validate([
             'title'     => 'required|string|max:255',
-            'class_id'  => 'required', 
-            'duration'  => 'required|integer',
+            'class_id'  => 'required|integer',
+            'duration'  => 'required|integer|min:1',
             'is_active' => 'required|boolean'
         ]);
 
         try {
-            // A. Simpan di Database Laravel (Admin)
-            $tryout = Tryout::create([
-                'title'     => $request->title,
-                'class_id'  => $request->class_id,
-                'duration'  => $request->duration,
-                'is_active' => $request->is_active,
-            ]);
+            $payload = [
+                'tryout' => [
+                    'class_id'  => (int) $request->class_id,
+                    'title'     => trim($request->title),
+                    'duration_minutes' => (int) $request->duration,
+                    'total_questions' => 0,
+                    'status'    => 'published',
+                    'is_active' => (bool) $request->is_active,
+                ],
+                'questions' => []
+            ];
 
-            // B. ✨ SYNC KE GO SERVICE (Agar Siswa bisa melihat di HP)
-            // Ini memastikan kelas 7, 8, dll mendapatkan data secara real-time
-            $syncResponse = Http::post($this->goUrl() . '/api/tryouts/sync', [
-                'id'        => (int) $tryout->id,
-                'title'     => $tryout->title,
-                'class_id'  => (int) $tryout->class_id,
-                'duration'  => (int) $tryout->duration,
-                'is_active' => (bool) $tryout->is_active,
-            ]);
+            $response = Http::timeout(10)->post($this->goUrl() . '/api/tryouts/sync', $payload);
 
-            if (!$syncResponse->successful()) {
-                Log::error("Gagal Sinkronisasi TO ke Go Service: " . $syncResponse->body());
+            if ($response->successful()) {
+                return redirect()->route('admin.tryout_package.index')
+                    ->with('success', 'Paket Tryout berhasil diterbitkan ke aplikasi mobile.');
+            } else {
+                return back()->with('error', 'Gagal menerbitkan paket: ' . $response->body());
             }
 
-            return redirect()->route('admin.tryout_package.index')
-                             ->with('success', 'Paket Tryout berhasil diterbitkan dan disinkronkan ke aplikasi siswa.');
-
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Connection Error: " . $e->getMessage());
+            return back()->with('error', 'Server tryout sedang bermasalah. Silakan coba lagi nanti.');
         } catch (\Exception $e) {
             Log::error("Error Store Tryout: " . $e->getMessage());
             return back()->with('error', 'Gagal menerbitkan paket: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * 4. FORM EDIT
      */
     public function edit($id)
     {
-        $tryout = Tryout::findOrFail($id);
         $classes = ClassModel::orderBy('program_name')->get();
-        return view('admin.tryout.edit', compact('tryout', 'classes'));
+        $tryout = null;
+        $serviceError = false;
+
+        try {
+            $response = Http::timeout(5)->get($this->goUrl() . '/api/tryouts');
+            if ($response->successful()) {
+                $data = $response->json();
+                $tryoutsData = $data['data'] ?? $data ?? [];
+                foreach ($tryoutsData as $item) {
+                    if (($item['tryout_id'] ?? 0) == $id) {
+                        $tryout = (object) $item;
+                        break;
+                    }
+                }
+            }
+
+            if (!$tryout) {
+                return back()->with('error', 'Paket Tryout tidak ditemukan.');
+            }
+
+        } catch (\Exception $e) {
+            $serviceError = true;
+            Log::error('Error mengambil tryout: ' . $e->getMessage());
+        }
+
+        return view('admin.tryout.edit_package', compact('classes', 'tryout', 'serviceError'));
     }
-    
+
     /**
-     * 5. UPDATE PAKET & SYNC ULANG
+     * 5. UPDATE PAKET
      */
     public function update(Request $request, $id)
     {
         $request->validate([
             'title'     => 'required|string|max:255',
-            'class_id'  => 'required',
-            'duration'  => 'required|integer',
+            'class_id'  => 'required|integer',
+            'duration'  => 'required|integer|min:1',
             'is_active' => 'required|boolean'
         ]);
 
         try {
-            $tryout = Tryout::findOrFail($id);
-            
-            // A. Update Lokal
-            $tryout->update($request->all());
+            // Untuk update, kita perlu mengambil data lama lalu hapus dan buat baru
+            // Atau implementasikan endpoint PUT di microservice
+            // Sementara, kita sync ulang dengan ID yang sama
+            $payload = [
+                'tryout' => [
+                    'tryout_id' => (int) $id,
+                    'class_id'  => (int) $request->class_id,
+                    'title'     => trim($request->title),
+                    'duration_minutes' => (int) $request->duration,
+                    'total_questions' => 0,
+                    'status'    => 'published',
+                    'is_active' => (bool) $request->is_active,
+                ],
+                'questions' => []
+            ];
 
-            // B. ✨ UPDATE SYNC KE GO SERVICE
-            Http::post($this->goUrl() . '/api/tryouts/sync', [
-                'id'        => (int) $tryout->id,
-                'title'     => $tryout->title,
-                'class_id'  => (int) $tryout->class_id,
-                'duration'  => (int) $tryout->duration,
-                'is_active' => (bool) $tryout->is_active,
-            ]);
+            $response = Http::timeout(10)->post($this->goUrl() . '/api/tryouts/sync', $payload);
 
-            return redirect()->route('admin.tryout_package.index')
-                             ->with('success', 'Paket Tryout berhasil diperbarui.');
+            if ($response->successful()) {
+                return redirect()->route('admin.tryout_package.index')
+                    ->with('success', 'Paket Tryout berhasil diperbarui.');
+            } else {
+                return back()->with('error', 'Gagal memperbarui paket.');
+            }
 
         } catch (\Exception $e) {
+            Log::error("Error Update Tryout: " . $e->getMessage());
             return back()->with('error', 'Gagal update paket: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * 6. HAPUS PAKET
      */
     public function destroy($id)
     {
         try {
-            $tryout = Tryout::findOrFail($id);
+            $response = Http::timeout(10)->delete($this->goUrl() . '/api/tryouts/' . $id);
 
-            // A. Hapus di Go Service dahulu
-            Http::delete($this->goUrl() . '/api/tryouts/' . $id);
+            if ($response->successful()) {
+                return redirect()->route('admin.tryout_package.index')
+                    ->with('success', 'Paket Tryout berhasil dihapus dari sistem.');
+            } else {
+                return back()->with('error', 'Gagal menghapus paket.');
+            }
 
-            // B. Hapus Lokal
-            $tryout->delete();
-
-            return redirect()->route('admin.tryout_package.index')
-                             ->with('success', 'Paket Tryout berhasil dihapus dari sistem.');
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Delete Connection Error: " . $e->getMessage());
+            return back()->with('error', 'Server tryout sedang bermasalah. Silakan coba lagi nanti.');
         } catch (\Exception $e) {
+            Log::error("Error Delete Tryout: " . $e->getMessage());
             return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 7. SYNC ULANG (Refresh data dari microservice)
+     */
+    public function refresh()
+    {
+        return redirect()->route('admin.tryout_package.index')
+            ->with('success', 'Data berhasil direfresh dari server.');
+    }
+
+    /**
+     * 8. CEK STATUS KONEKSI KE GO SERVICE
+     */
+    public function checkConnection()
+    {
+        try {
+            $response = Http::timeout(3)->get($this->goUrl());
+            if ($response->successful()) {
+                return response()->json([
+                    'status' => 'connected',
+                    'message' => 'Tryout service berjalan normal'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'disconnected',
+                'message' => 'Tryout service tidak tersedia: ' . $e->getMessage()
+            ], 503);
         }
     }
 }

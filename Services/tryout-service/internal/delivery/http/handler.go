@@ -126,7 +126,6 @@ func (h *TryoutHandler) SubmitTryout(c *gin.Context) {
 	})
 }
 
-// ✨ FUNGSI BARU: Untuk mengambil riwayat Tryout bagi Report Page
 func (h *TryoutHandler) GetHistory(c *gin.Context) {
 	userID := c.Query("user_id")
 	if userID == "" {
@@ -143,7 +142,6 @@ func (h *TryoutHandler) GetHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
 }
 
-// ✅ TAMBAH: GetSubmissions untuk admin melihat submissions per tryout
 func (h *TryoutHandler) GetSubmissions(c *gin.Context) {
 	tryoutID := c.Query("tryout_id")
 	if tryoutID == "" {
@@ -160,9 +158,6 @@ func (h *TryoutHandler) GetSubmissions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": data})
 }
 
-// Tambahkan method ini di akhir file handler.go
-
-// DeleteTryout - Menghapus paket tryout beserta questions dan submissions
 func (h *TryoutHandler) DeleteTryout(c *gin.Context) {
 	tryoutID := c.Param("id")
 	if tryoutID == "" {
@@ -179,4 +174,179 @@ func (h *TryoutHandler) DeleteTryout(c *gin.Context) {
 		"status":  "success",
 		"message": "Paket tryout berhasil dihapus",
 	})
+}
+
+// ==================== DRAFT HANDLERS ====================
+
+// CreateDraft - Membuat draft soal baru
+func (h *TryoutHandler) CreateDraft(c *gin.Context) {
+	var req models.DraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format JSON salah: " + err.Error()})
+		return
+	}
+
+	if err := h.uc.CreateDraft(req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Draft soal berhasil disimpan"})
+}
+
+// UpdateDraft - Mengupdate draft soal
+func (h *TryoutHandler) UpdateDraft(c *gin.Context) {
+	var req models.DraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format JSON salah: " + err.Error()})
+		return
+	}
+
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	idUint, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
+		return
+	}
+	req.ID = uint(idUint)
+
+	if err := h.uc.UpdateDraft(req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal update draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Draft soal berhasil diupdate"})
+}
+
+// DeleteDraft - Menghapus draft soal
+func (h *TryoutHandler) DeleteDraft(c *gin.Context) {
+	draftID := c.Param("id")
+	if draftID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	if err := h.uc.DeleteDraft(draftID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Draft soal berhasil dihapus"})
+}
+
+// DeleteAllDrafts - Menghapus semua draft (bisa berdasarkan class_id atau user_id)
+func (h *TryoutHandler) DeleteAllDrafts(c *gin.Context) {
+	classID := c.Query("class_id")
+	subjectName := c.Query("subject_name")
+	userIDStr := c.Query("user_id")
+
+	if classID == "" && userIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "class_id or user_id is required"})
+		return
+	}
+
+	var userID uint = 0
+	if userIDStr != "" {
+		parsed, _ := strconv.ParseUint(userIDStr, 10, 32)
+		userID = uint(parsed)
+	}
+
+	if err := h.uc.DeleteAllDrafts(classID, userID, subjectName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Semua draft berhasil dihapus"})
+}
+
+// GetDrafts - Mendapatkan daftar draft (bisa dengan atau tanpa filter)
+func (h *TryoutHandler) GetDrafts(c *gin.Context) {
+	classID := c.Query("class_id")
+	subjectName := c.Query("subject_name")
+	userIDStr := c.Query("user_id")
+
+	var drafts []models.TryoutDraft
+	var err error
+
+	if classID == "" && userIDStr == "" {
+		drafts, err = h.uc.GetAllDrafts()
+	} else if classID != "" && subjectName != "" && userIDStr != "" {
+		var userID uint = 0
+		if userIDStr != "" {
+			parsed, _ := strconv.ParseUint(userIDStr, 10, 32)
+			userID = uint(parsed)
+		}
+		drafts, err = h.uc.GetDraftsByClassAndSubject(classID, userID, subjectName)
+	} else if classID != "" {
+		drafts, err = h.uc.GetDraftsByClass(classID)
+	} else {
+		drafts, err = h.uc.GetDraftsByUser(userIDStr)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": drafts})
+}
+
+// GetDraftByID - Mendapatkan detail draft berdasarkan ID
+func (h *TryoutHandler) GetDraftByID(c *gin.Context) {
+	draftID := c.Param("id")
+	if draftID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	draft, err := h.uc.GetDraftByID(draftID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Draft tidak ditemukan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": draft})
+}
+
+// GetDraftCount - Mendapatkan jumlah draft (bisa berdasarkan class_id atau user_id)
+func (h *TryoutHandler) GetDraftCount(c *gin.Context) {
+	classID := c.Query("class_id")
+	subjectName := c.Query("subject_name")
+	userIDStr := c.Query("user_id")
+
+	// Jika hanya user_id yang diberikan
+	if classID == "" && userIDStr != "" {
+		userID, _ := strconv.ParseUint(userIDStr, 10, 32)
+		count, err := h.uc.GetDraftCountByUser(uint(userID))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil jumlah draft: " + err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "success", "count": count})
+		return
+	}
+
+	if classID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "class_id is required"})
+		return
+	}
+
+	var userID uint = 0
+	if userIDStr != "" {
+		parsed, _ := strconv.ParseUint(userIDStr, 10, 32)
+		userID = uint(parsed)
+	}
+
+	count, err := h.uc.GetDraftCount(classID, userID, subjectName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil jumlah draft: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "count": count})
 }

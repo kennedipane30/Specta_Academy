@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class PracticeQuizPage extends StatefulWidget {
   final List questions;
   final String token;
-  // userId dihapus karena sudah tidak dipakai untuk API
 
   const PracticeQuizPage({super.key, required this.questions, required this.token});
 
@@ -14,94 +13,181 @@ class PracticeQuizPage extends StatefulWidget {
 class _PracticeQuizPageState extends State<PracticeQuizPage> {
   int currentIndex = 0;
   String? selectedAnswer;
-  
   bool isChecked = false;
-  bool isQuizFinished = false; 
-
-  // Variabel Skor & UI
+  bool isQuizFinished = false;
   bool isCorrect = false;
-  int correctScore = 0; 
+  int correctScore = 0;
   String? hintText;
   String? explanationText;
   String? trueAnswerLocal;
 
-  // Fungsi untuk Lanjut ke Soal Berikutnya / Finish
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN HOMEPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+
   void _next() {
     if (currentIndex < widget.questions.length - 1) {
-      setState(() { 
-        currentIndex++; 
-        selectedAnswer = null; 
-        isChecked = false; 
+      setState(() {
+        currentIndex++;
+        selectedAnswer = null;
+        isChecked = false;
         hintText = null;
         explanationText = null;
         trueAnswerLocal = null;
       });
     } else {
-      // Jika ini soal terakhir, tampilkan halaman skor
-      setState(() { 
-        isQuizFinished = true; 
-      });
+      setState(() => isQuizFinished = true);
     }
   }
 
-  // Fungsi Cek Jawaban Lokal (Sangat Cepat, Tanpa Loading/API)
   void _checkAnswer() {
     if (selectedAnswer == null) return;
-    
     setState(() {
       var q = widget.questions[currentIndex];
-      
-      // Ambil kunci jawaban asli dari data soal
       trueAnswerLocal = (q['correct_answer'] ?? '').toString().toUpperCase().trim();
-      
-      // Cocokkan jawaban user
       isCorrect = (selectedAnswer == trueAnswerLocal);
-
       if (isCorrect) {
-        correctScore++; // Tambah skor jika benar
-        explanationText = q['explanation']; // Benar = Tampilkan Pembahasan
+        correctScore++;
+        explanationText = q['explanation'];
         hintText = null;
       } else {
-        hintText = q['hint']; // Salah = Tampilkan Hint
-        explanationText = null; 
+        hintText = q['hint'];
+        explanationText = null;
       }
-      
-      // Langsung kunci soal
-      isChecked = true; 
+      isChecked = true;
     });
   }
 
-  // WIDGET Halaman Skor Akhir
   Widget _buildSummaryScreen() {
+    final double scorePercent = correctScore / widget.questions.length;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: pageBg,
       appBar: AppBar(
-        title: const Text("HASIL LATIHAN", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
-        backgroundColor: const Color(0xFF990000),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          "HASIL LATIHAN",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         centerTitle: true,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
+        elevation: 0,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(30.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.emoji_events_rounded, size: 120, color: Colors.amber.shade400),
-              const SizedBox(height: 20),
-              const Text("Latihan Selesai!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text(
-                "Skor Kamu:\n$correctScore dari ${widget.questions.length} Benar", 
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: Colors.grey.shade700, height: 1.5)
+              Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: accentTeal.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accentTeal.withOpacity(0.3), width: 2),
+                ),
+                child: Icon(
+                  Icons.emoji_events_rounded,
+                  size: 72,
+                  color: accentTeal,
+                ),
               ),
-              const SizedBox(height: 50),
-              
-              // Tombol Ulangi
+              const SizedBox(height: 24),
+              const Text(
+                "Latihan Selesai!",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: textDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: outlineVariant.withOpacity(0.4)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      "$correctScore",
+                      style: const TextStyle(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w900,
+                        color: primaryRed,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "dari ${widget.questions.length} soal benar",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: textDarkVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        value: scorePercent,
+                        minHeight: 8,
+                        backgroundColor: outlineVariant.withOpacity(0.3),
+                        color: scorePercent >= 0.7 ? darkTeal : accentTeal,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "${(scorePercent * 100).round()}% akurasi",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: scorePercent >= 0.7 ? darkTeal : accentTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
               SizedBox(
-                width: double.infinity, height: 55,
+                width: double.infinity,
+                height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
@@ -116,20 +202,41 @@ class _PracticeQuizPageState extends State<PracticeQuizPage> {
                     });
                   },
                   icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                  label: const Text("ULANGI LATIHAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  label: const Text(
+                    "ULANGI LATIHAN",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentTeal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
                 ),
               ),
-              const SizedBox(height: 15),
-              
-              // Tombol Kembali
+              const SizedBox(height: 12),
+
               SizedBox(
-                width: double.infinity, height: 55,
+                width: double.infinity,
+                height: 52,
                 child: OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF990000)),
-                  label: const Text("KEMBALI KE DAFTAR MINGGU", style: TextStyle(color: Color(0xFF990000), fontWeight: FontWeight.bold, fontSize: 16)),
-                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFF990000), width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  icon: const Icon(Icons.arrow_back_rounded, color: accentTeal),
+                  label: const Text(
+                    "KEMBALI KE DAFTAR MINGGU",
+                    style: TextStyle(
+                      color: accentTeal,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: accentTeal, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
                 ),
               ),
             ],
@@ -141,91 +248,291 @@ class _PracticeQuizPageState extends State<PracticeQuizPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isQuizFinished) {
-      return _buildSummaryScreen();
-    }
+    if (isQuizFinished) return _buildSummaryScreen();
 
     var q = widget.questions[currentIndex];
     bool isLastQuestion = currentIndex == widget.questions.length - 1;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: Text("Question ${currentIndex + 1} / ${widget.questions.length}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)), backgroundColor: const Color(0xFF990000), foregroundColor: Colors.white, elevation: 0),
-      body: Padding(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(q['question'] ?? "Question not found", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-            const SizedBox(height: 30),
-            
-            _option("A", q['option_a'] ?? ""),
-            _option("B", q['option_b'] ?? ""),
-            _option("C", q['option_c'] ?? ""),
-            _option("D", q['option_d'] ?? ""),
-            
-            const Spacer(),
-
-            // Tampilkan KATA KUNCI (HANYA JIKA SALAH)
-            if (isChecked && !isCorrect && hintText != null)
-              Container(width: double.infinity, padding: const EdgeInsets.all(15), margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.orange)),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text("JAWABAN SALAH", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.orange)),
-                    const SizedBox(height: 5),
-                    Text("Kata Kunci: $hintText", style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black87)),
-                  ])),
-
-            // Tampilkan PEMBAHASAN (HANYA JIKA BENAR)
-            if (isChecked && isCorrect && explanationText != null)
-              Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.green.shade200)),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text("JAWABAN BENAR!", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.green)),
-                    const SizedBox(height: 8),
-                    Text("Penjelasan:\n$explanationText", style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                  ])),
-
-            const SizedBox(height: 20),
-            
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(
-                onPressed: isChecked ? _next : (selectedAnswer != null ? _checkAnswer : null),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), disabledBackgroundColor: Colors.grey.shade300, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0),
-                child: Text(isChecked 
-                        ? (isLastQuestion ? "FINISH" : "NEXT QUESTION") 
-                        : "CHECK ANSWER", 
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              )),
-          ],
+      backgroundColor: pageBg,
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
+        title: Text(
+          "Question ${currentIndex + 1} / ${widget.questions.length}",
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          LinearProgressIndicator(
+            value: (currentIndex + 1) / widget.questions.length,
+            backgroundColor: outlineVariant.withOpacity(0.3),
+            color: accentTeal,
+            minHeight: 4,
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: outlineVariant.withOpacity(0.4)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      q['question'] ?? "Question not found",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: textDark,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _option("A", q['option_a'] ?? ""),
+                  _option("B", q['option_b'] ?? ""),
+                  _option("C", q['option_c'] ?? ""),
+                  _option("D", q['option_d'] ?? ""),
+
+                  if (isChecked && !isCorrect && hintText != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "JAWABAN SALAH",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              color: Colors.orange,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "Kata Kunci: $hintText",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              color: textDark,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  if (isChecked && isCorrect && explanationText != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2F9FC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: darkTeal.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "JAWABAN BENAR!",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              color: darkTeal,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "Penjelasan:\n$explanationText",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: textDark,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: outlineVariant.withOpacity(0.4))),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: isChecked
+                    ? _next
+                    : (selectedAnswer != null ? _checkAnswer : null),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isChecked
+                      ? (isLastQuestion ? darkTeal : accentTeal)
+                      : accentTeal,
+                  disabledBackgroundColor: outlineVariant.withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isChecked
+                      ? (isLastQuestion ? "FINISH" : "NEXT QUESTION")
+                      : "CHECK ANSWER",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _option(String code, String text) {
     bool isSelected = selectedAnswer == code;
-    Color borderCol = Colors.grey.shade200;
-    
+    bool isTrue = isChecked && trueAnswerLocal == code;
+    bool isWrong = isChecked && isSelected && !isCorrect;
+
+    Color borderColor = outlineVariant.withOpacity(0.5);
+    Color bgColor = Colors.white;
+    Color codeBoxColor = lightBlueBg;
+    Color codeTextColor = textDark;
+
     if (isChecked) {
-      if (trueAnswerLocal == code || (isCorrect && isSelected)) {
-        borderCol = Colors.green; 
-      } else if (isSelected && !isCorrect) {
-        borderCol = Colors.red; 
+      if (isTrue) {
+        borderColor = darkTeal;
+        bgColor = const Color(0xFFE2F9FC);
+        codeBoxColor = darkTeal;
+        codeTextColor = Colors.white;
+      } else if (isWrong) {
+        borderColor = primaryRed;
+        bgColor = const Color(0xFFFFF1F1);
+        codeBoxColor = primaryRed;
+        codeTextColor = Colors.white;
       }
     } else if (isSelected) {
-      borderCol = const Color(0xFF990000); 
+      borderColor = accentTeal;
+      bgColor = accentTeal.withOpacity(0.06);
+      codeBoxColor = accentTeal;
+      codeTextColor = Colors.white;
     }
 
     return GestureDetector(
       onTap: isChecked ? null : () => setState(() => selectedAnswer = code),
-      child: Container(margin: const EdgeInsets.only(bottom: 15), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: isSelected ? borderCol.withOpacity(0.05) : Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: borderCol, width: 2)),
-        child: Row(children: [
-            Text("$code.", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: Colors.black87))),
-            if (isChecked && (trueAnswerLocal == code || (isCorrect && isSelected))) 
-              const Icon(Icons.check_circle, color: Colors.green, size: 20),
-            if (isChecked && isSelected && !isCorrect) 
-              const Icon(Icons.cancel, color: Colors.red, size: 20),
-          ])),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor, width: isSelected || isTrue || isWrong ? 2 : 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: codeBoxColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  code,
+                  style: TextStyle(
+                    color: codeTextColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textDark,
+                  fontWeight: isSelected || isTrue ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isTrue)
+              const Icon(Icons.check_circle_rounded, color: darkTeal, size: 20),
+            if (isWrong)
+              const Icon(Icons.cancel_rounded, color: primaryRed, size: 20),
+          ],
+        ),
+      ),
     );
   }
 }

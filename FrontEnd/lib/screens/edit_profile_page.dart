@@ -24,12 +24,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _nisnCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
 
-  final Color redPrimary = const Color(0xFF9C0412);
-  final Color redDark = const Color(0xFF740107);
-  final Color redDeep = const Color(0xFF520102);
-  final Color redWine = const Color(0xFF3D0606);
-  final Color softRed = const Color(0xFFFFE8EA);
-  final Color bgColor = const Color(0xFFF8F9FA);
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  static const Color softRed         = Color(0xFFFEE2E2);
+  static const Color errorRed        = Color(0xFFBA1A1A);
 
   @override
   void initState() {
@@ -65,10 +73,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: redPrimary,
+            colorScheme: const ColorScheme.light(
+              primary: accentTeal,
               onPrimary: Colors.white,
-              onSurface: redWine,
+              onSurface: textDark,
             ),
           ),
           child: child!,
@@ -88,9 +96,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _addressCtrl.text.isEmpty ||
         _nisnCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.orange,
-          content: Text("Harap isi semua bidang yang wajib!", style: TextStyle(fontWeight: FontWeight.bold)),
+        SnackBar(
+          backgroundColor: accentTeal,
+          content: const Text("Harap isi semua bidang yang wajib!", style: TextStyle(fontWeight: FontWeight.bold)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -99,8 +109,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Center(
-        child: CircularProgressIndicator(color: redPrimary),
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: accentTeal),
       ),
     );
 
@@ -117,9 +127,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     if (resp.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.green,
-          content: Text("Data profil berhasil diperbarui", style: TextStyle(fontWeight: FontWeight.bold)),
+        SnackBar(
+          backgroundColor: darkTeal,
+          content: const Text("Data profil berhasil diperbarui", style: TextStyle(fontWeight: FontWeight.bold)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       Navigator.pop(context, true);
@@ -127,39 +139,64 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final err = jsonDecode(resp.body);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red,
+          backgroundColor: primaryRed,
           content: Text(err['message'] ?? "Gagal memperbarui profil"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
   }
 
+  String _safeText(dynamic value, {String fallback = '-'}) {
+    if (value == null) return fallback;
+    final text = value.toString().trim();
+    if (text.isEmpty) return fallback;
+    return text;
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: accentTeal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: pageBg,
       body: Column(
         children: [
-          _buildProfileHeader(), // 🔴 DIGANTI dengan header ala gambar 1 (foto + email + role)
+          _buildProfileHeader(), 
           Expanded(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildUserInfoCard(),
-                  const SizedBox(height: 30),
-                  const Text(
-                    "Informasi Detail Siswa",
-                    style: TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 24),
+                  
+                  // KELAS SAYA SECTION
+                  _buildClassSection(),
+                  const SizedBox(height: 28),
+                  
+                  // FORM DETAIL SISWA
+                  _buildSectionTitle("Informasi Detail Siswa", "📋"),
+                  const SizedBox(height: 14),
                   _buildFormCard(),
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 24),
+                  
+                  // SIGN OUT ASYMMETRIC CARD
+                  _buildSignOutCard(),
+                  const SizedBox(height: 28),
+                  
                   _buildSaveButton(),
                 ],
               ),
@@ -167,127 +204,307 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ],
       ),
-      // 🔴 BOTTOM NAVIGATION BAR (seperti gambar 1)
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  // ========== 🟢 HEADER BARU (gaya gambar 1) ==========
+  // ========== 🟢 1. HEADER MERAH GRADIEN CURVED ==========
   Widget _buildProfileHeader() {
+    final name = _safeText(widget.userData['full_name'] ?? widget.userData['name'], fallback: "Kennedi Pane");
+    final email = _safeText(widget.userData['email'], fallback: "ken@gmail.com");
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 48, 16, 32),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+        gradient: LinearGradient(
+          colors: [primaryRed, accentTeal],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(32),
         ),
       ),
-      child: Column(
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // baris atas (back + settings)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                color: Colors.black87,
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.settings_outlined, size: 24),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                color: Colors.black54,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Avatar
-          Center(
+          Positioned(
+            right: -40,
+            top: -40,
             child: Container(
-              width: 85,
-              height: 85,
+              width: 140,
+              height: 140,
               decoration: BoxDecoration(
-                color: redPrimary,
+                color: Colors.white.withOpacity(0.06),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: redPrimary.withOpacity(0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              // Top Action Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.white.withOpacity(0.15),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  const Text(
+                    "Profil Saya",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  CircleAvatar(
+                    backgroundColor: Colors.white.withOpacity(0.15),
+                    child: IconButton(
+                      icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 18),
+                      onPressed: () {
+                        _showSnack("Pengaturan akun segera hadir!");
+                      },
+                    ),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person_rounded,
-                size: 46,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Center(
-            child: Column(
-              children: [
-                Text(
-                  widget.userData['full_name'] ?? widget.userData['name'] ?? "steven",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E1E2E),
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  widget.userData['email'] ?? "email@example.com",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: redPrimary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Text(
-                    'STUDENT',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF9C0412),
+              const SizedBox(height: 24),
+              
+              // Avatar dengan floating Camera Icon
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: const ClipOval(
+                      child: Icon(Icons.person, color: primaryRed, size: 52), 
                     ),
                   ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: accentTeal,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2.5),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          )
+                        ],
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                email,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.75),
+                ),
+              ),
+              const SizedBox(height: 10),
+              
+              // Blur capsule badge "SISWA"
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: const Text(
+                  'SISWA',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ========== 🟢 BOTTOM NAVIGATION BAR (Home, Classes, Report, Profile) ==========
+  // ========== 🟢 2. SEKSI KELAS SAYA ==========
+  Widget _buildClassSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 18,
+              decoration: BoxDecoration(
+                color: accentTeal,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              "Kelas Saya",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: outlineVariant.withOpacity(0.4)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.015),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: softRed,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.menu_book_rounded, color: primaryRed, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "CALON ABDI NEGARA",
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: accentTeal,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "Aktif",
+                          style: TextStyle(color: accentTeal, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: neutralGray, size: 24),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ========== 🟢 3. SEKSI ASYMMETRIC SIGN OUT CARD ==========
+  Widget _buildSignOutCard() {
+    return InkWell(
+      onTap: () {
+        _showSnack("Proses logout berhasil.");
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: errorRed.withOpacity(0.08), 
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: errorRed.withOpacity(0.12)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: errorRed.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.logout_rounded, color: errorRed, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Text(
+                "Sign Out",
+                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900, color: errorRed),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: errorRed, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ========== 🟢 4. HIGHLIGHTED BOTTOM NAVIGATION BAR ==========
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
             offset: const Offset(0, -3),
           ),
         ],
@@ -298,10 +515,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home_outlined, 'Home', false),
-              _buildNavItem(Icons.class_outlined, 'Classes', false),
-              _buildNavItem(Icons.bar_chart_outlined, 'Report', false),
-              _buildNavItem(Icons.person_outline, 'Profile', true),
+              _buildNavItem(Icons.home_rounded, 'Beranda', false),
+              _buildNavItem(Icons.school_rounded, 'Kelas', false),
+              _buildNavItem(Icons.assignment_rounded, 'Tugas', false),
+              _buildNavItem(Icons.person_rounded, 'Profil', true),
             ],
           ),
         ),
@@ -310,34 +527,83 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return GestureDetector(
-      onTap: () {
-        // kamu bisa tambahkan navigasi ke halaman lain nanti
-        // contoh: if (label == 'Home') Navigator.push(...)
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? redPrimary : Colors.grey[400],
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isActive ? redPrimary : Colors.grey[400],
+    if (isActive) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: accentTeal,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: accentTeal.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: neutralGray,
+              size: 22,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: neutralGray,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ===== KODE ASLI KAMU (TIDAK DIHAPUS, HANYA DIGESER / TETAP ADA) =====
+  Widget _buildSectionTitle(String title, String emoji) {
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16.5, 
+            fontWeight: FontWeight.w900, 
+            color: textDark,
+            letterSpacing: -0.4,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildUserInfoCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -351,7 +617,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 15),
-            child: Divider(color: Colors.grey.withOpacity(0.1)),
+            child: Divider(color: outlineVariant.withOpacity(0.4)),
           ),
           _infoTile(
             icon: Icons.phone_android_rounded,
@@ -377,7 +643,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             color: softRed,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: redPrimary, size: 20),
+          child: Icon(icon, color: primaryRed, size: 20),
         ),
         const SizedBox(width: 15),
         Expanded(
@@ -387,16 +653,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Text(
                 title,
                 style: const TextStyle(
-                  color: Colors.grey,
+                  color: neutralGray,
                   fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: TextStyle(
-                  color: redWine,
+                style: const TextStyle(
+                  color: textDark,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
@@ -467,21 +733,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
       onTap: onTap,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: TextStyle(color: redWine, fontWeight: FontWeight.bold, fontSize: 14),
+      style: const TextStyle(color: textDark, fontWeight: FontWeight.bold, fontSize: 14),
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFFBFBFB),
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600),
-        prefixIcon: Icon(icon, color: redPrimary, size: 20),
+        labelStyle: const TextStyle(color: neutralGray, fontSize: 12, fontWeight: FontWeight.w600),
+        prefixIcon: Icon(icon, color: accentTeal, size: 20),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: redPrimary, width: 1.5),
+          borderSide: const BorderSide(color: accentTeal, width: 1.5),
         ),
       ),
     );
@@ -495,8 +761,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         onPressed: _handleSave,
         style: ElevatedButton.styleFrom(
           elevation: 8,
-          shadowColor: redPrimary.withOpacity(0.3),
-          backgroundColor: redPrimary,
+          shadowColor: accentTeal.withOpacity(0.3),
+          backgroundColor: accentTeal,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
         child: const Text(
@@ -515,6 +781,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(25),
+      border: Border.all(color: outlineVariant.withOpacity(0.4)),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.03),

@@ -8,157 +8,360 @@ class TryoutDetailPage extends StatelessWidget {
   final Map tryoutData;
   final String token;
   final bool isDone;
-  // ✨ MODIFIKASI 1: Tambahkan parameter userId
-  final int userId; 
+  final int userId;
 
   const TryoutDetailPage({
-    super.key, 
-    required this.tryoutData, 
+    super.key,
+    required this.tryoutData,
     required this.token,
-    required this.userId, // ✨ MODIFIKASI 1: Wajib diisi agar bisa diteruskan
-    this.isDone = false, 
+    required this.userId,
+    this.isDone = false,
   });
+
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN HOMEPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
 
   @override
   Widget build(BuildContext context) {
-    const Color spektaRed = Color(0xFF990000);
+    final String title = tryoutData['title'] ?? tryoutData['name'] ?? "Tryout Simulation";
+    final String duration = tryoutData['duration']?.toString() ?? '-';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: pageBg,
       appBar: AppBar(
-        title: const Text("Instruksi Ujian", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), 
-        backgroundColor: spektaRed, 
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          "Instruksi Ujian",
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 17),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(30.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tryoutData['title'] ?? tryoutData['name'] ?? "Tryout Simulation", 
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: spektaRed)
-            ),
-            const SizedBox(height: 25),
-            
-            _buildInfoRow(Icons.timer_rounded, "Durasi Ujian: ${tryoutData['duration']} Menit"),
-            _buildInfoRow(Icons.help_center_rounded, "Jumlah Soal: Sesuai Sistem"),
-            
-            const SizedBox(height: 35),
-            const Text("Peraturan Penting:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 10),
-            _buildPoint("1. Kerjakan secara jujur dan mandiri."),
-            _buildPoint("2. Waktu akan berjalan otomatis setelah tombol diklik."),
-            _buildPoint("3. Pastikan koneksi internet stabil selama ujian."),
-            _buildPoint("4. Jangan keluar dari aplikasi saat ujian berlangsung."),
-            
-            const Spacer(),
-            
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDone ? Colors.green : spektaRed,
-                minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 8,
-              ),
-              onPressed: () async {
-                showDialog(
-                  context: context, 
-                  barrierDismissible: false, 
-                  builder: (_) => Center(child: CircularProgressIndicator(color: isDone ? Colors.green : spektaRed))
-                );
 
-                try {
-                  final dynamic rawId = tryoutData['tryout_id'] ?? tryoutData['id'] ?? tryoutData['ID'] ?? 0;
-                  final int id = int.parse(rawId.toString());
-                  
-                  var resp = await AuthService.getQuestions(id, token);
-                  
-                  if (!context.mounted) return;
-                  Navigator.pop(context); // Tutup loading
-
-                  if (resp.statusCode == 200) {
-                    var decoded = jsonDecode(resp.body);
-                    
-                    List questions = [];
-                    if (decoded is List) {
-                      questions = decoded;
-                    } else if (decoded is Map) {
-                      questions = decoded['data'] ?? [];
-                    }
-                    
-                    if (questions.isEmpty) {
-                       _showError(context, "Soal belum tersedia untuk paket ini.");
-                       return;
-                    }
-
-                    if (isDone) {
-                      // JIKA SUDAH SELESAI -> Masuk ke Pembahasan
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => ExplanationPage(questions: questions)
-                      ));
-                    } else {
-                      // JIKA BELUM SELESAI -> Masuk Ujian
-                      Navigator.pushReplacement(context, MaterialPageRoute(
-                        builder: (_) => QuizPage(
-                          questions: questions, 
-                          tryoutId: id, 
-                          token: token,
-                          userId: userId, // ✨ MODIFIKASI 2: Teruskan userId ke QuizPage
-                        )
-                      ));
-                    }
-
-                  } else {
-                    _showError(context, "Gagal mengambil soal dari server (Status: ${resp.statusCode})");
-                  }
-                } catch (e) {
-                  if (context.mounted) Navigator.pop(context);
-                  debugPrint("❌ Tryout Error: $e");
-                  _showError(context, "Kesalahan koneksi ke server Tryout.");
-                }
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(isDone ? Icons.check_circle_outline : Icons.play_arrow_rounded, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Text(
-                    isDone ? "LIHAT PEMBAHASAN" : "MULAI UJIAN SEKARANG", 
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)
+            // Header card judul tryout
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [primaryRed, accentTeal],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryRed.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
-            )
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isDone ? "SUDAH DIKERJAKAN" : "SIAP DIKERJAKAN",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Info card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: outlineVariant.withOpacity(0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow(Icons.timer_rounded, "Durasi Ujian", "$duration Menit"),
+                  const Divider(height: 20, color: Color(0xFFE2E8F0)),
+                  _buildInfoRow(Icons.help_center_rounded, "Jumlah Soal", "Sesuai Sistem"),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Peraturan card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: outlineVariant.withOpacity(0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Peraturan Penting",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildPoint("Kerjakan secara jujur dan mandiri."),
+                  _buildPoint("Waktu akan berjalan otomatis setelah tombol diklik."),
+                  _buildPoint("Pastikan koneksi internet stabil selama ujian."),
+                  _buildPoint("Jangan keluar dari aplikasi saat ujian berlangsung."),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Tombol aksi
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDone ? darkTeal : accentTeal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => Center(
+                      child: CircularProgressIndicator(
+                        color: isDone ? darkTeal : accentTeal,
+                      ),
+                    ),
+                  );
+
+                  try {
+                    final dynamic rawId =
+                        tryoutData['tryout_id'] ?? tryoutData['id'] ?? tryoutData['ID'] ?? 0;
+                    final int id = int.parse(rawId.toString());
+
+                    var resp = await AuthService.getQuestions(id, token);
+
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+
+                    if (resp.statusCode == 200) {
+                      var decoded = jsonDecode(resp.body);
+                      List questions = [];
+                      if (decoded is List) {
+                        questions = decoded;
+                      } else if (decoded is Map) {
+                        questions = decoded['data'] ?? [];
+                      }
+
+                      if (questions.isEmpty) {
+                        _showError(context, "Soal belum tersedia untuk paket ini.");
+                        return;
+                      }
+
+                      if (isDone) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExplanationPage(questions: questions),
+                          ),
+                        );
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QuizPage(
+                              questions: questions,
+                              tryoutId: id,
+                              token: token,
+                              userId: userId,
+                            ),
+                          ),
+                        );
+                      }
+                    } else {
+                      _showError(context, "Gagal mengambil soal (Status: ${resp.statusCode})");
+                    }
+                  } catch (e) {
+                    if (context.mounted) Navigator.pop(context);
+                    debugPrint("❌ Tryout Error: $e");
+                    _showError(context, "Kesalahan koneksi ke server Tryout.");
+                  }
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isDone ? Icons.menu_book_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isDone ? "LIHAT PEMBAHASAN" : "MULAI UJIAN SEKARANG",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF990000)),
-          const SizedBox(width: 15),
-          Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        ],
-      ),
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: lightBlueBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: accentTeal),
+        ),
+        const SizedBox(width: 14),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: neutralGray,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: textDark,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildPoint(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.5)),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 5),
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: accentTeal,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: textDarkVariant,
+                fontSize: 13,
+                height: 1.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: primaryRed,
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 }

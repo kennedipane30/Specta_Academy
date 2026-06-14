@@ -16,7 +16,19 @@ class _OtpPageState extends State<OtpPage> {
   List<TextEditingController> controllers = List.generate(6, (index) => TextEditingController());
   List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
   
-  final Color spektaRed = const Color(0xFF990000);
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  
   Timer? _timer;
   int _start = 60;
   bool _isResendClickable = false;
@@ -27,7 +39,6 @@ class _OtpPageState extends State<OtpPage> {
     startTimer();
   }
 
-  // PENTING: Matikan timer saat user keluar dari halaman
   @override
   void dispose() {
     _timer?.cancel();
@@ -41,7 +52,6 @@ class _OtpPageState extends State<OtpPage> {
   }
 
   void startTimer() {
-    // Batalkan timer lama jika ada sebelum memulai yang baru
     _timer?.cancel();
     setState(() { 
       _isResendClickable = false; 
@@ -79,55 +89,72 @@ class _OtpPageState extends State<OtpPage> {
     showDialog(
       context: context, 
       barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed))
+      builder: (_) => Center(child: CircularProgressIndicator(color: accentTeal))
     );
     
     var resp = await AuthService.verifyRegistration(widget.name, otp);
     
     if (!mounted) return;
-    Navigator.pop(context); // Tutup loading
+    Navigator.pop(context);
 
     if (resp.statusCode == 200) { 
       _showSuccessDialog(); 
     } else { 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.red, content: Text("OTP Salah atau Kadaluarsa"))
+        SnackBar(
+          backgroundColor: primaryRed, 
+          content: const Text("OTP Salah atau Kadaluarsa"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )
       ); 
     }
   }
 
-  // FUNGSI KIRIM ULANG (ANTI-SPAM)
   void _handleResendCode() async {
-    if (!_isResendClickable) return; // Keamanan tambahan
+    if (!_isResendClickable) return;
 
-    // Tampilkan Loading
     showDialog(
       context: context, 
       barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator(color: spektaRed))
+      builder: (_) => Center(child: CircularProgressIndicator(color: accentTeal))
     );
 
     try {
       var resp = await AuthService.resendOtp(widget.name);
       
       if (!mounted) return;
-      Navigator.pop(context); // Tutup Loading
+      Navigator.pop(context);
 
       if (resp.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.green, content: Text("Kode OTP baru telah dikirim!"))
+          SnackBar(
+            backgroundColor: darkTeal, 
+            content: const Text("Kode OTP baru telah dikirim!"),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          )
         );
-        // JALANKAN TIMER LAGI (Mengunci tombol selama 60 detik)
         startTimer();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.red, content: Text("Gagal mengirim ulang kode."))
+          SnackBar(
+            backgroundColor: primaryRed, 
+            content: const Text("Gagal mengirim ulang kode."),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          )
         );
       }
     } catch (e) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.black, content: Text("Kesalahan Koneksi!"))
+        SnackBar(
+          backgroundColor: primaryRed, 
+          content: const Text("Kesalahan Koneksi!"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )
       );
     }
   }
@@ -135,18 +162,49 @@ class _OtpPageState extends State<OtpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(elevation: 0, backgroundColor: Colors.white, foregroundColor: Colors.black),
+      backgroundColor: pageBg,
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Icon(Icons.mark_email_read_rounded, size: 80, color: spektaRed),
+            Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: accentTeal.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.mark_email_read_rounded, size: 80, color: accentTeal),
+            ),
             const SizedBox(height: 25),
-            Text("Verifikasi Kode", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+            Text(
+              "Verifikasi Kode", 
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: textDark)
+            ),
             const SizedBox(height: 10),
-            Text("Masukkan 6 digit kode yang dikirim ke email Anda.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[500], fontSize: 15)),
+            Text(
+              "Masukkan 6 digit kode yang dikirim ke email Anda.", 
+              textAlign: TextAlign.center, 
+              style: TextStyle(color: neutralGray, fontSize: 15)
+            ),
             const SizedBox(height: 50),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -155,12 +213,17 @@ class _OtpPageState extends State<OtpPage> {
             const SizedBox(height: 60),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: spektaRed,
+                backgroundColor: accentTeal,
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 5,
+                shadowColor: accentTeal.withOpacity(0.3),
               ),
               onPressed: handleVerify,
-              child: const Text("VERIFIKASI AKUN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: const Text(
+                "VERIFIKASI AKUN", 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+              ),
             ),
             const SizedBox(height: 40),
             _buildResendUI(),
@@ -175,10 +238,10 @@ class _OtpPageState extends State<OtpPage> {
       width: 48,
       height: 58,
       decoration: BoxDecoration(
-        color: focusNodes[index].hasFocus ? Colors.white : const Color(0xFFF8F9FA),
+        color: focusNodes[index].hasFocus ? Colors.white : lightBlueBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: focusNodes[index].hasFocus ? spektaRed : Colors.grey.shade300,
+          color: focusNodes[index].hasFocus ? accentTeal : outlineVariant,
           width: 2,
         ),
       ),
@@ -190,7 +253,7 @@ class _OtpPageState extends State<OtpPage> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           maxLength: 1,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textDark),
           decoration: const InputDecoration(counterText: "", border: InputBorder.none, hintText: "-"),
           onChanged: (value) {
             if (value.length == 1 && index < 5) {
@@ -209,14 +272,13 @@ class _OtpPageState extends State<OtpPage> {
   Widget _buildResendUI() {
     return Column(
       children: [
-        Text("Belum menerima kode?", style: TextStyle(color: Colors.grey[600])),
+        Text("Belum menerima kode?", style: TextStyle(color: neutralGray)),
         TextButton(
-          // Tombol otomatis disable jika _isResendClickable false
           onPressed: _isResendClickable ? _handleResendCode : null,
           child: Text(
             _isResendClickable ? "Kirim Ulang" : "Kirim Ulang dalam $_start s",
             style: TextStyle(
-              color: _isResendClickable ? spektaRed : Colors.grey, 
+              color: _isResendClickable ? accentTeal : neutralGray, 
               fontWeight: FontWeight.bold,
               fontSize: 16
             ),
@@ -232,19 +294,24 @@ class _OtpPageState extends State<OtpPage> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 70),
+            const Icon(Icons.check_circle, color: darkTeal, size: 70),
             const SizedBox(height: 20),
-            const Text("Berhasil!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text("Berhasil!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textDark)),
             const SizedBox(height: 10),
-            const Text("Akun Anda telah aktif. Silakan masuk.", textAlign: TextAlign.center),
+            const Text("Akun Anda telah aktif. Silakan masuk.", textAlign: TextAlign.center, style: TextStyle(color: textDarkVariant)),
             const SizedBox(height: 30),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: spektaRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentTeal, 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                minimumSize: const Size(double.infinity, 48),
+              ),
               onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginPage()), (route) => false),
-              child: const Text("LOGIN SEKARANG", style: TextStyle(color: Colors.white)),
+              child: const Text("LOGIN SEKARANG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
         ),

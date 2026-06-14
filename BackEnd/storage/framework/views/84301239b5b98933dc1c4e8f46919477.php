@@ -7,14 +7,14 @@
     
     <section class="tp-header">
         <div class="tp-header-left">
-            <span class="tp-breadcrumb">Manajemen Akademik</span>
+            <span class="tp-breadcrumb-capsule">Manajemen Akademik</span>
             <h1>Manajemen Pengajar</h1>
             <p>Kelola data pengajar Spekta Academy secara efisien.</p>
         </div>
         <div class="tp-header-actions">
             <a href="<?php echo e(route('admin.manajemen-pengajar.create')); ?>" class="tp-btn-primary">
                 <i class="fa-solid fa-plus"></i>
-                Tambah Pengajar
+                <span>Tambah Pengajar</span>
             </a>
         </div>
     </section>
@@ -30,7 +30,6 @@
     
     <section class="tp-main-grid">
 
-        
         <div class="tp-table-panel">
 
             
@@ -94,7 +93,7 @@
                                 }
 
                                 $initial = strtoupper(substr($teacher->name, 0, 1));
-                                $avatarColors = ['#D90429','#7C3AED','#0369A1','#15803D','#C2410C'];
+                                $avatarColors = ['#e53935','#2ea8ab','#c5352c','#9e9e9e','#1f2937'];
                                 $avatarBg = $avatarColors[crc32($teacher->name) % count($avatarColors)];
                             ?>
                             <tr>
@@ -131,10 +130,22 @@
 
                                 
                                 <td>
-                                    <span class="tp-status <?php echo e($teacher->is_verified ? 'active' : 'inactive'); ?>">
-                                        <i class="tp-dot"></i><?php echo e($teacher->is_verified ? 'AKTIF' : 'NONAKTIF'); ?>
-
-                                    </span>
+                                    <?php if($teacher->is_verified): ?>
+                                        <span class="tp-status active">
+                                            <span class="tp-dot-wrapper">
+                                                <i class="tp-dot"></i>
+                                                <i class="tp-dot-pulse"></i>
+                                            </span>
+                                            AKTIF
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="tp-status inactive">
+                                            <span class="tp-dot-wrapper">
+                                                <i class="tp-dot"></i>
+                                            </span>
+                                            NONAKTIF
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
 
                                 
@@ -148,7 +159,7 @@
 
                                 
                                 <td class="tp-date">
-                                    <?php echo e($teacher->created_at?->translatedFormat('d M Y') ?? '-'); ?>
+                                    <i class="fa-regular fa-clock"></i> <?php echo e($teacher->created_at?->translatedFormat('d M Y') ?? '-'); ?>
 
                                 </td>
 
@@ -237,8 +248,14 @@
 /* ── Base ─────────────────────────────────────────────────── */
 .tp-page {
     width: 100%;
-    font-family: 'Inter', system-ui, sans-serif;
-    color: #111827;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    color: #1f2937;
+    animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Header ───────────────────────────────────────────────── */
@@ -247,32 +264,35 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
-.tp-breadcrumb {
-    display: block;
-    color: #d90429;
+.tp-breadcrumb-capsule {
+    display: inline-block;
+    background: rgba(229, 57, 53, 0.08);
+    color: #c5352c;
     font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .18em;
+    font-weight: 800;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
     margin-bottom: 8px;
 }
 
 .tp-header h1 {
     margin: 0 0 6px;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 900;
-    letter-spacing: -.03em;
-    color: #0f172a;
+    letter-spacing: -0.03em;
+    color: #111827;
 }
 
 .tp-header p {
     margin: 0;
     color: #6b7280;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .tp-header-actions {
@@ -285,38 +305,38 @@
 .tp-btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    height: 44px;
-    padding: 0 20px;
-    background: #d90429;
+    gap: 8px;
+    height: 42px;
+    padding: 0 18px;
+    background: linear-gradient(135deg, #e53935 0%, #c5352c 100%);
     color: #fff;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 800;
     white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(217,4,41,.28);
-    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 6px 15px rgba(229, 57, 53, 0.2);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
 }
 .tp-btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgba(217,4,41,.35);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(229, 57, 53, 0.3);
     color: #fff;
 }
 
 /* Alert */
 .tp-alert {
-    border-radius: 16px;
-    padding: 15px 17px;
-    margin-bottom: 20px;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
     display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    gap: 10px;
+    align-items: center;
     font-size: 13px;
     font-weight: 800;
 }
 .tp-alert.success {
-    background: #dcfce7;
+    background: #e6f7ed;
     color: #15803d;
     border: 1px solid #bbf7d0;
 }
@@ -330,46 +350,46 @@
 .tp-table-panel {
     background: #fff;
     border: 1px solid #edf0f4;
-    border-radius: 22px;
-    padding: 24px;
-    box-shadow: 0 2px 12px rgba(15,23,42,.04);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(15,23,42,.01);
 }
 
-/* Top Control Bar (Total + Search) */
+/* Top Control Bar (Total + Search Terintegrasi Rapi) */
 .tp-table-top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    margin-bottom: 24px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #f3f4f6;
     flex-wrap: wrap;
 }
 
 .tp-total-stat {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 .tp-total-icon {
-    width: 48px;
-    height: 48px;
-    background: #fff1f2;
-    color: #d90429;
-    border-radius: 14px;
+    width: 42px;
+    height: 42px;
+    background: var(--spekta-teal-light);
+    color: var(--spekta-teal);
+    border-radius: 10px;
     display: grid;
     place-items: center;
-    font-size: 18px;
+    font-size: 16px;
 }
 .tp-total-info {
     display: flex;
     flex-direction: column;
 }
 .tp-total-label {
-    font-size: 11px;
-    color: #6b7280;
-    font-weight: 700;
+    font-size: 10px;
+    color: #9e9e9e;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .04em;
     margin-bottom: 2px;
@@ -377,17 +397,17 @@
 .tp-total-val-wrap {
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 4px;
 }
 .tp-total-val {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 900;
-    color: #0f172a;
+    color: #111827;
     line-height: 1;
 }
 .tp-total-sub {
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: 11px;
+    color: #9e9e9e;
     font-weight: 600;
 }
 
@@ -396,7 +416,7 @@
     display: flex;
     gap: 10px;
     flex: 1;
-    max-width: 500px;
+    max-width: 450px;
     justify-content: flex-end;
 }
 
@@ -410,49 +430,49 @@
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 13px;
+    color: #9e9e9e;
+    font-size: 12px;
     pointer-events: none;
 }
 .tp-search input {
     width: 100%;
-    height: 44px;
-    padding: 0 14px 0 40px;
+    height: 40px;
+    padding: 0 14px 0 38px;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #f8fafc;
-    font-size: 13px;
-    font-weight: 500;
-    color: #111827;
+    border-radius: 10px;
+    background: #f9fafb;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2937;
     outline: none;
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    transition: all 0.2s ease;
 }
 .tp-search input:focus {
     background: #fff;
-    border-color: #fca5a5;
-    box-shadow: 0 0 0 3px rgba(217,4,41,.08);
+    border-color: #2ea8ab;
+    box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12);
 }
 
 .tp-btn-search {
-    height: 44px;
-    padding: 0 20px;
-    background: #d90429;
+    height: 40px;
+    padding: 0 16px;
+    background: #1f2937;
     color: #fff;
     border: none;
-    border-radius: 12px;
-    font-size: 13px;
+    border-radius: 10px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     white-space: nowrap;
-    transition: background .15s, transform .1s;
+    transition: background .15s;
 }
-.tp-btn-search:hover { background: #b80222; transform: translateY(-1px); }
+.tp-btn-search:hover { background: var(--spekta-red); }
 
 /* table */
-.tp-table-wrap { overflow-x: auto; border-radius: 14px; }
+.tp-table-wrap { overflow-x: auto; border-radius: 12px; }
 
 .tp-table {
     width: 100%;
@@ -461,187 +481,233 @@
 }
 
 .tp-table thead tr {
-    background: #f8fafc;
+    background: #f9fafb;
 }
 
 .tp-table th {
-    padding: 14px 16px;
+    padding: 10px 14px;
     color: #6b7280;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     letter-spacing: .08em;
     text-transform: uppercase;
     text-align: left;
     white-space: nowrap;
-    border-bottom: 1px solid #edf0f4;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .tp-table td {
-    padding: 16px;
+    padding: 12px 14px;
     font-size: 13px;
     font-weight: 600;
     color: #374151;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: middle;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle; /* Jaminan mutlak semua data vertikal sejajar tengah */
 }
 
 .tp-table tbody tr:last-child td { border-bottom: none; }
-.tp-table tbody tr:hover { background: #fffbfc; }
+.tp-table tbody tr { transition: background-color 0.15s ease; }
+.tp-table tbody tr:hover { background: #fafbfc; }
 
 /* teacher cell */
 .tp-teacher {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .tp-avatar {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     flex-shrink: 0;
     border-radius: 99px;
     display: grid;
     place-items: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 900;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
 }
 
 .tp-teacher-info strong {
     display: block;
     color: #111827;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
 }
 
 .tp-teacher-info span,
 .tp-teacher-info small {
     display: block;
-    color: #9ca3af;
-    font-size: 11px;
+    color: #9e9e9e;
+    font-size: 10px;
     font-weight: 600;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 /* subject list */
 .tp-subject-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
 }
 
 .tp-subject-badge {
     display: inline-flex;
     align-items: center;
-    height: 24px;
-    padding: 0 10px;
-    background: #fff1f2;
-    color: #d90429;
-    border-radius: 8px;
-    font-size: 11px;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--spekta-teal-light);
+    color: var(--spekta-teal);
+    border-radius: 6px;
+    font-size: 10px;
     font-weight: 800;
     white-space: nowrap;
 }
 .tp-subject-badge.more {
-    background: #f1f5f9;
-    color: #64748b;
+    background: var(--spekta-gray-light);
+    color: var(--text-muted);
 }
 
-/* status */
+/* status (Glow style & Pulsing Rata Tengah Sempurna) */
 .tp-status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 24px;
-    padding: 0 10px;
-    border-radius: 99px;
-    font-size: 10px;
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 9px;
     font-weight: 800;
+    text-transform: uppercase;
     letter-spacing: .04em;
     white-space: nowrap;
 }
+
+.tp-dot-wrapper {
+    position: relative;
+    width: 5px;
+    height: 5px;
+    display: inline-block;
+}
+
 .tp-status .tp-dot {
     width: 5px;
     height: 5px;
     border-radius: 99px;
     background: currentColor;
-    display: inline-block;
-    flex-shrink: 0;
+    display: block;
+    position: absolute;
+    left: 0; top: 0;
 }
-.tp-status.active     { background: #dcfce7; color: #16a34a; }
+
+.tp-status .tp-dot-pulse {
+    width: 5px;
+    height: 5px;
+    border-radius: 99px;
+    background: currentColor;
+    display: block;
+    position: absolute;
+    left: 0; top: 0;
+    opacity: 0.4;
+    transform: scale(1);
+    animation: pulseGlow 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(3.2); opacity: 0; }
+}
+
+.tp-status.active     { background: #e6f7ed; color: #16a34a; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.12); }
 .tp-status.inactive   { background: #fee2e2; color: #dc2626; }
 
 /* class badge */
 .tp-class-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
-    background: #dbeafe;
-    color: #1e40af;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--spekta-gray-light);
+    color: #4b5563;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
 /* date */
 .tp-date {
     color: #6b7280;
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
 }
+.tp-date i { color: #9e9e9e; margin-right: 3px; }
 
 /* muted */
-.tp-muted { color: #9ca3af; font-size: 12px; }
+.tp-muted { color: #d1d5db; font-size: 14px; }
 
-/* actions */
+/* actions (PERBAIKAN HOVER DAN KESEJAJARAN) */
 .tp-actions {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 6px;
+    justify-content: flex-start;
 }
+
 .tp-act {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center; /* Ikon diposisikan pas di tengah button */
     border: none;
-    border-radius: 10px;
-    display: inline-grid;
-    place-items: center;
     font-size: 12px;
     cursor: pointer;
     text-decoration: none;
-    transition: transform .12s, box-shadow .12s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.tp-act:hover { transform: scale(1.05); }
-.tp-act.edit      { background: #dbeafe; color: #2563eb; }
-.tp-act.delete    { background: #fee2e2; color: #dc2626; }
+
+.tp-act:hover {
+    transform: translateY(-1px);
+}
+
+.tp-act.edit {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+.tp-act.edit:hover {
+    background: #bae6fd;
+    color: #02507d;
+    box-shadow: 0 4px 10px rgba(3, 105, 161, 0.15);
+}
+
+.tp-act.delete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.tp-act.delete:hover {
+    background: #fecaca;
+    color: #991b1b;
+    box-shadow: 0 4px 10px rgba(185, 28, 28, 0.15);
+}
 
 /* empty */
-.tp-empty {
-    padding: 50px 20px;
-    text-align: center;
-}
+.tp-empty { padding: 36px 18px; text-align: center; }
 .tp-empty-icon {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     display: grid;
     place-items: center;
-    margin: 0 auto 16px;
-    background: #fff1f2;
-    color: #d90429;
+    margin: 0 auto 12px;
+    background: var(--spekta-red-light);
+    color: var(--spekta-red);
     border-radius: 99px;
-    font-size: 24px;
+    font-size: 18px;
 }
-.tp-empty strong {
-    display: block;
-    color: #111827;
-    font-size: 16px;
-    font-weight: 900;
-    margin-bottom: 6px;
-}
-.tp-empty span {
-    display: block;
-    color: #9ca3af;
-    font-size: 14px;
-}
+.tp-empty strong { display: block; color: #111827; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.tp-empty span { display: block; color: #9e9e9e; font-size: 12px; font-weight: 600; }
 
 /* pagination */
 .tp-pagination {
@@ -649,57 +715,49 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid #f1f5f9;
-    margin-top: 10px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+    margin-top: 4px;
     flex-wrap: wrap;
 }
-.tp-pagination p {
-    margin: 0;
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 600;
-}
+.tp-pagination p { margin: 0; font-size: 11px; color: #6b7280; font-weight: 700; }
 .tp-pagination p strong { color: #111827; font-weight: 800; }
 
-.tp-pages {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
+.tp-pages { display: flex; align-items: center; gap: 4px; }
 .tp-page-btn {
-    min-width: 36px;
-    height: 36px;
+    min-width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 8px;
     color: #6b7280;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
     text-decoration: none;
-    transition: background .15s, border-color .15s;
+    transition: all 0.2s ease;
 }
 .tp-page-btn:hover:not(.disabled):not(.active) {
-    border-color: #fca5a5;
-    color: #d90429;
+    border-color: #2ea8ab;
+    color: #2ea8ab;
+    background: rgba(46, 168, 171, 0.04);
 }
 .tp-page-btn.active {
-    background: #d90429;
+    background: #1f2937;
     color: #fff;
-    border-color: #d90429;
+    border-color: #1f2937;
+    box-shadow: 0 3px 8px rgba(31, 41, 55, 0.2);
 }
 .tp-page-btn.disabled { opacity: .4; pointer-events: none; cursor: default; }
-.tp-page-dots { color: #9ca3af; font-size: 14px; }
+.tp-page-dots { color: #9ca3af; font-size: 12px; }
 
-/* ── Responsive ───────────────────────────────────────────── */
+/* Responsive Layout */
 @media (max-width: 768px) {
-    .tp-header              { flex-direction: column; gap: 14px; }
-    .tp-table-top-bar       { flex-direction: column; align-items: flex-start; gap: 16px; }
-    .tp-toolbar             { width: 100%; max-width: none; }
-    .tp-pagination          { flex-direction: column; align-items: flex-start; }
+    .tp-header { flex-direction: column; gap: 14px; }
+    .tp-table-top-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .tp-toolbar { width: 100%; max-width: none; }
+    .tp-pagination { flex-direction: column; align-items: flex-start; }
 }
 </style>
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/pengajar/index.blade.php ENDPATH**/ ?>

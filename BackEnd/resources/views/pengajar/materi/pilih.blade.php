@@ -34,6 +34,14 @@
         </div>
     @endif
 
+    @if(isset($serviceError) && $serviceError)
+    <div class="cp-alert warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>⚠️ Server materi sedang bermasalah. Data mungkin tidak dapat dimuat. Silakan coba lagi nanti.</span>
+    </div>
+@endif
+
+
     {{-- ── 2. FORM SECTION (PENGATURAN INPUT MATERIAL YANG RAPI) ── --}}
     <section class="cp-card">
         <div class="cp-card-head">
@@ -222,6 +230,16 @@
         border-bottom: 1px solid var(--border-soft);
         padding-bottom: 20px;
     }
+
+
+
+
+    .cp-alert.warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
     .cp-breadcrumb-capsule {
         display: inline-block;
         background: var(--spekta-red-light);

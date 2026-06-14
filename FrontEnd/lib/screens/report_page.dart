@@ -28,6 +28,19 @@ class _ReportPageState extends State<ReportPage> {
   List<FlSpot> chartData = []; 
   List<String> tryoutTitles = []; 
 
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+
   @override
   void initState() {
     super.initState();
@@ -140,33 +153,40 @@ class _ReportPageState extends State<ReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color spektaRed = Color(0xFF990000);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: pageBg,
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: const Text("Learning Report", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: spektaRed,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
       body: isLoading 
-        ? const Center(child: CircularProgressIndicator(color: spektaRed))
+        ? const Center(child: CircularProgressIndicator(color: accentTeal))
         : RefreshIndicator(
             onRefresh: _fetchReportData,
-            color: spektaRed,
+            color: accentTeal,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.campaign_rounded, color: spektaRed),
-                      SizedBox(width: 10),
-                      Text("Pengumuman Terbaru", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Icon(Icons.campaign_rounded, color: accentTeal),
+                      const SizedBox(width: 10),
+                      const Text("Pengumuman Terbaru", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
                     ],
                   ),
                   const SizedBox(height: 15),
@@ -199,8 +219,8 @@ class _ReportPageState extends State<ReportPage> {
                               height: 180,
                               width: double.infinity,
                               color: Colors.grey[200],
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                              child: Center(
+                                child: CircularProgressIndicator(strokeWidth: 2, color: accentTeal),
                               ),
                             );
                           },
@@ -230,15 +250,15 @@ class _ReportPageState extends State<ReportPage> {
 
                   const SizedBox(height: 40),
 
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.auto_graph_rounded, color: spektaRed),
-                      SizedBox(width: 10),
-                      Text("Statistik Belajar (7 Terakhir)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Icon(Icons.auto_graph_rounded, color: accentTeal),
+                      const SizedBox(width: 10),
+                      const Text("Statistik Belajar (7 Terakhir)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
                     ],
                   ),
                   const SizedBox(height: 5),
-                  const Text("Grafik hasil perkembangan nilai kamu", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const Text("Grafik hasil perkembangan nilai kamu", style: TextStyle(color: neutralGray, fontSize: 12)),
                   const SizedBox(height: 20),
 
                   Container(
@@ -251,7 +271,7 @@ class _ReportPageState extends State<ReportPage> {
                       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]
                     ),
                     child: chartData.isEmpty
-                      ? const Center(child: Text("Belum ada data nilai.", style: TextStyle(color: Colors.grey)))
+                      ? const Center(child: Text("Belum ada data nilai.", style: TextStyle(color: neutralGray)))
                       : LineChart(
                           LineChartData(
                             gridData: FlGridData(
@@ -274,7 +294,7 @@ class _ReportPageState extends State<ReportPage> {
                                         axisSide: meta.axisSide,
                                         child: Padding(
                                           padding: const EdgeInsets.only(top: 8.0),
-                                          child: Text(tryoutTitles[index], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                          child: Text(tryoutTitles[index], style: const TextStyle(fontSize: 10, color: neutralGray)),
                                         ),
                                       );
                                     }
@@ -288,7 +308,7 @@ class _ReportPageState extends State<ReportPage> {
                                   reservedSize: 40,
                                   getTitlesWidget: (value, meta) => SideTitleWidget(
                                     axisSide: meta.axisSide, 
-                                    child: Text("${value.toInt()}", style: const TextStyle(fontSize: 10, color: Colors.grey))
+                                    child: Text("${value.toInt()}", style: const TextStyle(fontSize: 10, color: neutralGray))
                                   ),
                                 ),
                               ),
@@ -304,13 +324,13 @@ class _ReportPageState extends State<ReportPage> {
                                     ? [chartData[0], FlSpot(1.0, chartData[0].y)]
                                     : chartData,
                                 isCurved: true,
-                                color: spektaRed,
+                                color: accentTeal,
                                 barWidth: 3,
                                 isStrokeCapRound: true,
                                 dotData: const FlDotData(show: true),
                                 belowBarData: BarAreaData(
                                   show: true,
-                                  color: spektaRed.withOpacity(0.15),
+                                  color: accentTeal.withOpacity(0.15),
                                 ),
                               ),
                             ],
@@ -324,8 +344,8 @@ class _ReportPageState extends State<ReportPage> {
                     Center(
                       child: TextButton.icon(
                         onPressed: widget.onGoToHome, 
-                        icon: const Icon(Icons.arrow_back, color: spektaRed), 
-                        label: const Text("Kembali ke Beranda", style: TextStyle(color: spektaRed, fontWeight: FontWeight.bold))
+                        icon: Icon(Icons.arrow_back, color: accentTeal), 
+                        label: Text("Kembali ke Beranda", style: TextStyle(color: accentTeal, fontWeight: FontWeight.bold))
                       ),
                     ),
                     

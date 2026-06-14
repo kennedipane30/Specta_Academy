@@ -2,41 +2,19 @@
 
 <?php $__env->startSection('content'); ?>
 <?php
-    // Menghitung total seluruh soal yang sudah dibuat oleh guru ini di semua kelas/mapel
-    $totalSoalSelesai = \DB::table('tryout_drafts')
-        ->where('user_id', Auth::user()->usersID)
-        ->count();
-
+    // ✅ Data sudah dikirim dari controller, tidak perlu query DB langsung
     $assignmentCollection = collect($assignmentsWithSubjects ?? []);
     $totalAssignment = $assignmentCollection->count();
 ?>
 
 <div class="cp-page">
-    
-    <section class="tm-hero-header">
-        <div class="tm-hero-content">
-            <div class="tm-hero-text">
-                <span class="tm-pre-title">TEACHER TRYOUT PORTAL</span>
-                <h1 class="tm-main-title">Tryout Question Center</h1>
-                <p class="tm-sub-title">Kontribusikan draf soal terbaik Anda. Admin akan mengkurasi draf tersebut menjadi satu paket Tryout resmi.</p>
-            </div>
-        </div>
 
-        <div class="tm-hero-summary">
-            <div class="summary-card">
-                <i class="fa-solid fa-briefcase"></i>
-                <div class="summary-data">
-                    <strong><?php echo e($totalAssignment); ?></strong>
-                    <span>Penugasan</span>
-                </div>
-            </div>
-            <div class="summary-card highlight">
-                <i class="fa-solid fa-file-circle-check"></i>
-                <div class="summary-data">
-                    <strong><?php echo e($totalSoalSelesai); ?></strong>
-                    <span>Total Soal</span>
-                </div>
-            </div>
+    
+    <section class="cp-header">
+        <div class="cp-header-left">
+            <span class="cp-breadcrumb-capsule">Teacher Tryout Portal</span>
+            <h1>Tryout Question Center</h1>
+            <p>Kontribusikan draf soal terbaik Anda. Admin akan mengkurasi draf tersebut menjadi satu paket Tryout resmi.</p>
         </div>
     </section>
 
@@ -48,11 +26,51 @@
     <?php endif; ?>
 
     <?php if(session('error')): ?>
-        <div class="tm-alert-modern error" style="background: #fee2e2; color: #b91c1c; border-left: 5px solid #ef4444;">
+        <div class="tm-alert-modern error">
             <i class="fa-solid fa-circle-xmark"></i>
             <span><?php echo e(session('error')); ?></span>
         </div>
     <?php endif; ?>
+
+    <?php if(session('warning')): ?>
+        <div class="tm-alert-modern warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span><?php echo e(session('warning')); ?></span>
+        </div>
+    <?php endif; ?>
+
+    
+    <section class="cp-stats">
+        <!-- Penugasan Kelas -->
+        <div class="cp-stat-card card-teal">
+            <div class="cp-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="cp-stat-info">
+                <p>Penugasan Kelas</p>
+                <h2><?php echo e($totalAssignment); ?> <span>Kelas</span></h2>
+            </div>
+        </div>
+
+        <!-- Total Soal Disetor -->
+        <div class="cp-stat-card card-red">
+            <div class="cp-stat-icon red"><i class="fa-solid fa-file-circle-check"></i></div>
+            <div class="cp-stat-info">
+                <p>Soal Disetor</p>
+                <h2><?php echo e($totalSoalSelesai ?? 0); ?> <span>Soal</span></h2>
+            </div>
+            <?php if(($totalSoalSelesai ?? 0) > 0): ?>
+                <span class="cp-pulse-dot"></span>
+            <?php endif; ?>
+        </div>
+
+        <!-- Target Target Selesai -->
+        <div class="cp-stat-card card-gray">
+            <div class="cp-stat-icon gray"><i class="fa-solid fa-flag-checkered"></i></div>
+            <div class="cp-stat-info">
+                <p>Target Publikasi</p>
+                <h2><?php echo e($totalAssignment); ?> <span>Paket TO</span></h2>
+            </div>
+        </div>
+    </section>
 
     
     <section class="cp-main-card">
@@ -67,27 +85,20 @@
             <table class="cp-table-modern">
                 <thead>
                     <tr>
-                        <th width="25%">PROGRAM KELAS</th>
-                        <th width="20%" class="text-center">MATA PELAJARAN</th>
-                        <th width="35%" class="text-center">PROGRESS ANDA</th>
+                        <th width="30%">PROGRAM KELAS</th>
+                        <th width="25%" class="text-center">MATA PELAJARAN</th>
+                        <th width="25%" class="text-center">PROGRES SETORAN</th>
                         <th width="20%" class="text-right">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php $__empty_1 = true; $__currentLoopData = $assignmentsWithSubjects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <?php
-                            // Ambil nama mapel
                             $subjectName = $assign->subject_name;
-
-                            // HITUNG SOAL
-                            $count = \DB::table('tryout_drafts')
-                                ->where('user_id', Auth::user()->usersID)
-                                ->where('class_id', $assign->class_id)
-                                ->where('subject_name', trim($subjectName))
-                                ->count();
+                            $count = $assign->total_soal ?? 0;
                         ?>
                         <tr>
-                            <td class="align-middle">
+                            <td>
                                 <div class="program-info">
                                     <div class="program-icon-box">
                                         <i class="fa-solid fa-school-flag"></i>
@@ -97,15 +108,15 @@
                                         <small>ID Kelas: #<?php echo e($assign->class_id); ?></small>
                                     </div>
                                 </div>
-                            </td
-                            <td class="text-center align-middle">
+                            </td>
+                            <td class="text-center">
                                 <span class="subject-tag">
                                     <i class="fa-solid fa-book-bookmark mr-1"></i>
                                     <?php echo e($subjectName); ?>
 
                                 </span>
-                            </td
-                            <td class="text-center align-middle">
+                            </td>
+                            <td class="text-center">
                                 <div class="progress-container-flex">
                                     <div class="contribution-info <?php echo e($count > 0 ? 'active' : ''); ?>">
                                         <div class="info-content">
@@ -130,8 +141,8 @@
                                         </form>
                                     <?php endif; ?>
                                 </div>
-                            </td
-                            <td class="text-right align-middle">
+                            </td>
+                            <td class="text-right">
                                 <a href="<?php echo e(route('pengajar.tryout.create', [$assign->class_id, $subjectName])); ?>"
                                    class="btn-input-modern <?php echo e($count > 0 ? 'btn-has-content' : ''); ?>">
                                     <span><?php echo e($count > 0 ? 'EDIT / TAMBAH' : 'INPUT SOAL'); ?></span>
@@ -139,14 +150,16 @@
                                         <i class="fa-solid fa-<?php echo e($count > 0 ? 'pen-to-square' : 'pen-nib'); ?>"></i>
                                     </div>
                                 </a>
-                            </td
+                            </td>
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
-                            <td colspan="4" class="text-center" style="padding: 50px;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" style="opacity: 0.2; margin-bottom: 15px;">
-                                <p style="color: #94a3b8; font-weight: 700;">Belum ada penugasan soal untuk Anda.</p>
-                            </td
+                            <td colspan="4">
+                                <div class="cp-empty-state">
+                                    <i class="fa-solid fa-file-circle-xmark"></i>
+                                    <span>Belum ada penugasan soal untuk Anda saat ini.</span>
+                                </div>
+                            </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -156,63 +169,216 @@
 </div>
 
 <style>
-    .cp-page { padding: 10px; font-family: 'Montserrat', sans-serif; }
-
-    .tm-hero-header {
-        background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
-        border-radius: 28px; padding: 40px; color: white;
-        display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
     }
-    .tm-main-title { font-size: 34px; font-weight: 900; }
-    .tm-hero-summary { display: flex; gap: 15px; }
-    .summary-card { background: rgba(255,255,255,0.04); padding: 18px 22px; border-radius: 20px; display: flex; align-items: center; gap: 15px; }
-    .summary-card.highlight { background: #d90429; box-shadow: 0 10px 20px rgba(217, 4, 41, 0.3); }
 
-    .cp-main-card { background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.02); }
-    .cp-table-modern { width: 100%; border-collapse: separate; border-spacing: 0 15px; }
-    .cp-table-modern th { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; padding: 0 20px; }
-    .cp-table-modern td { padding: 20px; background: white; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; vertical-align: middle !important; }
-    .cp-table-modern td:first-child { border-left: 1px solid #f1f5f9; border-radius: 20px 0 0 20px; }
-    .cp-table-modern td:last-child { border-right: 1px solid #f1f5f9; border-radius: 0 20px 20px 0; }
+    .cp-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .program-info { display: flex; align-items: center; gap: 15px; }
-    .program-icon-box { width: 44px; height: 44px; background: #f1f5f9; border-radius: 12px; display: grid; place-items: center; font-size: 18px; color: #475569; }
-    .subject-tag { background: #fdf2f2; color: #d90429; padding: 8px 16px; border-radius: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; border: 1px solid #fee2e2; display: inline-flex; align-items: center; }
+    /* ── Header ── */
+    .cp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
+    }
+    .cp-breadcrumb-capsule {
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .cp-header h1 {
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+    }
+    .cp-header p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+    }
 
-    .progress-container-flex { display: inline-flex; align-items: center; gap: 12px; }
+    /* Alerts */
+    .tm-alert-modern { padding: 12px 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13px; }
+    .tm-alert-modern.success { background: #e6f7ed; color: #15803d; border-left: 5px solid #22c55e; }
+    .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-left: 5px solid #ef4444; }
+    .tm-alert-modern.warning { background: #fef3c7; color: #92400e; border-left: 5px solid #f59e0b; }
+
+    /* Stats Grid */
+    .cp-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .cp-stat-card {
+        background: var(--spekta-white);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.25s ease;
+        position: relative;
+    }
+    .cp-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .cp-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .cp-stat-card.card-red:hover { border-color: var(--spekta-red); }
+    .cp-stat-card.card-gray:hover { border-color: var(--spekta-gray); }
+
+    .cp-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+    }
+    .cp-stat-icon.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+    .cp-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .cp-stat-icon.gray { background: var(--spekta-gray-light); color: var(--text-muted); }
+
+    .cp-stat-info p {
+        margin: 0 0 4px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .cp-stat-info h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+    .cp-stat-info h2 span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    .cp-pulse-dot {
+        position: absolute;
+        top: 14px; right: 14px;
+        width: 6px; height: 6px;
+        background: var(--spekta-red);
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+        animation: pulseRed 1.5s infinite;
+    }
+    @keyframes pulseRed {
+        0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(229, 57, 53, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    /* Table Panel */
+    .cp-main-card { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
+
+    .card-header-flex h2 { font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0; }
+    .card-header-flex p { font-size: 11px; color: var(--text-muted); margin: 0; font-weight: 600; }
+
+    .cp-table-modern { width: 100%; border-collapse: collapse; }
+    .cp-table-modern th { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; padding: 12px 14px; border-bottom: 2px solid var(--spekta-gray-light); letter-spacing: 0.05em; }
+    .cp-table-modern td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
+    .cp-table-modern tbody tr:last-child td { border-bottom: none; }
+    .cp-table-modern tbody tr:hover { background: #fafbfc; }
+
+    .program-info { display: flex; align-items: center; gap: 10px; }
+    .program-icon-box { width: 34px; height: 34px; background: var(--spekta-gray-light); border-radius: 8px; display: grid; place-items: center; font-size: 14px; color: var(--text-muted); border: 1px solid var(--border-soft); }
+    .program-info strong { display: block; font-size: 13px; font-weight: 800; color: var(--text-main); }
+    .program-info small { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+    .subject-tag { background: var(--spekta-red-light); color: var(--spekta-red-dark); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; text-transform: uppercase; border: 1px solid rgba(229, 57, 53, 0.1); display: inline-flex; align-items: center; }
+
+    .progress-container-flex { display: inline-flex; align-items: center; gap: 10px; }
     .contribution-info {
-        display: flex; align-items: center; gap: 15px;
-        padding: 10px 20px; background: #f8fafc;
-        border-radius: 15px; border: 1px solid #edf2f7;
-        min-width: 170px; text-align: left;
+        display: flex; align-items: center; gap: 12px;
+        padding: 8px 12px; background: var(--spekta-gray-light);
+        border-radius: 10px; border: 1px solid var(--border-soft);
+        min-width: 150px; text-align: left;
     }
-    .contribution-info.active { background: #f0fdf4; border-color: #dcfce7; }
-    .info-content strong { display: block; font-size: 14px; color: #111827; line-height: 1.2; font-weight: 900; }
-    .info-content span { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .contribution-info.active { background: #e6f7ed; border-color: #bbf7d0; }
+    .info-content strong { display: block; font-size: 12px; color: var(--text-main); line-height: 1.2; font-weight: 800; }
+    .info-content span { font-size: 8px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .check-icon { font-size: 12px; }
 
     .btn-action-delete {
-        background: #fee2e2; color: #ef4444; border: none;
-        width: 38px; height: 38px; border-radius: 10px;
-        cursor: pointer; transition: 0.3s; display: grid; place-items: center;
+        background: var(--spekta-red-light); color: var(--spekta-red); border: none;
+        width: 32px; height: 32px; border-radius: 8px;
+        cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
     }
-    .btn-action-delete:hover { background: #ef4444; color: white; transform: scale(1.1); }
+    .btn-action-delete:hover { background: #fecaca; color: #991b1b; transform: scale(1.05); }
 
     .btn-input-modern {
-        display: inline-flex; align-items: center; gap: 12px;
-        background: #111827; color: white; padding: 6px 6px 6px 20px;
-        border-radius: 15px; text-decoration: none; transition: 0.3s;
-        white-space: nowrap; font-weight: 800; font-size: 12px;
+        display: inline-flex; align-items: center; gap: 8px;
+        background: #1f2937; color: white !important; padding: 4px 4px 4px 12px;
+        border-radius: 8px; text-decoration: none; transition: 0.2s;
+        white-space: nowrap; font-weight: 800; font-size: 11px;
     }
-    .btn-input-modern.btn-has-content { background: #059669; }
-    .btn-input-modern:hover { transform: translateX(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-    .btn-input-modern.btn-has-content:hover { background: #047857; }
+    .btn-input-modern.btn-has-content { background: #15803d; }
+    .btn-input-modern:hover { transform: translateX(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .btn-input-modern.btn-has-content:hover { background: #166534; }
 
-    .icon-circle { width: 34px; height: 34px; background: rgba(255,255,255,0.15); border-radius: 10px; display: grid; place-items: center; font-size: 14px; }
+    .icon-circle { width: 24px; height: 24px; background: rgba(255,255,255,0.15); border-radius: 6px; display: grid; place-items: center; font-size: 10px; }
+
+    .cp-empty-state {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    .cp-empty-state i { font-size: 20px; color: var(--spekta-gray); }
 
     .text-center { text-align: center; }
     .text-right { text-align: right; }
-    .tm-alert-modern { padding: 15px 25px; border-radius: 16px; margin-bottom: 25px; background: #dcfce7; color: #15803d; font-weight: 800; border-left: 5px solid #22c55e; }
+
+    @media (max-width: 1100px) {
+        .cp-table-modern th:nth-child(3), .cp-table-modern td:nth-child(3) { display: none; }
+    }
 </style>
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/tryout/index.blade.php ENDPATH**/ ?>

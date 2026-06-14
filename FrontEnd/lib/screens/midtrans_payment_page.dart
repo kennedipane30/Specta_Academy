@@ -7,8 +7,8 @@ import 'dart:io';
 
 class MidtransPaymentPage extends StatefulWidget {
   final String url;
-  final String orderId; // ✅ WAJIB: order_id dari response getSnapToken
-  final String token;   // ✅ WAJIB: token user
+  final String orderId;
+  final String token;
 
   const MidtransPaymentPage({
     super.key, 
@@ -22,6 +22,19 @@ class MidtransPaymentPage extends StatefulWidget {
 }
 
 class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+
   late final WebViewController controller;
   bool isLoading = true;
   bool isProcessing = false;
@@ -42,7 +55,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
             debugPrint("✅ Loaded: $url");
             setState(() => isLoading = false);
 
-            // Deteksi URL finish dari Midtrans
             if (url.contains("finish") || 
                 url.contains("status_code=200") || 
                 url.contains("transaction_status=settlement")) {
@@ -53,7 +65,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
             final url = request.url;
             debugPrint("🌐 Redirect: $url");
 
-            // Deteksi SUCCESS
             if (url.contains("success") || 
                 url.contains("settlement") || 
                 url.contains("finish")) {
@@ -61,7 +72,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
               return NavigationDecision.prevent;
             }
 
-            // Deteksi GAGAL
             if (url.contains("failed") ||
                 url.contains("error") ||
                 url.contains("cancel")) {
@@ -76,7 +86,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
       ..loadRequest(Uri.parse(widget.url));
   }
 
-  /// ✅ HANDLE SUCCESS - PANGGIL API UPDATE PAYMENT
   Future<void> _handleSuccess() async {
     if (isProcessing) return;
     if (!mounted) return;
@@ -87,7 +96,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
     });
 
     try {
-      // Panggil endpoint manual payment success
       final response = await http.post(
         Uri.parse('http://10.0.2.2:8000/api/payment/manual-success'),
         headers: {
@@ -107,7 +115,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           _showMessage("✅ Pembayaran berhasil! Kelas sudah aktif.", isError: false);
-          // Kembali ke halaman sebelumnya dengan status sukses
           Navigator.pop(context, true);
         } else {
           _showMessage("⚠️ ${data['message']}", isError: true);
@@ -132,7 +139,6 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
     }
   }
 
-  /// ❌ HANDLE FAILED
   void _handleFailed() {
     if (!mounted) return;
     _showMessage("❌ Pembayaran gagal / dibatalkan", isError: true);
@@ -143,8 +149,10 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: isError ? Colors.red : Colors.green,
-        content: Text(message),
+        backgroundColor: isError ? primaryRed : darkTeal,
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -153,18 +161,32 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: pageBg,
       appBar: AppBar(
-        title: const Text("Pembayaran Spekta", 
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF990000),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          "Pembayaran Spekta", 
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: Stack(
         children: [
           WebViewWidget(controller: controller),
           if (isLoading)
             const Center(
-              child: CircularProgressIndicator(color: Color(0xFF990000)),
+              child: CircularProgressIndicator(color: accentTeal),
             ),
         ],
       ),

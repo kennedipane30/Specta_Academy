@@ -11,6 +11,20 @@ class BannerDetailPage extends StatelessWidget {
     required this.imageUrl,
   });
 
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  static const Color spektaYellow    = Color(0xFFF5A623);
+
   // Fungsi untuk membuka WhatsApp
   Future<void> _contactAdmin(BuildContext context) async {
     // ✨ GANTI DENGAN NOMOR WA ADMIN (Gunakan kode negara 62, tanpa 0 atau +)
@@ -26,7 +40,12 @@ class BannerDetailPage extends StatelessWidget {
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak dapat membuka WhatsApp.')),
+          SnackBar(
+            content: const Text('Tidak dapat membuka WhatsApp.'),
+            backgroundColor: primaryRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -38,11 +57,23 @@ class BannerDetailPage extends StatelessWidget {
     final description = bannerData['description'] ?? 'Tidak ada deskripsi lebih lanjut untuk informasi ini.';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: pageBg,
       appBar: AppBar(
-        title: const Text('Detail Informasi', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF172033),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          'Detail Informasi', 
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -55,9 +86,23 @@ class BannerDetailPage extends StatelessWidget {
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
-                  height: 200, color: Colors.grey.shade200,
-                  child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                  height: 200, 
+                  color: Colors.grey.shade200,
+                  child: Center(
+                    child: Icon(Icons.broken_image, size: 50, color: neutralGray),
+                  ),
                 ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 250,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2, color: accentTeal),
+                    ),
+                  );
+                },
               ),
             
             Padding(
@@ -67,12 +112,21 @@ class BannerDetailPage extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF172033), height: 1.2),
+                    style: const TextStyle(
+                      fontSize: 22, 
+                      fontWeight: FontWeight.w900, 
+                      color: textDark, 
+                      height: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     description,
-                    style: TextStyle(fontSize: 14, height: 1.6, color: Colors.grey.shade800),
+                    style: TextStyle(
+                      fontSize: 14, 
+                      height: 1.6, 
+                      color: textDarkVariant,
+                    ),
                   ),
                 ],
               ),
@@ -84,15 +138,22 @@ class BannerDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05), 
+              blurRadius: 10, 
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: ElevatedButton(
           onPressed: () => _contactAdmin(context),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF25D366), // Warna WhatsApp
+            backgroundColor: accentTeal, // Warna TEAL seperti gambar "LIHAT PEMBAHASAN"
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
+            minimumSize: const Size(double.infinity, 52),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,

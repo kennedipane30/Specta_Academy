@@ -29,11 +29,12 @@ func CORSMiddleware() gin.HandlerFunc {
 func main() {
 	db := config.InitDB()
 
-	// HANYA MIGRATE TABEL YANG DIPERLUKAN
+	// Auto migrate tables
 	db.AutoMigrate(
 		&models.Tryout{},
 		&models.Question{},
-		&models.TryoutSubmission{}, 
+		&models.TryoutSubmission{},
+		&models.TryoutDraft{},
 	)
 
 	repo := repository.NewTryoutRepository(db)
@@ -49,20 +50,27 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		// Tryout & Question endpoints
 		api.POST("/tryouts/sync", handler.SyncTryout)
-		api.POST("/tryouts/submissions/sync", handler.SyncSubmissions)
 		api.GET("/tryouts", handler.GetTryouts)
 		api.GET("/tryouts/:id/questions", handler.GetQuestions)
 		api.POST("/tryouts/:id/submit", handler.SubmitTryout)
 		api.GET("/questions", handler.GetQuestions)
-		
-		api.GET("/tryouts/history", handler.GetHistory)
-		
-		// ✅ TAMBAH: Route untuk submissions
-		api.GET("/tryouts/submissions", handler.GetSubmissions)
-		
-		// ✅ TAMBAH: Route DELETE untuk menghapus tryout
 		api.DELETE("/tryouts/:id", handler.DeleteTryout)
+
+		// Submission endpoints
+		api.POST("/tryouts/submissions/sync", handler.SyncSubmissions)
+		api.GET("/tryouts/history", handler.GetHistory)
+		api.GET("/tryouts/submissions", handler.GetSubmissions)
+
+		// Draft endpoints
+		api.POST("/tryouts/drafts", handler.CreateDraft)
+		api.PUT("/tryouts/drafts/:id", handler.UpdateDraft)
+		api.DELETE("/tryouts/drafts/:id", handler.DeleteDraft)
+		api.DELETE("/tryouts/drafts", handler.DeleteAllDrafts)
+		api.GET("/tryouts/drafts", handler.GetDrafts)
+		api.GET("/tryouts/drafts/:id", handler.GetDraftByID)
+		api.GET("/tryouts/drafts/count", handler.GetDraftCount)
 	}
 
 	port := os.Getenv("PORT")
@@ -71,15 +79,6 @@ func main() {
 	}
 
 	fmt.Println("🚀 Spekta Tryout Service started on port: " + port)
-	fmt.Println("📋 Available endpoints:")
-	fmt.Println("   POST   /api/tryouts/sync")
-	fmt.Println("   POST   /api/tryouts/submissions/sync")
-	fmt.Println("   GET    /api/tryouts")
-	fmt.Println("   GET    /api/tryouts/:id/questions")
-	fmt.Println("   POST   /api/tryouts/:id/submit")
-	fmt.Println("   GET    /api/tryouts/history")
-	fmt.Println("   GET    /api/tryouts/submissions")
-	fmt.Println("   DELETE /api/tryouts/:id")
 
 	err := r.Run(":" + port)
 	if err != nil {

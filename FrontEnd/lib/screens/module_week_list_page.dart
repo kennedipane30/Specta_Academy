@@ -13,6 +13,19 @@ class ModuleWeekListPage extends StatelessWidget {
     required this.allMaterials,
   });
 
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+
   // Fungsi untuk membuka PDF di Chrome/browser eksternal
   Future<void> _openPdfInBrowser(String pdfUrl, BuildContext context) async {
     final Uri url = Uri.parse(pdfUrl);
@@ -36,7 +49,7 @@ class ModuleWeekListPage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Gagal membuka PDF: ${e.toString()}"),
-            backgroundColor: Colors.red,
+            backgroundColor: primaryRed,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -46,13 +59,20 @@ class ModuleWeekListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color spektaRed = Color(0xFF990000);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: pageBg,
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Text(subjectName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: spektaRed,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         centerTitle: true,
         actions: [
@@ -62,12 +82,12 @@ class ModuleWeekListPage extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text("Informasi"),
-                  content: const Text("PDF akan dibuka di browser Chrome.\nTutup browser untuk kembali ke aplikasi."),
+                  title: const Text("Informasi", style: TextStyle(color: textDark)),
+                  content: const Text("PDF akan dibuka di browser Chrome.\nTutup browser untuk kembali ke aplikasi.", style: TextStyle(color: textDarkVariant)),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("OK"),
+                      child: const Text("OK", style: TextStyle(color: primaryRed)),
                     ),
                   ],
                 ),
@@ -99,18 +119,21 @@ class ModuleWeekListPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white, 
               borderRadius: BorderRadius.circular(15), 
-              border: Border.all(color: isAvailable ? spektaRed.withOpacity(0.2) : Colors.transparent),
+              border: Border.all(color: isAvailable ? primaryRed.withOpacity(0.2) : Colors.transparent),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)]
             ),
             child: ListTile(
               leading: Icon(
                 isAvailable ? Icons.picture_as_pdf_rounded : Icons.lock_clock_rounded, 
-                color: isAvailable ? spektaRed : Colors.grey[300]
+                color: isAvailable ? primaryRed : neutralGray.withOpacity(0.5)
               ),
               title: Text("Minggu $weekNumber", 
-                style: TextStyle(fontWeight: FontWeight.bold, color: isAvailable ? Colors.black : Colors.grey)),
-              subtitle: Text(isAvailable ? (materialData['title'] ?? "Materi Tersedia") : "Materi belum diunggah"),
-              trailing: const Icon(Icons.open_in_browser, size: 16), // Changed icon to indicate external
+                style: TextStyle(fontWeight: FontWeight.bold, color: isAvailable ? textDark : neutralGray)),
+              subtitle: Text(
+                isAvailable ? (materialData['title'] ?? "Materi Tersedia") : "Materi belum diunggah",
+                style: TextStyle(color: isAvailable ? textDarkVariant : neutralGray),
+              ),
+              trailing: const Icon(Icons.open_in_browser, size: 16, color: neutralGray),
               onTap: () {
                 if (isAvailable) {
                   String path = materialData['file_path'].toString();
@@ -136,10 +159,10 @@ class ModuleWeekListPage extends StatelessWidget {
                   _openPdfInBrowser(pdfUrl, context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Materi minggu ini belum tersedia"), 
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: const Text("Materi minggu ini belum tersedia"), 
+                      backgroundColor: primaryRed.withOpacity(0.8),
+                      duration: const Duration(seconds: 2),
                     )
                   );
                 }

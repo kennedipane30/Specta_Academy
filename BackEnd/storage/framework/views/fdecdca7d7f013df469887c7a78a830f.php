@@ -12,26 +12,16 @@
 
 <div class="abs-page">
 
-    <section class="abs-hero">
-        <div>
-            <span>Attendance Management</span>
+    
+    <section class="abs-header">
+        <div class="abs-header-left">
+            <span class="abs-breadcrumb-capsule">Attendance Management</span>
             <h1>Manajemen Absensi</h1>
-            <p>Kelola kehadiran siswa berdasarkan program kelas, bidang ajar, dan pertemuan mingguan.</p>
-        </div>
-
-        <div class="abs-hero-summary">
-            <div>
-                <strong><?php echo e($totalAssignment); ?></strong>
-                <span>Penugasan</span>
-            </div>
-
-            <div>
-                <strong><?php echo e($activeToday); ?></strong>
-                <span>Jadwal Hari Ini</span>
-            </div>
+            <p>Kelola kehadiran siswa berdasarkan program kelas, bidang ajar, dan pertemuan mingguan secara berkala.</p>
         </div>
     </section>
 
+    
     <?php if(session('success')): ?>
         <div class="abs-alert success">
             <i class="fa-solid fa-circle-check"></i>
@@ -39,20 +29,44 @@
         </div>
     <?php endif; ?>
 
-    <section class="abs-panel">
-        <div class="abs-panel-head">
-            <div>
-                <span>Teaching Assignment</span>
-                <h2>Daftar Kelas Absensi</h2>
-                <p>Pilih kelas dan bidang ajar untuk membuka daftar pertemuan mingguan.</p>
+    
+    <section class="abs-stats">
+        <!-- Total Penugasan Kelas -->
+        <div class="abs-stat-card card-teal">
+            <div class="abs-stat-icon teal"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="abs-stat-info">
+                <p>Penugasan Kelas</p>
+                <h2><?php echo e($totalAssignment); ?> <span>Kelas</span></h2>
             </div>
         </div>
 
-        <?php if(empty($assignmentsWithSubjects)): ?>
+        <!-- Jadwal Hari Ini -->
+        <div class="abs-stat-card card-red">
+            <div class="abs-stat-icon red"><i class="fa-solid fa-calendar-day"></i></div>
+            <div class="abs-stat-info">
+                <p>Jadwal Hari Ini</p>
+                <h2><?php echo e($activeToday); ?> <span>Kelas</span></h2>
+            </div>
+            <?php if($activeToday > 0): ?>
+                <span class="abs-pulse-dot"></span>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    
+    <section class="abs-panel">
+        <div class="abs-panel-head">
+            <div>
+                <h2>Daftar Kelas Absensi</h2>
+                <p>Pilih kelas dan bidang ajar di bawah ini untuk membuka daftar pertemuan mingguan.</p>
+            </div>
+        </div>
+
+        <?php if(empty($assignmentsWithSubjects) || count($assignmentsWithSubjects) == 0): ?>
             <div class="abs-empty">
-                <i class="fa-solid fa-clipboard-list"></i>
+                <div class="abs-empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                 <strong>Belum ada penugasan materi.</strong>
-                <span>Admin perlu menugaskan Anda pada program dan mata pelajaran tertentu.</span>
+                <span>Admin akademik perlu menugaskan Anda pada program dan mata pelajaran tertentu terlebih dahulu.</span>
             </div>
         <?php else: ?>
             <div class="abs-table-wrap">
@@ -63,7 +77,7 @@
                             <th>Bidang Ajar</th>
                             <th>Status Hari Ini</th>
                             <th>Informasi</th>
-                            <th>Aksi</th>
+                            <th class="text-right">Aksi</th>
                         </tr>
                     </thead>
 
@@ -74,13 +88,15 @@
                             ?>
 
                             <tr>
+                                
                                 <td>
                                     <div class="abs-class-name">
                                         <strong><?php echo e($as->classModel->program_name ?? 'Program Kelas'); ?></strong>
-                                        <span>ID Kelas: <?php echo e($as->class_id); ?></span>
+                                        <span>ID Kelas: #<?php echo e($as->class_id); ?></span>
                                     </div>
                                 </td>
 
+                                
                                 <td>
                                     <span class="abs-subject-badge">
                                         <?php echo e($as->subject_name); ?>
@@ -88,34 +104,39 @@
                                     </span>
                                 </td>
 
+                                
                                 <td>
                                     <?php if($canAbsenToday): ?>
                                         <span class="abs-status active">
-                                            <i class="fa-solid fa-circle"></i>
+                                            <span class="abs-dot-wrapper">
+                                                <i class="abs-dot"></i>
+                                                <i class="abs-dot-pulse"></i>
+                                            </span>
                                             Aktif Hari Ini
                                         </span>
                                     <?php else: ?>
                                         <span class="abs-status neutral">
-                                            <i class="fa-solid fa-circle"></i>
+                                            <span class="abs-dot-wrapper"><i class="abs-dot"></i></span>
                                             Tidak Ada Jadwal
                                         </span>
                                     <?php endif; ?>
                                 </td>
 
+                                
                                 <td>
                                     <p class="abs-note">
                                         <?php if($canAbsenToday): ?>
                                             Anda memiliki jadwal mengajar hari ini. Absensi dapat dilakukan melalui daftar minggu.
                                         <?php else: ?>
-                                            Anda tetap dapat membuka rekap mingguan meskipun tidak ada jadwal hari ini.
+                                            Anda tetap dapat membuka rekap mingguan meskipun tidak ada jadwal mengajar hari ini.
                                         <?php endif; ?>
                                     </p>
                                 </td>
 
-                                <td>
+                                
+                                <td class="text-right">
                                     <a href="<?php echo e(route('pengajar.absensi.weeks', [$as->class_id, $as->subject_name])); ?>" class="abs-action">
-                                        Buka Minggu
-                                        <i class="fa-solid fa-arrow-right"></i>
+                                        <span>Buka Minggu</span> <i class="fa-solid fa-arrow-right-long"></i>
                                     </a>
                                 </td>
                             </tr>
@@ -129,45 +150,201 @@
 </div>
 
 <style>
-    /* (CSS tetap sama seperti sebelumnya) */
-    .abs-page { width: 100%; }
-    .abs-hero { background: linear-gradient(120deg, #cf002b 0%, #85001d 52%, #182033 100%); border-radius: 24px; padding: 30px 34px; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 22px; box-shadow: 0 18px 38px rgba(134, 0, 24, .20); overflow: hidden; position: relative; }
-    .abs-hero::after { content: ""; width: 260px; height: 260px; border-radius: 999px; background: rgba(255, 255, 255, .09); position: absolute; right: -90px; top: -120px; }
-    .abs-hero > div { position: relative; z-index: 2; }
-    .abs-hero span, .abs-panel-head span { display: block; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
-    .abs-hero > div:first-child > span { color: rgba(255,255,255,.78); margin-bottom: 10px; }
-    .abs-hero h1 { margin: 0 0 8px; color: #fff; font-size: 31px; font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
-    .abs-hero p { margin: 0; color: rgba(255,255,255,.86); font-size: 13px; font-weight: 600; line-height: 1.6; max-width: 760px; }
-    .abs-hero-summary { display: flex; gap: 12px; flex-shrink: 0; }
-    .abs-hero-summary div { min-width: 125px; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(12px); text-align: center; }
-    .abs-hero-summary strong { display: block; font-size: 28px; font-weight: 900; line-height: 1; }
-    .abs-hero-summary span { margin-top: 7px; color: rgba(255,255,255,.75); font-size: 10px; font-weight: 800; letter-spacing: 0; }
-    .abs-alert { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 15px; margin-bottom: 18px; font-size: 12px; font-weight: 800; }
-    .abs-alert.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .abs-panel { background: #fff; border: 1px solid #edf0f4; border-radius: 22px; padding: 22px; box-shadow: 0 14px 35px rgba(15,23,42,.05); }
-    .abs-panel-head { display: flex; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
-    .abs-panel-head span { color: #d90429; margin-bottom: 8px; }
-    .abs-panel-head h2 { margin: 0; color: #111827; font-size: 18px; font-weight: 900; }
-    .abs-panel-head p { margin: 6px 0 0; color: #6b7280; font-size: 12px; font-weight: 600; }
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
+    }
+
+    .abs-page {
+        width: 100%;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Header Minimalis ── */
+    .abs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
+    }
+    .abs-breadcrumb-capsule {
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .abs-header h1 {
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+    }
+    .abs-header p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* ── Stats Summary Grid ── */
+    .abs-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .abs-stat-card {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .abs-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+    }
+    .abs-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .abs-stat-card.card-red:hover { border-color: var(--spekta-red); }
+
+    .abs-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+    }
+    .abs-stat-icon.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+    .abs-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+
+    .abs-stat-info p {
+        margin: 0 0 4px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .abs-stat-info h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+    .abs-stat-info h2 span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* Indikator Denyut */
+    .abs-pulse-dot {
+        position: absolute;
+        top: 14px; right: 14px;
+        width: 6px; height: 6px;
+        background: var(--spekta-red);
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+        animation: pulseRed 1.5s infinite;
+    }
+    @keyframes pulseRed {
+        0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(229, 57, 53, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    /* Alerts */
+    .abs-alert {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-weight: 800;
+        font-size: 13px;
+    }
+    .abs-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0; }
+
+    /* Main Table Panel */
+    .abs-panel { background: var(--spekta-white); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
+    .abs-panel-head { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--spekta-gray-light); }
+    .abs-panel-head h2 { margin: 0; color: var(--text-main); font-size: 15px; font-weight: 800; }
+    .abs-panel-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 11px; font-weight: 600; }
+    
     .abs-table-wrap { overflow-x: auto; }
-    .abs-table { width: 100%; border-collapse: collapse; }
-    .abs-table th { text-align: left; padding: 14px 12px; border-bottom: 1px solid #edf0f4; color: #6b7280; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
-    .abs-table td { padding: 16px 12px; border-bottom: 1px solid #edf0f4; vertical-align: middle; }
-    .abs-table tbody tr:hover { background: #fff7f9; }
-    .abs-class-name strong { display: block; color: #111827; font-size: 13px; font-weight: 900; text-transform: uppercase; }
-    .abs-class-name span { display: block; margin-top: 4px; color: #9ca3af; font-size: 10px; font-weight: 700; }
-    .abs-subject-badge { display: inline-flex; align-items: center; height: 30px; padding: 0 11px; border-radius: 999px; background: #fff1f2; color: #d90429; font-size: 10px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
-    .abs-status { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 999px; font-size: 10px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
-    .abs-status i { font-size: 7px; }
-    .abs-status.active { background: #dcfce7; color: #16a34a; }
-    .abs-status.neutral { background: #f3f4f6; color: #6b7280; }
-    .abs-note { margin: 0; color: #6b7280; font-size: 12px; font-weight: 600; line-height: 1.5; max-width: 480px; }
-    .abs-action { height: 38px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px; background: #d90429; color: #fff; font-size: 11px; font-weight: 900; white-space: nowrap; text-decoration: none; }
-    .abs-empty { padding: 42px; text-align: center; background: #f8fafc; border-radius: 18px; color: #6b7280; font-size: 12px; font-weight: 700; }
-    .abs-empty i { width: 58px; height: 58px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 999px; background: #ffe8ee; color: #d90429; font-size: 22px; }
-    .abs-empty strong { display: block; color: #111827; font-size: 15px; font-weight: 900; margin-bottom: 5px; }
-    @media (max-width: 900px) { .abs-hero { flex-direction: column; align-items: flex-start; } .abs-hero-summary { width: 100%; } .abs-hero-summary div { flex: 1; } }
+    .abs-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    .abs-table th { text-align: left; padding: 12px 14px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--spekta-gray-light); font-weight: 800; letter-spacing: 0.05em; }
+    .abs-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
+    .abs-table tbody tr:hover { background: #fafbfc; }
+    
+    .abs-class-name strong { display: block; color: var(--text-main); font-size: 13px; font-weight: 800; text-transform: uppercase; }
+    .abs-class-name span { display: block; margin-top: 4px; color: var(--text-muted); font-size: 10px; font-weight: 700; }
+    
+    .abs-subject-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 6px; background: var(--spekta-red-light); color: var(--spekta-red-dark); font-size: 10px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    
+    /* Glowing Indicator */
+    .abs-status { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    .abs-dot-wrapper { position: relative; width: 5px; height: 5px; display: inline-block; }
+    .abs-dot { width: 5px; height: 5px; border-radius: 99px; background: currentColor; display: block; position: absolute; left: 0; top: 0; }
+    .abs-dot-pulse { width: 5px; height: 5px; border-radius: 99px; background: currentColor; display: block; position: absolute; left: 0; top: 0; opacity: 0.4; transform: scale(1); animation: dotGlow 1.8s infinite ease-in-out; }
+    @keyframes dotGlow { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3.2); opacity: 0; } }
+
+    .abs-status.active { background: #e6f7ed; color: #15803d; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.1); }
+    .abs-status.neutral { background: var(--spekta-gray-light); color: var(--text-muted); }
+    
+    .abs-note { margin: 0; color: var(--text-muted); font-size: 12px; font-weight: 600; line-height: 1.5; max-width: 450px; }
+    
+    .abs-action { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 8px; background: #1f2937; color: var(--spekta-white) !important; font-size: 11px; font-weight: 800; white-space: nowrap; text-decoration: none; transition: all 0.2s; }
+    .abs-action:hover { background: var(--spekta-red); box-shadow: 0 4px 10px rgba(229,57,53,0.25); }
+    
+    .abs-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .abs-empty-icon { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 50%; background: var(--spekta-gray-light); color: var(--spekta-gray); font-size: 18px; }
+    .abs-empty strong { display: block; color: var(--text-main); font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    
+    .text-right { text-align: right; }
+
+    @media (max-width: 900px) {
+        .abs-header { flex-direction: column; align-items: flex-start; }
+        .abs-stats { grid-template-columns: 1fr; }
+        .abs-table-wrap th:nth-child(4), .abs-table-wrap td:nth-child(4) { display: none; } /* Sembunyikan catatan info di layar kecil */
+    }
 </style>
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/absensi/index.blade.php ENDPATH**/ ?>

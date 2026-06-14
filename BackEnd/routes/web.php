@@ -132,13 +132,19 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     });
 
     // ✅ ABSENSI SISWA
-    Route::prefix('absensi')->name('absensi.')->group(function() {
-        Route::get('/', [AbsensiController::class, 'index'])->name('index');
-        Route::get('/weeks/{class_id}/{subject}', [AbsensiController::class, 'listWeeks'])->name('weeks');
-        Route::get('/create/{class_id}/{subject}/{week}', [AbsensiController::class, 'create'])->name('create');
-        Route::post('/store', [AbsensiController::class, 'store'])->name('store');
-        Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
-    });
+ Route::prefix('absensi')->name('absensi.')->group(function() {
+    Route::get('/', [AbsensiController::class, 'index'])->name('index');
+    Route::get('/weeks/{class_id}/{subject}', [AbsensiController::class, 'listWeeks'])->name('weeks');
+    Route::get('/create/{class_id}/{subject}/{week}', [AbsensiController::class, 'create'])->name('create');
+    Route::post('/store', [AbsensiController::class, 'store'])->name('store');
+    Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
+
+    // 🔹 TAMBAHKAN 4 ROUTE INI:
+    Route::get('/edit/{class_id}/{subject}/{week}', [AbsensiController::class, 'edit'])->name('edit');
+    Route::put('/update/{class_id}/{subject}/{week}', [AbsensiController::class, 'update'])->name('update');
+    Route::delete('/destroy/{class_id}/{subject}/{week}', [AbsensiController::class, 'destroy'])->name('destroy');
+    Route::get('/export-pdf/{class_id}/{subject}/{week}', [AbsensiController::class, 'exportPdf'])->name('export-pdf');
+});
 
     // ✅ MANAJEMEN LATIHAN SOAL (CSV) - DIPERBAIKI
     Route::prefix('latihan')->name('latihan.')->group(function() {

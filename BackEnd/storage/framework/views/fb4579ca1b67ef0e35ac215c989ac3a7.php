@@ -10,654 +10,625 @@
 <div class="td-page">
 
     
-    <section class="td-hero">
-        <div class="td-hero-content">
-            <div class="td-kicker">
-                <i class="fa-solid fa-chalkboard-user"></i>
-                <span>Spekta Teacher Workspace</span>
-            </div>
-
-            <h1>Selamat Datang, <?php echo e($teacher->name); ?>!</h1>
-
-            <p>
-                Pantau agenda mengajar, kelola materi, dan pantau aktivitas kelas Anda dalam satu dashboard terpusat.
-            </p>
-
-            <div class="td-hero-tags">
-                <span class="tag-today">
-                    <i class="fa-solid fa-calendar-day"></i>
-                    <?php echo e(number_format($jadwalHariIni)); ?> Jadwal Hari Ini
-                </span>
-
-                <span class="tag-class">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <?php echo e(number_format($totalKelas)); ?> Kelas Diampu
-                </span>
-            </div>
-        </div>
-
-        <div class="td-today-panel">
-            <div class="td-date-box">
-                <span><?php echo e(now()->translatedFormat('l')); ?></span>
-                <strong><?php echo e(now()->translatedFormat('d')); ?></strong>
-                <small><?php echo e(now()->translatedFormat('F Y')); ?></small>
-            </div>
-
-            <div class="td-next-info">
-                <span>Agenda Terdekat</span>
-
-                <?php if($jadwalUtama): ?>
-                    <strong><?php echo e($jadwalUtama->title); ?></strong>
-                    <small>
-                        <i class="fa-regular fa-clock"></i>
-                        <?php echo e(substr($jadwalUtama->start_time, 0, 5)); ?> WIB
-                    </small>
-                <?php else: ?>
-                    <strong>Tidak ada agenda</strong>
-                    <small>Belum ada jadwal kelas terdekat</small>
-                <?php endif; ?>
-            </div>
-        </div>
-    </section>
-
-    
-    <section class="td-stats">
-        <div class="td-stat-card">
-            <div class="td-stat-icon icon-class">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
-            <div class="td-stat-info">
-                <p>Kelas Diampu</p>
-                <h2><?php echo e(number_format($totalKelas)); ?></h2>
-            </div>
-        </div>
-
-        <div class="td-stat-card">
-            <div class="td-stat-icon icon-subject">
-                <i class="fa-solid fa-book-open-reader"></i>
-            </div>
-            <div class="td-stat-info">
-                <p>Mata Pelajaran</p>
-                <h2><?php echo e(number_format($totalMapel)); ?></h2>
-            </div>
-        </div>
-
-        <div class="td-stat-card">
-            <div class="td-stat-icon icon-material">
-                <i class="fa-solid fa-file-lines"></i>
-            </div>
-            <div class="td-stat-info">
-                <p>Materi Diupload</p>
-                <h2><?php echo e(number_format($totalMateri)); ?></h2>
-            </div>
-        </div>
-
-        <div class="td-stat-card">
-            <div class="td-stat-icon icon-exercise">
-                <i class="fa-solid fa-clipboard-question"></i>
-            </div>
-            <div class="td-stat-info">
-                <p>Latihan Soal</p>
-                <h2><?php echo e(number_format($totalLatihan)); ?></h2>
-            </div>
-        </div>
-
-        <div class="td-stat-card">
-            <div class="td-stat-icon icon-tryout">
-                <i class="fa-solid fa-stopwatch"></i>
-            </div>
-            <div class="td-stat-info">
-                <p>Tryout Dibuat</p>
-                <h2><?php echo e(number_format($totalTryout)); ?></h2>
-            </div>
-        </div>
-    </section>
-
-    
-    <section class="td-action-strip">
-        <a href="<?php echo e(route('pengajar.materi.index')); ?>" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-upload"></i></div>
-            <div class="action-text">
-                <strong>Upload Materi</strong>
-                <span>Tambah materi pembelajaran</span>
-            </div>
-            <i class="fa-solid fa-chevron-right action-arrow"></i>
-        </a>
-
-        <a href="<?php echo e(route('pengajar.tryout.index')); ?>" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-stopwatch"></i></div>
-            <div class="action-text">
-                <strong>Buat Tryout</strong>
-                <span>Kelola soal evaluasi</span>
-            </div>
-            <i class="fa-solid fa-chevron-right action-arrow"></i>
-        </a>
-
-        <a href="<?php echo e(route('pengajar.latihan.index')); ?>" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-clipboard-question"></i></div>
-            <div class="action-text">
-                <strong>Latihan Soal</strong>
-                <span>Upload tugas harian</span>
-            </div>
-            <i class="fa-solid fa-chevron-right action-arrow"></i>
-        </a>
-
-        <a href="<?php echo e(route('pengajar.absensi.index')); ?>" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-user-check"></i></div>
-            <div class="action-text">
-                <strong>Absensi Kelas</strong>
-                <span>Isi & lihat kehadiran</span>
-            </div>
-            <i class="fa-solid fa-chevron-right action-arrow"></i>
-        </a>
-    </section>
-
-    
-    <section class="td-main-content">
+    <div class="td-dashboard-grid">
 
         
-        <div class="td-panel">
-            <div class="td-panel-heading">
-                <div class="heading-text">
-                    <span class="panel-kicker">Teaching Schedule</span>
-                    <h2>Jadwal Kelas Reguler</h2>
-                    <p>Agenda kelas reguler yang sudah ditetapkan oleh admin akademik.</p>
+        <div class="td-main-col">
+            
+            
+            <header class="td-welcome-header">
+                <span class="td-breadcrumb-capsule">Spekta Teacher Workspace</span>
+                <h1>Selamat Datang, <span><?php echo e($teacher->name); ?>!</span> 👋</h1>
+                <p>Pantau agenda mengajar, kelola materi, dan tinjau aktivitas kelas Anda secara terpusat.</p>
+            </header>
+
+            
+            <section class="td-stats-grid">
+                <!-- Card 1: Kelas & Mapel (Info Utama) -->
+                <div class="td-stat-card card-gray">
+                    <div class="td-stat-icon gray">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div class="td-stat-info">
+                        <p>Kelas Diampu</p>
+                        <h2><?php echo e(number_format($totalKelas)); ?> <span>Kelas</span></h2>
+                    </div>
                 </div>
-                <a href="<?php echo e(route('pengajar.absensi.index')); ?>" class="btn-outline-primary">
-                    Cek Absensi
+
+                <!-- Card 2: Upload Materi (Clickable) -->
+                <a href="<?php echo e(route('pengajar.materi.index')); ?>" class="td-stat-card card-teal clickable-card" title="Klik untuk kelola materi belajar">
+                    <div class="td-stat-icon teal">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="td-stat-info">
+                        <p>Materi Diupload</p>
+                        <h2><?php echo e(number_format($totalMateri)); ?> <span>Berkas</span></h2>
+                    </div>
+                    <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
                 </a>
-            </div>
 
-            <div class="td-schedule-list">
-                <?php $__empty_1 = true; $__currentLoopData = $jadwalMendatang; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                    <?php
-                        $isToday = \Carbon\Carbon::parse($item->date)->isToday();
-                        $dateObj = \Carbon\Carbon::parse($item->date);
-                    ?>
-
-                    <article class="td-schedule-item <?php echo e($isToday ? 'is-today' : ''); ?>">
-                        <div class="td-date-badge">
-                            <strong><?php echo e($dateObj->format('d')); ?></strong>
-                            <span><?php echo e($dateObj->translatedFormat('M')); ?></span>
-                        </div>
-
-                        <div class="td-schedule-details">
-                            <div class="schedule-head">
-                                <h3><?php echo e($item->title); ?></h3>
-                                <?php if($isToday): ?>
-                                    <span class="badge-live">Hari Ini</span>
-                                <?php else: ?>
-                                    <span class="badge-scheduled">Terjadwal</span>
-                                <?php endif; ?>
-                            </div>
-                            <p class="program-name"><?php echo e($item->class->program_name ?? 'Program Kelas'); ?></p>
-
-                            <div class="schedule-meta">
-                                <span>
-                                    <i class="fa-regular fa-clock"></i>
-                                    <?php echo e(substr($item->start_time, 0, 5)); ?> - <?php echo e(substr($item->end_time, 0, 5)); ?> WIB
-                                </span>
-                                <span>
-                                    <i class="fa-regular fa-calendar"></i>
-                                    <?php echo e($dateObj->translatedFormat('l')); ?>
-
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                    <div class="td-empty-state">
-                        <div class="empty-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
-                        <strong>Belum ada jadwal mengajar.</strong>
-                        <p>Jadwal akan muncul setelah admin akademik mempublikasikan jadwal kelas.</p>
+                <!-- Card 3: Latihan Soal (Clickable) -->
+                <a href="<?php echo e(route('pengajar.latihan.index')); ?>" class="td-stat-card card-orange clickable-card" title="Klik untuk upload tugas harian">
+                    <div class="td-stat-icon orange">
+                        <i class="fa-solid fa-clipboard-question"></i>
                     </div>
-                <?php endif; ?>
-            </div>
-        </div>
+                    <div class="td-stat-info">
+                        <p>Latihan Soal</p>
+                        <h2><?php echo e(number_format($totalLatihan)); ?> <span>Tugas</span></h2>
+                    </div>
+                    <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                </a>
 
-        
-        <div class="td-panel">
-            <div class="td-panel-heading">
-                <div class="heading-text">
-                    <span class="panel-kicker" style="color: #059669;">Private Session</span>
-                    <h2>Jadwal Dedicated Tutor</h2>
-                    <p>Sesi privat yang diajukan oleh siswa dan telah disetujui/dikonfirmasi oleh admin untuk Anda.</p>
+                <!-- Card 4: Setor Soal TO (Clickable) -->
+                <a href="<?php echo e(route('pengajar.tryout.index')); ?>" class="td-stat-card card-red clickable-card" title="Klik untuk setor draf soal TO">
+                    <div class="td-stat-icon red">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                    <div class="td-stat-info">
+                        <p>Tryout Dibuat</p>
+                        <h2><?php echo e(number_format($totalTryout)); ?> <span>Draf</span></h2>
+                    </div>
+                    <div class="card-hover-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                </a>
+            </section>
+
+            
+            <div class="td-panel">
+                <div class="td-panel-heading">
+                    <div class="heading-text">
+                        <span class="panel-kicker">Teaching Schedule</span>
+                        <h2>Jadwal Kelas Reguler</h2>
+                        <p>Agenda kelas reguler yang sudah ditetapkan oleh admin akademik.</p>
+                    </div>
+                    <a href="<?php echo e(route('pengajar.absensi.index')); ?>" class="btn-outline-primary">
+                        Cek Absensi <i class="fa-solid fa-arrow-right-long" style="margin-left: 4px;"></i>
+                    </a>
+                </div>
+
+                <div class="td-schedule-list">
+                    <?php $__empty_1 = true; $__currentLoopData = $jadwalMendatang; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
+                            $isToday = \Carbon\Carbon::parse($item->date)->isToday();
+                            $dateObj = \Carbon\Carbon::parse($item->date);
+                        ?>
+
+                        <article class="td-schedule-item <?php echo e($isToday ? 'is-today' : ''); ?>">
+                            <div class="td-date-badge">
+                                <strong><?php echo e($dateObj->format('d')); ?></strong>
+                                <span><?php echo e($dateObj->translatedFormat('M')); ?></span>
+                            </div>
+
+                            <div class="td-schedule-details">
+                                <div class="schedule-head">
+                                    <h3><?php echo e($item->title); ?></h3>
+                                    <?php if($isToday): ?>
+                                        <span class="badge-live"><span class="live-dot-pulse"></span> Hari Ini</span>
+                                    <?php else: ?>
+                                        <span class="badge-scheduled">Terjadwal</span>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="program-name"><?php echo e($item->class->program_name ?? 'Program Kelas'); ?></p>
+
+                                <div class="schedule-meta">
+                                    <span>
+                                        <i class="fa-regular fa-clock"></i>
+                                        <?php echo e(substr($item->start_time, 0, 5)); ?> - <?php echo e(substr($item->end_time, 0, 5)); ?> WIB
+                                    </span>
+                                    <span>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        <?php echo e($dateObj->translatedFormat('l')); ?>
+
+                                    </span>
+                                </div>
+                            </div>
+                        </article>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <div class="td-empty-state">
+                            <div class="empty-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
+                            <strong>Belum ada jadwal mengajar.</strong>
+                            <p>Jadwal akan muncul setelah admin akademik mempublikasikan jadwal kelas.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <div class="td-tutor-grid">
-                <?php $__empty_1 = true; $__currentLoopData = $jadwalTutor; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tutor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                    <?php
-                        $studentName = $tutor->student->user->name ?? 'Nama Siswa';
-                        $subjectName = $tutor->material->title ?? $tutor->material->material_name ?? 'Materi Privat Umum';
-                        $dateObj = \Carbon\Carbon::parse($tutor->date);
-                        $isTodayTutor = $dateObj->isToday();
-                    ?>
-
-                    <article class="td-tutor-card <?php echo e($isTodayTutor ? 'is-today' : ''); ?>">
-                        <div class="tutor-header">
-                            <div class="student-avatar">
-                                <?php echo e(strtoupper(substr($studentName, 0, 1))); ?>
-
-                            </div>
-                            <div class="student-info">
-                                <h3><?php echo e($studentName); ?></h3>
-                                <?php if($isTodayTutor): ?>
-                                    <span class="badge-tutor today">Hari Ini</span>
-                                <?php else: ?>
-                                    <span class="badge-tutor">Terkonfirmasi</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <div class="tutor-body">
-                            <p class="subject-title"><?php echo e($subjectName); ?></p>
-
-                            <div class="tutor-meta-box">
-                                <div>
-                                    <i class="fa-regular fa-calendar"></i>
-                                    <span><?php echo e($dateObj->translatedFormat('l, d M Y')); ?></span>
-                                </div>
-                                <div>
-                                    <i class="fa-regular fa-clock"></i>
-                                    <span><?php echo e(substr($tutor->time, 0, 5)); ?> WIB</span>
-                                </div>
-                            </div>
-                        </div>
-                    </article>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                    <div class="td-empty-state">
-                        <div class="empty-icon"><i class="fa-solid fa-headset"></i></div>
-                        <strong>Belum ada jadwal Dedicated Tutor.</strong>
-                        <p>Jika ada permintaan tutor dari siswa yang disetujui admin untuk Anda, jadwalnya akan muncul di sini.</p>
+            
+            <div class="td-panel" style="margin-top: 24px;">
+                <div class="td-panel-heading">
+                    <div class="heading-text">
+                        <span class="panel-kicker" style="color: var(--spekta-teal);">Private Session</span>
+                        <h2>Jadwal Dedicated Tutor</h2>
+                        <p>Sesi privat yang diajukan oleh siswa dan telah disetujui/dikonfirmasi oleh admin untuk Anda.</p>
                     </div>
-                <?php endif; ?>
+                </div>
+
+                <div class="td-tutor-grid">
+                    <?php $__empty_1 = true; $__currentLoopData = $jadwalTutor; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tutor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
+                            $studentName = $tutor->student->user->name ?? 'Nama Siswa';
+                            $subjectName = $tutor->material->title ?? $tutor->material->material_name ?? 'Materi Privat Umum';
+                            $dateObj = \Carbon\Carbon::parse($tutor->date);
+                            $isTodayTutor = $dateObj->isToday();
+                        ?>
+
+                        <article class="td-tutor-card <?php echo e($isTodayTutor ? 'is-today' : ''); ?>">
+                            <div class="tutor-header">
+                                <div class="student-avatar">
+                                    <?php echo e(strtoupper(substr($studentName, 0, 1))); ?>
+
+                                </div>
+                                <div class="student-info">
+                                    <h3><?php echo e($studentName); ?></h3>
+                                    <?php if($isTodayTutor): ?>
+                                        <span class="badge-tutor today"><span class="live-dot-pulse"></span> Hari Ini</span>
+                                    <?php else: ?>
+                                        <span class="badge-tutor">Terkonfirmasi</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="tutor-body">
+                                <p class="subject-title"><?php echo e($subjectName); ?></p>
+
+                                <div class="tutor-meta-box">
+                                    <div>
+                                        <i class="fa-regular fa-calendar"></i>
+                                        <span><?php echo e($dateObj->translatedFormat('l, d M Y')); ?></span>
+                                    </div>
+                                    <div>
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span><?php echo e(substr($tutor->time, 0, 5)); ?> WIB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <div class="td-empty-state">
+                            <div class="empty-icon"><i class="fa-solid fa-headset"></i></div>
+                            <strong>Belum ada jadwal Dedicated Tutor.</strong>
+                            <p>Jika ada permintaan tutor dari siswa yang disetujui admin untuk Anda, jadwalnya akan muncul di sini.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
+
         </div>
 
-    </section>
+        
+        <aside class="td-sidebar-col">
+            
+            <!-- Widget Kalender Hari Ini -->
+            <div class="td-side-widget date-widget">
+                <div class="td-date-box">
+                    <span><?php echo e(now()->translatedFormat('l')); ?></span>
+                    <strong><?php echo e(now()->translatedFormat('d')); ?></strong>
+                    <small><?php echo e(now()->translatedFormat('F Y')); ?></small>
+                </div>
+            </div>
 
+            <!-- Widget Agenda Terdekat -->
+            <div class="td-side-widget agenda-widget">
+                <div class="widget-header">
+                    <span class="material-symbols-outlined">event_upcoming</span>
+                    <h3>Agenda Terdekat</h3>
+                </div>
+                
+                <div class="widget-body">
+                    <?php if($jadwalUtama): ?>
+                        <div class="agenda-item-active">
+                            <span class="agenda-class-badge"><?php echo e($jadwalUtama->class->program_name ?? 'Program Kelas'); ?></span>
+                            <strong><?php echo e($jadwalUtama->title); ?></strong>
+                            <small><i class="fa-regular fa-clock"></i> <?php echo e(substr($jadwalUtama->start_time, 0, 5)); ?> WIB</small>
+                        </div>
+                    <?php else: ?>
+                        <div class="agenda-empty">
+                            <i class="fa-solid fa-ghost"></i>
+                            <strong>Tidak ada agenda</strong>
+                            <span>Belum ada jadwal kelas terdekat untuk Anda.</span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+        </aside>
+
+    </div>
 </div>
 
 <style>
-    /* BASE SETUP */
+    :root {
+        --spekta-red-dark: #c5352c;
+        --spekta-red: #e53935;
+        --spekta-teal: #2ea8ab;
+        --spekta-teal-light: rgba(46, 168, 171, 0.08);
+        --spekta-red-light: rgba(229, 57, 53, 0.06);
+        --spekta-gray: #9e9e9e;
+        --spekta-gray-light: #f3f4f6;
+        --spekta-white: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-soft: #e5e7eb;
+    }
+
     .td-page {
         width: 100%;
-        font-family: 'Inter', system-ui, sans-serif;
-        color: #1e293b;
+        font-family: 'Montserrat', sans-serif;
+        color: var(--text-main);
+        animation: fadeIn 0.4s ease-out;
     }
 
-    /* HERO SECTION */
-    .td-hero {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
-        color: #fff;
-        border-radius: 24px;
-        padding: 40px;
-        margin-bottom: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 30px;
-        box-shadow: 0 10px 25px -5px rgba(185, 28, 28, 0.3);
-    }
-    .td-hero::before {
-        content: "";
-        position: absolute;
-        width: 300px;
-        height: 300px;
-        right: -100px;
-        top: -100px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.05);
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .td-hero-content {
-        position: relative;
-        z-index: 2;
-        max-width: 600px;
-    }
-    .td-kicker {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 14px;
-        border-radius: 20px;
-        background: rgba(255,255,255,0.15);
-        margin-bottom: 16px;
-    }
-    .td-kicker span {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .td-hero h1 {
-        margin: 0 0 12px;
-        font-size: 32px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-    }
-    .td-hero p {
-        margin: 0 0 24px;
-        font-size: 14px;
-        line-height: 1.6;
-        opacity: 0.9;
-    }
-
-    .td-hero-tags {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    .td-hero-tags span {
-        padding: 8px 16px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .tag-today { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-    .tag-class { background: rgba(255, 255, 255, 0.15); color: #fff; }
-
-    /* TODAY PANEL IN HERO */
-    .td-today-panel {
-        position: relative;
-        z-index: 2;
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-        backdrop-filter: blur(10px);
-        padding: 24px;
-        border-radius: 20px;
-        min-width: 250px;
-    }
-    .td-date-box {
-        background: #fff;
-        color: #0f172a;
-        padding: 20px;
-        border-radius: 16px;
-        text-align: center;
-        margin-bottom: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    .td-date-box span { display: block; font-size: 11px; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-    .td-date-box strong { display: block; font-size: 42px; font-weight: 900; line-height: 1;}
-    .td-date-box small { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-top: 4px;}
-
-    .td-next-info span { display: block; font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-    .td-next-info strong { display: block; font-size: 14px; font-weight: 700; line-height: 1.4; margin-bottom: 2px;}
-    .td-next-info small { display: flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.9); }
-
-    /* STATS STRIP */
-    .td-stats {
+    /* ── DASHBOARD GRID ASIMETRIS ── */
+    .td-dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 20px;
-        margin-bottom: 24px;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 24px;
+        align-items: start;
     }
-    .td-stat-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        transition: transform 0.2s;
-    }
-    .td-stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
 
-    .td-stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        font-size: 20px;
-        flex-shrink: 0;
-    }
-    .icon-class { background: #eff6ff; color: #2563eb; }
-    .icon-subject { background: #fef2f2; color: #dc2626; }
-    .icon-material { background: #f0fdf4; color: #16a34a; }
-    .icon-exercise { background: #fff7ed; color: #ea580c; }
-    .icon-tryout { background: #faf5ff; color: #9333ea; }
-
-    .td-stat-info p { margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-    .td-stat-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1; }
-
-    /* QUICK ACTIONS */
-    .td-action-strip {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-    .action-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        color: inherit;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    .action-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        background: #f8fafc;
-    }
-    .action-icon {
-        width: 44px;
-        height: 44px;
-        background: #fef2f2;
-        color: #b91c1c;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        font-size: 18px;
-        flex-shrink: 0;
-    }
-    .action-text { flex-grow: 1; }
-    .action-text strong { display: block; font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 2px;}
-    .action-text span { display: block; font-size: 12px; color: #64748b; }
-    .action-arrow { color: #cbd5e1; font-size: 12px; transition: transform 0.2s;}
-    .action-card:hover .action-arrow { transform: translateX(4px); color: #b91c1c;}
-
-    /* MAIN PANELS */
-    .td-main-content {
+    /* Kolom Kiri */
+    .td-main-col {
         display: flex;
         flex-direction: column;
         gap: 24px;
     }
+
+    .td-welcome-header {
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
+    }
+    .td-breadcrumb-capsule {
+        display: inline-block;
+        background: var(--spekta-red-light);
+        color: var(--spekta-red-dark);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .td-welcome-header h1 {
+        margin: 0 0 6px;
+        color: var(--text-main);
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+    }
+    .td-welcome-header h1 span { color: var(--spekta-red); }
+    .td-welcome-header p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* ── INTERACTIVE CLICKABLE STATS ── */
+    .td-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+    .td-stat-card {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        position: relative;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .td-stat-card.clickable-card {
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+    .td-stat-card.clickable-card:hover {
+        transform: translateY(-2.5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+    }
+    .td-stat-card.card-teal:hover { border-color: var(--spekta-teal); }
+    .td-stat-card.card-orange:hover { border-color: #d97706; }
+    .td-stat-card.card-red:hover { border-color: var(--spekta-red); }
+
+    .td-stat-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+    .td-stat-icon.gray { background: var(--spekta-gray-light); color: var(--text-muted); }
+    .td-stat-icon.teal { background: var(--spekta-teal-light); color: var(--spekta-teal); }
+    .td-stat-icon.orange { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+    .td-stat-icon.red { background: var(--spekta-red-light); color: var(--spekta-red); }
+
+    .td-stat-info p { margin: 0 0 4px; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .td-stat-info h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--text-main); line-height: 1; display: flex; align-items: baseline; gap: 3px; }
+    .td-stat-info h2 span { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+    .card-hover-arrow {
+        position: absolute;
+        right: 14px; top: 14px;
+        font-size: 10px;
+        color: var(--spekta-gray);
+        opacity: 0;
+        transform: translateX(-4px);
+        transition: all 0.2s ease;
+    }
+    .td-stat-card.clickable-card:hover .card-hover-arrow {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* ── PANELS (REGULAR SCHEDULE) ── */
     .td-panel {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 28px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 20px;
     }
     .td-panel-heading {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--spekta-gray-light);
     }
-    .panel-kicker { display: block; font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;}
-    .heading-text h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: #0f172a; }
-    .heading-text p { margin: 0; font-size: 13px; color: #64748b; }
+    .panel-kicker { display: block; font-size: 10px; font-weight: 800; color: var(--spekta-red); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;}
+    .heading-text h2 { margin: 0 0 4px; font-size: 15px; font-weight: 800; color: var(--text-main); }
+    .heading-text p { margin: 0; font-size: 11px; color: var(--text-muted); font-weight: 600; }
 
     .btn-outline-primary {
-        padding: 8px 16px;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        color: #334155;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid var(--border-soft);
+        background: var(--spekta-white);
+        color: var(--text-muted);
         border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 800;
         text-decoration: none;
         transition: all 0.2s;
     }
-    .btn-outline-primary:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
+    .btn-outline-primary:hover { background: var(--spekta-gray-light); color: var(--text-main); border-color: var(--spekta-gray); }
 
     /* SCHEDULE LIST (REGULAR) */
     .td-schedule-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
     }
     .td-schedule-item {
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 16px;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        background: #fff;
+        gap: 14px;
+        padding: 14px;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        background: var(--spekta-white);
         transition: all 0.2s;
     }
-    .td-schedule-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transform: translateY(-2px);}
-    .td-schedule-item.is-today { border-color: #fecaca; background: #fffcfc; }
+    .td-schedule-item:hover { border-color: var(--spekta-gray); transform: translateY(-2px);}
+    .td-schedule-item.is-today { border-color: rgba(229, 57, 53, 0.15); background: var(--spekta-red-light); }
 
     .td-date-badge {
-        width: 60px;
-        height: 60px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
+        width: 50px;
+        height: 50px;
+        background: var(--spekta-gray-light);
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         flex-shrink: 0;
     }
-    .td-schedule-item.is-today .td-date-badge { background: #fee2e2; border-color: #fecaca; color: #dc2626;}
-    .td-date-badge strong { font-size: 20px; font-weight: 800; line-height: 1; color: #0f172a;}
-    .td-schedule-item.is-today .td-date-badge strong { color: #b91c1c; }
-    .td-date-badge span { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 2px;}
-    .td-schedule-item.is-today .td-date-badge span { color: #dc2626; }
+    .td-schedule-item.is-today .td-date-badge { background: #fee2e2; border-color: #fecaca; }
+    .td-date-badge strong { font-size: 18px; font-weight: 800; line-height: 1; color: var(--text-main);}
+    .td-schedule-item.is-today .td-date-badge strong { color: var(--spekta-red-dark); }
+    .td-date-badge span { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-top: 1px;}
+    .td-schedule-item.is-today .td-date-badge span { color: var(--spekta-red); }
 
-    .td-schedule-details { flex-grow: 1; }
-    .schedule-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;}
-    .schedule-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
-    .badge-live { font-size: 10px; font-weight: 700; background: #dcfce7; color: #059669; padding: 2px 8px; border-radius: 6px; }
-    .badge-scheduled { font-size: 10px; font-weight: 600; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 6px; }
+    .td-schedule-details { flex-grow: 1; min-width: 0; }
+    .schedule-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;}
+    .schedule-head h3 { margin: 0; font-size: 13px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge-live { 
+        font-size: 9px; font-weight: 800; background: #e6f7ed; color: #15803d; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; 
+    }
+    
+    .live-dot-pulse {
+        width: 5px; height: 5px;
+        background: currentColor;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.7);
+        animation: pulseGreen 1.5s infinite;
+    }
+    @keyframes pulseGreen {
+        0% { box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(21, 128, 61, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+    }
 
-    .program-name { margin: 0 0 10px; font-size: 12px; color: #b91c1c; font-weight: 600;}
-    .schedule-meta { display: flex; gap: 12px; font-size: 12px; color: #64748b; }
+    .badge-scheduled { font-size: 9px; font-weight: 600; background: var(--spekta-gray-light); color: var(--text-muted); padding: 1px 6px; border-radius: 4px; }
+
+    .program-name { margin: 0 0 8px; font-size: 11px; color: var(--spekta-red-dark); font-weight: 700;}
+    .schedule-meta { display: flex; gap: 10px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
     .schedule-meta span { display: flex; align-items: center; gap: 4px; }
 
     /* DEDICATED TUTOR GRID */
     .td-tutor-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
     }
     .td-tutor-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        background: #fff;
-        padding: 20px;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        background: var(--spekta-white);
+        padding: 16px;
         display: flex;
         flex-direction: column;
         transition: all 0.2s;
     }
-    .td-tutor-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transform: translateY(-2px);}
+    .td-tutor-card:hover { border-color: var(--spekta-gray); transform: translateY(-2px);}
     .td-tutor-card.is-today { border-color: #a7f3d0; background: #f0fdf4; }
 
     .tutor-header {
         display: flex;
         align-items: center;
-        gap: 14px;
-        margin-bottom: 16px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid #f1f5f9;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--spekta-gray-light);
     }
     .td-tutor-card.is-today .tutor-header { border-color: #d1fae5; }
 
     .student-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
         background: #dbeafe;
         color: #1d4ed8;
         display: grid;
         place-items: center;
-        font-size: 16px;
-        font-weight: 800;
+        font-size: 14px;
+        font-weight: 900;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .student-info h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;}
-    .badge-tutor { font-size: 10px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; }
-    .badge-tutor.today { background: #10b981; color: #fff; font-weight: 700;}
+    .student-info h3 { margin: 0 0 2px; font-size: 13px; font-weight: 800; color: var(--text-main);}
+    .badge-tutor { font-size: 9px; font-weight: 600; color: var(--text-muted); background: var(--spekta-gray-light); padding: 1px 6px; border-radius: 4px; }
+    .badge-tutor.today { background: #10b981; color: #fff; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
 
     .tutor-body .subject-title {
-        margin: 0 0 12px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #334155;
+        margin: 0 0 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-main);
     }
     .tutor-meta-box {
         display: flex;
-        gap: 16px;
-        background: #f8fafc;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
+        gap: 12px;
+        background: var(--spekta-gray-light);
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border-soft);
     }
-    .td-tutor-card.is-today .tutor-meta-box { background: #fff; border-color: #a7f3d0; }
-    .tutor-meta-box div { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 500;}
-    .tutor-meta-box div i { color: #94a3b8; }
+    .td-tutor-card.is-today .tutor-meta-box { background: var(--spekta-white); border-color: #a7f3d0; }
+    .tutor-meta-box div { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); font-weight: 600;}
+    .tutor-meta-box div i { color: var(--spekta-gray); }
     .td-tutor-card.is-today .tutor-meta-box div i { color: #059669; }
 
-    /* EMPTY STATES */
+    /* ── KOLOM KANAN (SIDEBAR KALENDER & AGENDA BENTO) ── */
+    .td-sidebar-col {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: sticky;
+        top: 20px;
+    }
+
+    .td-side-widget {
+        background: var(--spekta-white);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+    }
+
+    .td-date-box {
+        text-align: center;
+    }
+    .td-date-box span { display: block; font-size: 11px; font-weight: 800; color: var(--spekta-red); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .td-date-box strong { display: block; font-size: 38px; font-weight: 900; line-height: 1; color: var(--text-main); }
+    .td-date-box small { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 4px;}
+
+    .td-side-widget .widget-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--spekta-gray-light);
+    }
+    .td-side-widget .widget-header h3 { font-size: 12px; font-weight: 800; color: var(--text-main); text-transform: uppercase; margin: 0; letter-spacing: 0.02em; }
+    .td-side-widget .widget-header span { color: var(--spekta-red); font-size: 16px; }
+
+    .agenda-item-active {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: var(--spekta-red-light);
+        padding: 12px;
+        border-radius: 10px;
+        border-left: 4px solid var(--spekta-red);
+    }
+    .agenda-class-badge { font-size: 9px; font-weight: 800; color: var(--spekta-red-dark); text-transform: uppercase; }
+    .agenda-item-active strong { font-size: 13px; font-weight: 800; color: var(--text-main); line-height: 1.4; }
+    .agenda-item-active small { font-size: 11px; color: var(--text-muted); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+
+    .agenda-empty {
+        text-align: center;
+        padding: 20px 10px;
+        color: var(--text-muted);
+    }
+    .agenda-empty i { font-size: 20px; color: var(--spekta-gray); margin-bottom: 6px; display: block; }
+    .agenda-empty strong { display: block; font-size: 12px; color: var(--text-main); margin-bottom: 2px; }
+    .agenda-empty span { font-size: 11px; font-weight: 600; line-height: 1.4; }
+
+    /* Empty States */
     .td-empty-state {
         grid-column: 1 / -1;
         text-align: center;
-        padding: 40px 20px;
-        background: #f8fafc;
-        border-radius: 16px;
-        border: 1px dashed #cbd5e1;
+        padding: 30px 16px;
+        background: var(--spekta-gray-light);
+        border-radius: 12px;
+        border: 1px dashed var(--border-soft);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
     }
     .empty-icon {
-        width: 56px;
-        height: 56px;
-        background: #fff;
+        width: 44px;
+        height: 44px;
+        background: var(--spekta-white);
         border-radius: 50%;
         display: grid;
         place-items: center;
-        font-size: 24px;
-        color: #94a3b8;
-        margin: 0 auto 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        font-size: 18px;
+        color: var(--spekta-gray);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
-    .td-empty-state strong { display: block; font-size: 15px; color: #1e293b; margin-bottom: 6px; }
-    .td-empty-state p { margin: 0; font-size: 13px; color: #64748b; }
+    .td-empty-state strong { display: block; font-size: 13px; color: var(--text-main); margin-bottom: 2px; font-weight: 800; }
+    .td-empty-state p { margin: 0; line-height: 1.4; }
 
-    /* RESPONSIVE */
-    @media (max-width: 1200px) {
-        .td-stats { grid-template-columns: repeat(3, 1fr); }
-        .td-action-strip { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 900px) {
-        .td-hero { flex-direction: column; align-items: flex-start; }
-        .td-today-panel { width: 100%; max-width: 100%; }
-        .td-stats { grid-template-columns: repeat(2, 1fr); }
+    /* RESPONSIVE LAYOUT */
+    @media (max-width: 1100px) {
+        .td-dashboard-grid { grid-template-columns: 1fr; }
+        .td-sidebar-col { position: static; }
+        .td-stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
-        .td-stats { grid-template-columns: 1fr; }
-        .td-action-strip { grid-template-columns: 1fr; }
+        .td-stats-grid { grid-template-columns: 1fr; }
         .td-schedule-list, .td-tutor-grid { grid-template-columns: 1fr; }
-        .td-panel-heading { flex-direction: column; gap: 16px; align-items: flex-start; }
     }
 </style>
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/pengajar/dashboard.blade.php ENDPATH**/ ?>

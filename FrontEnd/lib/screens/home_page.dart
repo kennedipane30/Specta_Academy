@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-// ✨ MODIFIKASI: Tambahan Import package
 import 'package:url_launcher/url_launcher.dart'; 
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -14,13 +13,10 @@ import 'fitur/support_center_page.dart';
 import 'fitur/question_sharing_page.dart';
 import 'fitur/dedicated_tutor_page.dart';
 import 'fitur/consultation_page.dart';
-// ✨ MODIFIKASI: Import halaman detail banner
 import 'banner_detail_page.dart'; 
 import 'tryout_page.dart';
-import 'notification_page.dart';
 
 import 'class_detail_page.dart';
-import 'subject_list_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -41,12 +37,17 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   static const String baseUrl = 'http://10.0.2.2:8000';
 
-  static const Color primaryRed = Color(0xFF9C0412);
-  static const Color deepRed = Color(0xFF520102);
-  static const Color darkRed = Color(0xFF340506);
-  static const Color accentRed = Color(0xFFC50337);
-  static const Color pageBg = Color(0xFFFAFAFA);
-  static const Color textDark = Color(0xFF172033);
+  static const Color primaryRed = Color(0xFFC5352C);
+  static const Color brightRed = Color(0xFFE53935);
+  static const Color accentTeal = Color(0xFF2EA8AB);
+  static const Color darkTeal = Color(0xFF00696C);
+  static const Color lightBlueBg = Color(0xFFEFF4FF);
+  static const Color pageBg = Color(0xFFF1F5F9);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color outlineVariant = Color(0xFFE2BEBA);
+  static const Color neutralGray = Color(0xFF64748B);
+  static const Color lightGray = Color(0xFFE2E8F0);
 
   Map? currentData;
 
@@ -55,13 +56,18 @@ class _HomePageState extends State<HomePage> {
   List scheduleData = []; 
   List upcomingData = []; 
 
+  Map? latestTryoutResult;
+  double progressPercentage = 0.0;
+  int currentScore = 0;
+  int maxScore = 1000;
+  String improvementText = "0% improvement";
+  bool isImprovement = true;
+  bool isLoadingReport = false;
+
   bool isLoadingTryout = false;
   bool isEnrolled = false;
   bool isLoadingBanner = false;
   bool isLoadingSchedule = false;
-  
-  int unreadNotifications = 0;
-  bool isLoadingNotifications = false;
 
   int activeBannerIndex = 0;
 
@@ -72,7 +78,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     currentData = widget.userData;
-    _bannerController = PageController(viewportFraction: 0.88);
+    _bannerController = PageController(viewportFraction: 0.92);
 
     _updateEnrollmentStatus();
     refreshAllData();
@@ -91,7 +97,7 @@ class _HomePageState extends State<HomePage> {
       fetchBanners(),
       fetchTryouts(),
       fetchSchedules(),
-      fetchNotificationCount(),
+      fetchLearningReport(),
     ]);
   }
 
@@ -107,6 +113,73 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       debugPrint('USER DATA ERROR: $e');
+    }
+  }
+
+  Future<void> fetchLearningReport() async {
+    try {
+      setState(() => isLoadingReport = true);
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/learning-report'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final List results = decoded['data'] ?? [];
+        
+        if (results.isNotEmpty) {
+          final latest = results.last;
+          
+          final score = int.tryParse(latest['score']?.toString() ?? '0') ?? 0;
+          final maxSc = int.tryParse(latest['max_score']?.toString() ?? '1000') ?? 1000;
+          
+          double percent = maxSc > 0 ? (score / maxSc) : 0.0;
+          if (percent > 1.0) percent = 1.0;
+
+          String impText = "0% change";
+          bool isImp = true;
+
+          if (results.length > 1) {
+            final prev = results[results.length - 2];
+            final prevScore = int.tryParse(prev['score']?.toString() ?? '0') ?? 0;
+            final difference = score - prevScore;
+            
+            if (prevScore > 0) {
+              final percentageDiff = ((difference / prevScore) * 100).round();
+              if (percentageDiff >= 0) {
+                impText = "+$percentageDiff% improvement";
+                isImp = true;
+              } else {
+                impText = "$percentageDiff% decline";
+                isImp = false;
+              }
+            } else if (difference > 0) {
+              impText = "+$difference score points";
+              isImp = true;
+            }
+          } else {
+            impText = "First tryout completed";
+            isImp = true;
+          }
+
+          setState(() {
+            latestTryoutResult = latest;
+            currentScore = score;
+            maxScore = maxSc;
+            progressPercentage = percent;
+            improvementText = impText;
+            isImprovement = isImp;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('LEARNING REPORT ERROR: $e');
+    } finally {
+      if (mounted) setState(() => isLoadingReport = false);
     }
   }
 
@@ -190,35 +263,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> fetchNotificationCount() async {
-    try {
-      setState(() => isLoadingNotifications = true);
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/notifications/unread-count'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ${widget.token}',
-        },
-      );
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        setState(() {
-          unreadNotifications = decoded['unread_count'] ?? 0;
-        });
-      }
-    } catch (e) {
-      debugPrint('NOTIFICATION COUNT ERROR: $e');
-    } finally {
-      if (mounted) setState(() => isLoadingNotifications = false);
-    }
-  }
-
-  void _handleNotificationClick() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationPage(token: widget.token))).then((_) {
-      fetchNotificationCount();
-    });
-  }
-
   void _startBannerAutoSlide() {
     _bannerTimer?.cancel();
     if (bannerData.length <= 1) return;
@@ -234,11 +278,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ✨ MODIFIKASI: FUNGSI BARU UNTUK KLIK BANNER
   Future<void> _handleBannerClick(Map bannerItem, String imageUrl) async {
     final String? link = bannerItem['link']?.toString().trim();
 
-    // Jika ada link, buka browser
     if (link != null && link.isNotEmpty) {
       final Uri url = Uri.parse(link);
       if (await canLaunchUrl(url)) {
@@ -247,7 +289,6 @@ class _HomePageState extends State<HomePage> {
         _showWarning("Tidak dapat membuka link promo ini.");
       }
     } else {
-      // Jika kosong, arahkan ke detail
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -308,7 +349,11 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: primaryRed)));
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: primaryRed))
+    );
 
     try {
       final classId = int.parse(student['class_id'].toString());
@@ -321,9 +366,15 @@ class _HomePageState extends State<HomePage> {
         final decoded = jsonDecode(response.body);
         final int classPrice = int.tryParse(decoded['price']?.toString() ?? '0') ?? 0;
 
-        Navigator.push(context, MaterialPageRoute(
+        Navigator.push(
+          context, 
+          MaterialPageRoute(
             builder: (context) => ClassDetailPage(
-              classId: classId, className: decoded['program_name'] ?? "Materi Saya", price: classPrice, token: widget.token, userData: widget.userData, 
+              classId: classId, 
+              className: decoded['program_name'] ?? "Materi Saya", 
+              price: classPrice, 
+              token: widget.token, 
+              userData: widget.userData, 
             ),
           ),
         );
@@ -338,54 +389,82 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(context, MaterialPageRoute(builder: (c) => TryoutPage(token: widget.token, userData: widget.userData)));
   }
 
+  void _showMoreFeaturesSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Semua Fitur Spekta Academy",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Seluruh menu pembelajaran utama Spekta Academy telah ditampilkan di layar beranda Anda. Silakan hubungi pusat bantuan jika Anda membutuhkan modul tambahan.",
+                style: TextStyle(fontSize: 13, color: textDarkVariant, height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryRed,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Tutup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: pageBg,
-      body: RefreshIndicator(
-        color: primaryRed,
-        onRefresh: refreshAllData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 18),
-              _buildBannerSection(),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: primaryRed,
+          onRefresh: refreshAllData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 12), 
+                _buildBannerSection(),
+                const SizedBox(height: 18), 
+                _buildBentoGrid(),
+                const SizedBox(height: 24), 
+                _sectionTitle(title: 'Jadwal Hari Ini', onTap: null),
+                const SizedBox(height: 10),
+                _buildScheduleWidget(),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    _sectionTitle(title: 'Jadwal Hari Ini', action: 'Lihat Semua', onTap: null),
-                    const SizedBox(height: 12),
-                    _buildScheduleWidget(),
-
-                    const SizedBox(height: 28), 
-                    _sectionTitle(title: 'Tryout Kamu', action: 'Lihat Semua', onTap: _handleTryout),
-                    const SizedBox(height: 14),
-                    _buildTryoutSection(),
-
-                    const SizedBox(height: 28),
-                    const Text('Menu Utama', style: TextStyle(color: textDark, fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                    const SizedBox(height: 14),
-                    _buildMainMenuGrid(),
-
-                    const SizedBox(height: 28),
-                    if (upcomingData.isNotEmpty) ...[
-                      _sectionTitle(title: 'Kelas Mendatang', action: 'Lihat Semua'),
-                      const SizedBox(height: 14),
-                      _buildUpcomingClassesList(),
-                      const SizedBox(height: 16),
-                    ]
-                  ],
-                ),
-              ),
-            ],
+                if (upcomingData.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _sectionTitle(title: 'Kelas Mendatang', onTap: null),
+                  const SizedBox(height: 10),
+                  _buildUpcomingClassesList(),
+                ],
+                const SizedBox(height: 24),
+                _buildUtilityCardsRow(),
+              ],
+            ),
           ),
         ),
       ),
@@ -396,23 +475,77 @@ class _HomePageState extends State<HomePage> {
     final name = _safeText(currentData?['name'] ?? widget.userData['name'], fallback: widget.userName);
 
     return Container(
-      width: double.infinity, padding: const EdgeInsets.fromLTRB(22, 52, 22, 30),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accentRed, primaryRed, darkRed]),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(34), bottomRight: Radius.circular(34)),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [primaryRed, accentTeal],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryRed.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          )
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildAvatar(),
-          const SizedBox(width: 13),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Welcome back,', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(
+                  'Welcome back,',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 24, height: 1.1, fontWeight: FontWeight.w900, letterSpacing: -0.4)),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4ADE80), 
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Ready to learn today?',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.75),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -421,40 +554,60 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ✅ MODIFIKASI: Memperbaiki Avatar untuk menampilkan foto profil dari currentData
   Widget _buildAvatar() {
-    // Ambil photo_url dari currentData (hasil dari getProfile)
     final photoUrl = currentData?['photo_url'] ?? '';
     
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 58, width: 58, padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 14, offset: const Offset(0, 6))]),
+          height: 50, 
+          width: 50, 
+          padding: const EdgeInsets.all(2.0),
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            shape: BoxShape.circle, 
+            border: Border.all(color: Colors.white, width: 2.0), 
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              )
+            ]
+          ),
           child: ClipOval(
             child: photoUrl.isNotEmpty
                 ? CachedNetworkImage(
                     imageUrl: photoUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: const Color(0xFFFFF1F1),
-                      child: const Icon(Icons.person_rounded, color: primaryRed, size: 31),
+                      color: lightBlueBg,
+                      child: const Icon(Icons.person, color: primaryRed, size: 26),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFFFFF1F1),
-                      child: const Icon(Icons.person_rounded, color: primaryRed, size: 31),
+                      color: lightBlueBg,
+                      child: const Icon(Icons.person, color: primaryRed, size: 26),
                     ),
                   )
                 : Container(
-                    color: const Color(0xFFFFF1F1),
-                    child: const Icon(Icons.person_rounded, color: primaryRed, size: 31),
+                    color: lightBlueBg,
+                    child: const Icon(Icons.person, color: primaryRed, size: 26),
                   ),
           ),
         ),
         Positioned(
-          right: 0, bottom: 1,
-          child: Container(height: 15, width: 15, decoration: BoxDecoration(color: const Color(0xFF22C55E), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3))),
+          bottom: 0,
+          right: 0,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2EC55E),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
         ),
       ],
     );
@@ -462,35 +615,96 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildBannerSection() {
     if (isLoadingBanner) {
-      return Container(height: 165, margin: const EdgeInsets.symmetric(horizontal: 22), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(26)), child: const Center(child: CircularProgressIndicator(color: primaryRed)));
+      return Container(
+        height: 150, 
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), 
+        child: const Center(child: CircularProgressIndicator(color: primaryRed))
+      );
     }
+
     if (bannerData.isEmpty) {
-      return Container(height: 165, margin: const EdgeInsets.symmetric(horizontal: 22), decoration: BoxDecoration(gradient: const LinearGradient(colors: [primaryRed, deepRed]), borderRadius: BorderRadius.circular(26)), child: const Center(child: Text('Banner belum tersedia', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))));
+      return Container(
+        height: 142, 
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [primaryRed, brightRed],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: primaryRed.withOpacity(0.20), 
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: _buildDefaultBannerContent("Informasi Akademik", "banner belum di input"),
+      );
     }
 
     return Column(
       children: [
         SizedBox(
-          height: 168,
+          height: 160, 
           child: PageView.builder(
-            controller: _bannerController, itemCount: bannerData.length,
+            controller: _bannerController, 
+            itemCount: bannerData.length,
             onPageChanged: (index) => setState(() => activeBannerIndex = index),
             itemBuilder: (context, index) {
               final item = bannerData[index] as Map;
               final imagePath = _firstExisting(item, ['image_url', 'image', 'banner', 'photo', 'thumbnail']);
               final imageUrl = _imageUrl(imagePath);
 
-              // ✨ MODIFIKASI: Bungkus Container Banner dengan GestureDetector
               return GestureDetector(
                 onTap: () => _handleBannerClick(item, imageUrl),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(26), boxShadow: [BoxShadow(color: primaryRed.withOpacity(0.13), blurRadius: 18, offset: const Offset(0, 8))]),
+                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16), 
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryRed.withOpacity(0.2), 
+                        blurRadius: 10, 
+                        offset: const Offset(0, 4)
+                      )
+                    ]
+                  ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: imageUrl.isEmpty
-                        ? Container(color: const Color(0xFFE5E7EB), child: const Icon(Icons.image_rounded, color: Colors.grey, size: 38))
-                        : Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => const Icon(Icons.error))
+                    borderRadius: BorderRadius.circular(16),
+                    child: imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorWidget: (context, url, error) => Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [primaryRed, brightRed],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: _buildBannerOverlayContent(item),
+                            ),
+                            placeholder: (context, url) => Container(
+                              color: Colors.white,
+                              child: const Center(child: CircularProgressIndicator(color: primaryRed)),
+                            ),
+                          )
+                        : Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                  colors: [primaryRed, brightRed],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                            ),
+                            child: _buildBannerOverlayContent(item),
+                          ),
                   ),
                 ),
               );
@@ -499,26 +713,65 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center, 
           children: List.generate(bannerData.length, (index) {
             final active = index == activeBannerIndex;
-            return AnimatedContainer(duration: const Duration(milliseconds: 250), margin: const EdgeInsets.symmetric(horizontal: 3), height: 7, width: active ? 22 : 7, decoration: BoxDecoration(color: active ? primaryRed : Colors.grey.shade300, borderRadius: BorderRadius.circular(99)));
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250), 
+              margin: const EdgeInsets.symmetric(horizontal: 2), 
+              height: 5, 
+              width: active ? 16 : 5, 
+              decoration: BoxDecoration(
+                color: active ? primaryRed : Colors.grey.shade300, 
+                borderRadius: BorderRadius.circular(99)
+              )
+            );
           }),
         ),
       ],
     );
   }
 
-  Widget _sectionTitle({required String title, required String action, VoidCallback? onTap}) {
-    return Row(
+  Widget _buildDefaultBannerContent(String title, String subtitle) {
+    return Stack(
       children: [
-        Expanded(child: Text(title, style: const TextStyle(color: textDark, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -0.4))),
-        GestureDetector(
-          onTap: onTap,
-          child: Row(
+        Positioned(
+          right: -24,
+          bottom: -24,
+          child: Container(
+            width: 110,
+            height: 110,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(action, style: const TextStyle(color: primaryRed, fontSize: 12, fontWeight: FontWeight.w900)),
-              const SizedBox(width: 5), const Icon(Icons.arrow_forward_ios_rounded, color: primaryRed, size: 13),
+              const Icon(Icons.campaign_rounded, color: Colors.white, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold, 
+                ),
+              ),
             ],
           ),
         ),
@@ -526,25 +779,462 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildBannerOverlayContent(Map item) {
+    final title = _safeText(item['title'], fallback: "Master Calculus with\nSpekta Elite");
+    final subtitle = _safeText(item['description'], fallback: "Unlock advanced modules.");
+
+    return Stack(
+      children: [
+        Container(color: Colors.black.withOpacity(0.25)),
+        Positioned(
+          right: -32,
+          bottom: -32,
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  "PREMIUM ACCESS",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  height: 1.15
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBentoGrid() {
+    final bentoItems = [
+      {
+        'title': 'Materi', 
+        'icon': Icons.import_contacts, 
+        'bgColor': const Color(0xFFE2F9FC),
+        'borderColor': const Color(0xFFBFEFF5),
+        'iconColor': const Color(0xFF00696C),
+        'action': () => _handleLearningMaterials()
+      },
+      {
+        'title': 'Tryout', 
+        'icon': Icons.assignment, 
+        'bgColor': const Color(0xFFFFF1F1),
+        'borderColor': const Color(0xFFFCD3D1),
+        'iconColor': primaryRed,
+        'action': () => _handleTryout()
+      },
+      {
+        'title': 'Tutor', 
+        'icon': Icons.school, 
+        'bgColor': const Color(0xFFF8FAFC),
+        'borderColor': const Color(0xFFE2E8F0),
+        'iconColor': neutralGray,
+        'action': () => Navigator.push(context, MaterialPageRoute(builder: (c) => DedicatedTutorPage(token: widget.token, userData: widget.userData)))
+      },
+      {
+        'title': 'Bank Soal', 
+        'icon': Icons.menu_book, 
+        'bgColor': const Color(0xFFEFF4FF),
+        'borderColor': const Color(0xFFD0E1FF),
+        'iconColor': const Color(0xFF1D4ED8),
+        'action': () => Navigator.push(context, MaterialPageRoute(builder: (c) => QuestionSharingPage(token: widget.token)))
+      },
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: bentoItems.length,
+      padding: EdgeInsets.zero, 
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14, 
+        childAspectRatio: 1.6,
+      ),
+      itemBuilder: (context, index) {
+        final item = bentoItems[index];
+        final bgColor = item['bgColor'] as Color;
+        final borderColor = item['borderColor'] as Color;
+        final iconColor = item['iconColor'] as Color;
+
+        return InkWell(
+          onTap: item['action'] as VoidCallback,
+          borderRadius: BorderRadius.circular(20),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.015),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(item['icon'] as IconData, color: iconColor, size: 24),
+                const SizedBox(height: 10),
+                Text(
+                  item['title'] as String,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildUtilityCardsRow() {
+    final utilities = [
+      {
+        'title': 'CONSULT',
+        'icon': Icons.chat_bubble_outline_rounded,
+        'action': () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())),
+      },
+      {
+        'title': 'ABOUT',
+        'icon': Icons.info_outline_rounded,
+        'action': () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())),
+      },
+      {
+        'title': 'SUPPORT',
+        'icon': Icons.support_agent_rounded,
+        'action': () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())),
+      },
+    ];
+
+    return Row(
+      children: List.generate(utilities.length, (index) {
+        final item = utilities[index];
+        
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(
+              right: index == utilities.length - 1 ? 0 : 12,
+            ),
+            height: 84,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: outlineVariant.withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.015),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: InkWell(
+              onTap: item['action'] as VoidCallback,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(item['icon'] as IconData, color: primaryRed, size: 22),
+                    const SizedBox(height: 8),
+                    Text(
+                      item['title'] as String,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: textDark,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // Method _buildTryoutProgressCard() tetap ada di sini namun tidak dipanggil dari build()
+  Widget _buildTryoutProgressCard() {
+    if (isLoadingReport) {
+      return Container(
+        height: 100,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: const Center(child: CircularProgressIndicator(color: primaryRed)),
+      );
+    }
+
+    if (latestTryoutResult == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: outlineVariant.withOpacity(0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 44,
+              width: 44,
+              decoration: const BoxDecoration(
+                color: lightBlueBg,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.analytics_outlined, color: primaryRed, size: 20),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Tryout Progress Belum Tersedia",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Selesaikan simulasi Tryout pertama Anda untuk melihat progres.",
+                    style: TextStyle(fontSize: 11, color: textDarkVariant, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final displayPercentageText = "${(progressPercentage * 100).round()}%";
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: outlineVariant.withOpacity(0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03), 
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Tryout Progress",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    "$currentScore",
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: textDark),
+                  ),
+                  Text(
+                    "/$maxScore",
+                    style: const TextStyle(fontSize: 13, color: textDarkVariant, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isImprovement ? const Color(0xFFE6F7F7) : const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isImprovement ? Icons.trending_up_rounded : Icons.trending_down_rounded, 
+                      color: isImprovement ? darkTeal : primaryRed, 
+                      size: 12,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      improvementText,
+                      style: TextStyle(
+                        color: isImprovement ? darkTeal : primaryRed, 
+                        fontSize: 10, 
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 60, 
+                height: 60,
+                child: CircularProgressIndicator(
+                  value: progressPercentage,
+                  strokeWidth: 8,
+                  backgroundColor: const Color(0xFFEFF4FF),
+                  valueColor: AlwaysStoppedAnimation<Color>(isImprovement ? darkTeal : primaryRed),
+                  strokeCap: StrokeCap.round, 
+                ),
+              ),
+              Text(
+                displayPercentageText,
+                style: TextStyle(
+                  fontSize: 13, 
+                  fontWeight: FontWeight.w900, 
+                  color: isImprovement ? darkTeal : primaryRed
+                ),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle({required String title, VoidCallback? onTap}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title, 
+          style: const TextStyle(
+            color: textDark, 
+            fontSize: 15.5, 
+            fontWeight: FontWeight.w900, 
+            letterSpacing: -0.4
+          )
+        ),
+        if (onTap != null)
+          GestureDetector(
+            onTap: onTap,
+            child: const Row(
+              children: [
+                Text(
+                  'See All', 
+                  style: TextStyle(color: primaryRed, fontSize: 12, fontWeight: FontWeight.bold)
+                ),
+                SizedBox(width: 4), 
+                Icon(Icons.arrow_forward_ios_rounded, color: primaryRed, size: 10),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildScheduleWidget() {
     if (isLoadingSchedule) {
-      return Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(23)), child: const Center(child: CircularProgressIndicator(color: primaryRed)));
+      return Container(
+        height: 80, 
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), 
+        child: const Center(child: CircularProgressIndicator(color: primaryRed))
+      );
     }
 
     if (scheduleData.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(23), border: Border.all(color: const Color(0xFFFFE0E3)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 6))]),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(16), 
+          border: Border.all(color: outlineVariant.withOpacity(0.5)), 
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+          ]
+        ),
         child: Row(
           children: [
-            Container(height: 46, width: 46, decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.calendar_today_outlined, color: primaryRed, size: 22)),
-            const SizedBox(width: 14),
-            Column(
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: lightBlueBg, 
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: outlineVariant.withOpacity(0.2)),
+              ), 
+              child: const Icon(Icons.calendar_today_outlined, color: primaryRed, size: 18) 
+            ),
+            const SizedBox(width: 12),
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Tidak ada jadwal hari ini', style: TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 3),
-                Text('Jadwal dari guru akan muncul di sini', style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500)),
+                Text(
+                  'Tidak ada jadwal terdekat', 
+                  style: TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w900) 
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Jadwal belajar baru akan muncul di sini', 
+                  style: TextStyle(color: textDarkVariant, fontSize: 11, fontWeight: FontWeight.bold) 
+                ),
               ],
             ),
           ],
@@ -554,100 +1244,98 @@ class _HomePageState extends State<HomePage> {
 
     final displayList = scheduleData.take(3).toList();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(23), border: Border.all(color: const Color(0xFFFFCDD2), width: 1.2), boxShadow: [BoxShadow(color: primaryRed.withOpacity(0.07), blurRadius: 18, offset: const Offset(0, 8))]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.calendar_month_rounded, color: primaryRed, size: 15),
-              const SizedBox(width: 6),
-              Text(_getTodayLabel(), style: const TextStyle(color: primaryRed, fontSize: 11, fontWeight: FontWeight.w800)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(99)),
-                child: Text('${scheduleData.length} jadwal', style: const TextStyle(color: primaryRed, fontSize: 10, fontWeight: FontWeight.w700)),
-              ),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: displayList.length,
+      padding: EdgeInsets.zero, 
+      separatorBuilder: (context, index) => const SizedBox(height: 10), 
+      itemBuilder: (context, index) {
+        final item = displayList[index] as Map;
+        
+        final String day = item['day_date']?.toString() ?? DateTime.now().day.toString();
+        final String month = item['month_name']?.toString().substring(0, 3) ?? "JAN";
+        
+        final String subject = item['subject_name'] ?? 'Mata Pelajaran';
+        final String teacher = item['teacher_name'] ?? 'Guru Pengajar';
+        final String startTime = item['start_time'] ?? '';
+        final String endTime = item['end_time'] ?? '';
+
+        return Container(
+          padding: const EdgeInsets.all(10), 
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: outlineVariant.withOpacity(0.4)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
             ],
           ),
-          const SizedBox(height: 12),
-          ...displayList.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value as Map;
-            final isLast = index == displayList.length - 1;
-            return _buildScheduleItem(item, isLast: isLast);
-          }),
-          if (scheduleData.length > 3) ...[
-            const SizedBox(height: 8),
-            Center(child: Text('+ ${scheduleData.length - 3} jadwal lainnya', style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600))),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScheduleItem(Map item, {bool isLast = false}) {
-    final subject = item['subject_name'] ?? 'Mata Pelajaran';
-    final teacherName = item['teacher_name'] ?? '';
-    final startTime = item['start_time'] ?? '';
-    final endTime = item['end_time'] ?? '';
-    final statusColor = item['status_color'] ?? 'blue';
-
-    Color dotColor; Color badgeBg; Color badgeText; String badgeLabel;
-
-    switch (statusColor) {
-      case 'green': dotColor = const Color(0xFF3B6D11); badgeBg = const Color(0xFFEAF3DE); badgeText = const Color(0xFF27500A); badgeLabel = 'Sedang berlangsung'; break;
-      case 'grey': dotColor = Colors.grey.shade500; badgeBg = const Color(0xFFF1EFE8); badgeText = const Color(0xFF444441); badgeLabel = 'Selesai'; break;
-      default: dotColor = const Color(0xFF185FA5); badgeBg = const Color(0xFFE6F1FB); badgeText = const Color(0xFF0C447C); badgeLabel = 'Terjadwal';
-    }
-
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                Container(height: 10, width: 10, margin: const EdgeInsets.only(top: 4), decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-                if (!isLast) Container(width: 1.5, height: 38, color: const Color(0xFFFFCDD2)),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Text(subject, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w800))),
-                      const SizedBox(width: 8),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(99)), child: Text(badgeLabel, style: TextStyle(color: badgeText, fontSize: 9, fontWeight: FontWeight.w800))),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      if (startTime.isNotEmpty) ...[
-                        Icon(Icons.access_time_rounded, size: 11, color: Colors.grey.shade500), const SizedBox(width: 3),
-                        Text(endTime.isNotEmpty ? '$startTime – $endTime' : startTime, style: TextStyle(color: Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 8),
-                      ],
-                      if (teacherName.isNotEmpty) ...[
-                        Icon(Icons.person_outline_rounded, size: 11, color: Colors.grey.shade500), const SizedBox(width: 3),
-                        Expanded(child: Text(teacherName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w600))),
-                      ],
-                    ],
-                  ),
-                  if (!isLast) const SizedBox(height: 8),
-                ],
+          child: Row(
+            children: [
+              Container(
+                width: 54, 
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                decoration: BoxDecoration(
+                  color: lightBlueBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: outlineVariant.withOpacity(0.3)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      month.toUpperCase(),
+                      style: const TextStyle(color: textDarkVariant, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      day,
+                      style: const TextStyle(color: textDark, fontSize: 16, fontWeight: FontWeight.w900, height: 1.1),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subject,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      teacher,
+                      style: const TextStyle(color: textDarkVariant, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 12, color: textDarkVariant),
+                        const SizedBox(width: 4),
+                        Text(
+                          endTime.isNotEmpty ? '$startTime - $endTime' : startTime,
+                          style: const TextStyle(color: textDarkVariant, fontSize: 10, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: primaryRed, size: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -655,7 +1343,7 @@ class _HomePageState extends State<HomePage> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
+      padding: EdgeInsets.zero, 
       itemCount: upcomingData.length > 3 ? 3 : upcomingData.length, 
       itemBuilder: (context, index) {
         final item = upcomingData[index];
@@ -667,50 +1355,60 @@ class _HomePageState extends State<HomePage> {
         final teacher = item['teacher_name'] ?? '';
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(13),
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(23),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.045), blurRadius: 16, offset: const Offset(0, 8))],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: outlineVariant.withOpacity(0.4)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.015), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Row(
             children: [
               Container(
-                width: 68, height: 86,
-                decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(19)),
+                width: 54, 
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                decoration: BoxDecoration(
+                  color: lightBlueBg, 
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, 
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(monthName, style: const TextStyle(color: primaryRed, fontSize: 11, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
-                    Text(dayDate, style: const TextStyle(color: textDark, fontSize: 26, fontWeight: FontWeight.w900)),
-                    Text(dayName, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w700)),
+                    Text(
+                      monthName, 
+                      style: const TextStyle(color: primaryRed, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      dayDate, 
+                      style: const TextStyle(color: textDark, fontSize: 16, fontWeight: FontWeight.w900, height: 1.1),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      dayName, 
+                      style: const TextStyle(color: textDarkVariant, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFEEE7FF), borderRadius: BorderRadius.circular(99)),
-                      child: const Text('LIVE CLASS', style: TextStyle(color: Color(0xFF5B21B6), fontSize: 9, fontWeight: FontWeight.w900)),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(subject, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textDark, fontSize: 15, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 5),
+                    Text(subject, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
+                    Text('Bersama $teacher', style: const TextStyle(color: textDarkVariant, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
-                        Icon(Icons.access_time_rounded, color: Colors.grey.shade600, size: 15),
-                        const SizedBox(width: 5),
-                        Text('$time WIB', style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w700)),
+                        const Icon(Icons.access_time_rounded, color: textDarkVariant, size: 12),
+                        const SizedBox(width: 4),
+                        Text('$time WIB', style: const TextStyle(color: textDarkVariant, fontSize: 10, fontWeight: FontWeight.w900)),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text('Bersama $teacher', style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -721,100 +1419,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String _getTodayLabel() {
-    final now = DateTime.now();
-    final days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
-  }
-
-  Widget _buildTryoutSection() {
-    if (isLoadingTryout) {
-      return Container(height: 76, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: const Center(child: CircularProgressIndicator(color: primaryRed)));
-    }
-    return GestureDetector(
-      onTap: _handleTryout,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.grey.withOpacity(0.15)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))]),
-        child: Row(
-          children: [
-            Container(height: 44, width: 44, decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.assignment_rounded, color: primaryRed, size: 22)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tryout Kamu', style: TextStyle(color: textDark, fontSize: 15, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 3),
-                  Text(tryoutData.isEmpty ? 'Mulai pengerjaan simulasi ujian' : 'Tersedia ${tryoutData.length} tryout siap dikerjakan', style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: primaryRed, size: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainMenuGrid() {
-    final menus = [
-      {'title': 'Learning\nMaterials', 'subtitle': 'Materi lengkap', 'icon': Icons.menu_book_rounded, 'gradient': [const Color(0xFFFF512F), const Color(0xFFFF8A65)]},
-      {'title': 'Dedicated\nTutor', 'subtitle': 'Tutor pilihan', 'icon': Icons.person_rounded, 'gradient': [const Color(0xFF5B45F1), const Color(0xFF8B7CF6)]},
-      {'title': 'Tryout', 'subtitle': 'Simulasi ujian', 'icon': Icons.assignment_outlined, 'gradient': [const Color(0xFFD32F2F), const Color(0xFFEF9A9A)]},
-      {'title': 'Question\nBank', 'subtitle': 'Bank soal', 'icon': Icons.history_edu_rounded, 'gradient': [const Color(0xFF00A873), const Color(0xFF4ADE80)]},
-      {'title': 'About\nSpekta', 'subtitle': 'Tentang kami', 'icon': Icons.info_outline_rounded, 'gradient': [const Color(0xFF1769E8), const Color(0xFF60A5FA)]},
-      {'title': 'Consultation', 'subtitle': 'Konsultasi', 'icon': Icons.chat_rounded, 'gradient': [const Color(0xFFE0003D), const Color(0xFFFF4D6D)]},
-      {'title': 'Support\nCenter', 'subtitle': 'Pusat bantuan', 'icon': Icons.support_agent_rounded, 'gradient': [const Color(0xFF475569), const Color(0xFF94A3B8)]},
-    ];
-    return GridView.builder(
-      shrinkWrap: true, padding: EdgeInsets.zero, physics: const NeverScrollableScrollPhysics(), itemCount: menus.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 13, crossAxisSpacing: 13, childAspectRatio: 2.35),
-      itemBuilder: (context, index) {
-        final item = menus[index];
-        final gradients = item['gradient'] as List<Color>;
-        return InkWell(
-          borderRadius: BorderRadius.circular(21),
-          onTap: () => _handleMenuTap(item['title'].toString().replaceAll('\n', ' ')),
-          child: Container(
-            padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(21), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.045), blurRadius: 14, offset: const Offset(0, 7))]),
-            child: Row(
-              children: [
-                Container(height: 48, width: 48, decoration: BoxDecoration(gradient: LinearGradient(colors: gradients, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16)), child: Icon(item['icon'] as IconData, color: Colors.white, size: 25)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item['title'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textDark, fontSize: 12.5, height: 1.05, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 5),
-                      Text(item['subtitle'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _handleMenuTap(String title) {
-    switch (title) {
-      case 'Learning Materials': _handleLearningMaterials(); break;
-      case 'Dedicated Tutor': Navigator.push(context, MaterialPageRoute(builder: (c) => DedicatedTutorPage(token: widget.token, userData: widget.userData))); break;
-      case 'Tryout': _handleTryout(); break;
-      case 'Question Bank': Navigator.push(context, MaterialPageRoute(builder: (c) => QuestionSharingPage(token: widget.token))); break;
-      case 'About Spekta': Navigator.push(context, MaterialPageRoute(builder: (c) => const AboutAcademyPage())); break;
-      case 'Consultation': Navigator.push(context, MaterialPageRoute(builder: (c) => const ConsultationPage())); break;
-      case 'Support Center': Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportCenterPage())); break;
-    }
-  }
-
   void _showWarning(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: primaryRed, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: primaryRed, 
+        behavior: SnackBarBehavior.floating, 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
+        content: Text(message)
+      )
+    );
   }
 }

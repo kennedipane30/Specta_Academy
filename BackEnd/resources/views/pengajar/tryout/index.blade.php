@@ -4,11 +4,7 @@
 
 @section('content')
 @php
-    // Menghitung total seluruh soal yang sudah dibuat oleh guru ini di semua kelas/mapel
-    $totalSoalSelesai = \DB::table('tryout_drafts')
-        ->where('user_id', Auth::user()->usersID)
-        ->count();
-
+    // ✅ Data sudah dikirim dari controller, tidak perlu query DB langsung
     $assignmentCollection = collect($assignmentsWithSubjects ?? []);
     $totalAssignment = $assignmentCollection->count();
 @endphp
@@ -38,6 +34,13 @@
         </div>
     @endif
 
+    @if(session('warning'))
+        <div class="tm-alert-modern warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>{{ session('warning') }}</span>
+        </div>
+    @endif
+
     {{-- ── 2. STATS SUMMARY GRID (3 KOLOM SEIMBANG) ── --}}
     <section class="cp-stats">
         <!-- Penugasan Kelas -->
@@ -54,9 +57,9 @@
             <div class="cp-stat-icon red"><i class="fa-solid fa-file-circle-check"></i></div>
             <div class="cp-stat-info">
                 <p>Soal Disetor</p>
-                <h2>{{ $totalSoalSelesai }} <span>Soal</span></h2>
+                <h2>{{ $totalSoalSelesai ?? 0 }} <span>Soal</span></h2>
             </div>
-            @if($totalSoalSelesai > 0)
+            @if(($totalSoalSelesai ?? 0) > 0)
                 <span class="cp-pulse-dot"></span>
             @endif
         </div>
@@ -93,15 +96,8 @@
                 <tbody>
                     @forelse($assignmentsWithSubjects as $assign)
                         @php
-                            // Ambil nama mapel
                             $subjectName = $assign->subject_name;
-
-                            // HITUNG SOAL
-                            $count = \DB::table('tryout_drafts')
-                                ->where('user_id', Auth::user()->usersID)
-                                ->where('class_id', $assign->class_id)
-                                ->where('subject_name', trim($subjectName))
-                                ->count();
+                            $count = $assign->total_soal ?? 0;
                         @endphp
                         <tr>
                             <td>
@@ -188,10 +184,10 @@
         --border-soft: #e5e7eb;
     }
 
-    .cp-page { 
-        font-family: 'Montserrat', sans-serif; 
-        padding: 10px; 
-        animation: fadeIn 0.4s ease-out; 
+    .cp-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
+        animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -235,6 +231,7 @@
     .tm-alert-modern { padding: 12px 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13px; }
     .tm-alert-modern.success { background: #e6f7ed; color: #15803d; border-left: 5px solid #22c55e; }
     .tm-alert-modern.error { background: #fee2e2; color: #b91c1c; border-left: 5px solid #ef4444; }
+    .tm-alert-modern.warning { background: #fef3c7; color: #92400e; border-left: 5px solid #f59e0b; }
 
     /* Stats Grid */
     .cp-stats {
@@ -316,7 +313,7 @@
 
     /* Table Panel */
     .cp-main-card { background: var(--spekta-white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-soft); box-shadow: 0 4px 15px rgba(0,0,0,0.01); }
-    
+
     .card-header-flex h2 { font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0; }
     .card-header-flex p { font-size: 11px; color: var(--text-muted); margin: 0; font-weight: 600; }
 
@@ -381,7 +378,7 @@
     .text-right { text-align: right; }
 
     @media (max-width: 1100px) {
-        .cp-table-modern th:nth-child(3), .cp-table-modern td:nth-child(3) { display: none; } /* Sembunyikan progress bar di layar kecil agar tidak sesak */
+        .cp-table-modern th:nth-child(3), .cp-table-modern td:nth-child(3) { display: none; }
     }
 </style>
 @endsection

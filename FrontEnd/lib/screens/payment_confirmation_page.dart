@@ -26,6 +26,19 @@ class PaymentConfirmationPage extends StatefulWidget {
 }
 
 class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+
   final TextEditingController _promoController = TextEditingController();
   final currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -34,15 +47,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   String? appliedPromoCode;
   bool isChecking = false;
 
-  final Color spektaRed = const Color(0xFF990000);
-
   @override
   void initState() {
     super.initState();
     finalPrice = widget.basePrice;
   }
 
-  // --- FUNGSI CEK PROMO KE BACKEND ---
   Future<void> _checkPromo() async {
     String inputCode = _promoController.text.trim().toUpperCase();
     if (inputCode.isEmpty) return;
@@ -73,10 +83,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.green, 
-            content: Text("✅ Kode Promo Berhasil Digunakan!"),
+          SnackBar(
+            backgroundColor: darkTeal, 
+            content: const Text("✅ Kode Promo Berhasil Digunakan!"),
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           )
         );
       } else {
@@ -94,29 +105,26 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     }
   }
 
-  // --- ✅ MODIFIKASI: FUNGSI PROSES PEMBAYARAN KE MIDTRANS ---
   Future<void> _processPayment() async {
     showDialog(
       context: context, 
       barrierDismissible: false, 
-      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white))
+      builder: (_) => const Center(child: CircularProgressIndicator(color: accentTeal))
     );
 
     try {
-      // ✅ Gunakan AuthService.getSnapToken
       final result = await AuthService.getSnapToken(
         classId: widget.classId,
         token: widget.token,
         promoCode: appliedPromoCode,
       );
 
-      if (mounted) Navigator.pop(context); // Tutup Loading
+      if (mounted) Navigator.pop(context);
 
       if (result != null && result['status'] == 'success') {
         String snapUrl = result['snap_url'];
-        String orderId = result['order_id']; // ✅ Ambil order_id dari response
+        String orderId = result['order_id'];
         
-        // ✅ Buka WebView Midtrans dengan order_id dan token
         final paymentResult = await Navigator.push(
           context, 
           MaterialPageRoute(
@@ -128,7 +136,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           )
         );
 
-        // Jika pembayaran sukses
         if (paymentResult == true) {
           if (mounted) Navigator.pop(context, true);
         }
@@ -143,16 +150,29 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(backgroundColor: Colors.red, content: Text(msg), behavior: SnackBarBehavior.floating)
+      SnackBar(
+        backgroundColor: primaryRed, 
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)), 
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      )
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: pageBg,
       appBar: AppBar(
-        backgroundColor: spektaRed,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         elevation: 0,
         title: const Text(
           "Konfirmasi Pembayaran", 
@@ -163,6 +183,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           onPressed: () => Navigator.pop(context)
         ),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -171,7 +193,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           children: [
             const Text(
               "Rincian Pendaftaran", 
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)
+              style: TextStyle(fontWeight: FontWeight.bold, color: neutralGray, fontSize: 12)
             ),
             const SizedBox(height: 16),
             
@@ -180,7 +202,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: Colors.grey.shade100),
+                border: Border.all(color: outlineVariant.withOpacity(0.4)),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))
                 ],
@@ -194,18 +216,18 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     _buildRowItem(
                       "Potongan Promo (${appliedPromoCode})", 
                       "- ${currency.format(discountAmount)}", 
-                      color: Colors.green
+                      color: darkTeal
                     ),
                   
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: outlineVariant)),
                   
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("TOTAL BAYAR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+                      const Text("TOTAL BAYAR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: neutralGray)),
                       Text(
                         currency.format(finalPrice), 
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: spektaRed)
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: primaryRed)
                       ),
                     ],
                   )
@@ -214,7 +236,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             ),
 
             const SizedBox(height: 35),
-            const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+            const Text("Gunakan Kode Promo", style: TextStyle(fontWeight: FontWeight.bold, color: neutralGray, fontSize: 12)),
             const SizedBox(height: 12),
             
             Row(
@@ -223,11 +245,24 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   child: TextField(
                     controller: _promoController,
                     textCapitalization: TextCapitalization.characters,
+                    style: const TextStyle(color: textDark, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       hintText: "Masukkan Kode",
+                      hintStyle: TextStyle(color: neutralGray),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15), 
+                        borderSide: BorderSide(color: outlineVariant)
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15), 
+                        borderSide: BorderSide(color: outlineVariant)
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15), 
+                        borderSide: const BorderSide(color: accentTeal, width: 1.5)
+                      ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                     ),
                   ),
@@ -238,9 +273,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   child: ElevatedButton(
                     onPressed: isChecking ? null : _checkPromo,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black, 
+                      backgroundColor: accentTeal, 
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), 
-                      padding: const EdgeInsets.symmetric(horizontal: 24)
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      elevation: 0,
                     ),
                     child: isChecking 
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
@@ -258,10 +294,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
               child: ElevatedButton(
                 onPressed: _processPayment,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: spektaRed, 
+                  backgroundColor: accentTeal, 
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   elevation: 8,
-                  shadowColor: spektaRed.withOpacity(0.4),
+                  shadowColor: accentTeal.withOpacity(0.4),
                 ),
                 child: const Text(
                   "BAYAR SEKARANG", 
@@ -275,13 +311,13 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     );
   }
 
-  Widget _buildRowItem(String label, String value, {Color color = Colors.black}) {
+  Widget _buildRowItem(String label, String value, {Color color = textDark}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500))),
+          Expanded(child: Text(label, style: TextStyle(color: neutralGray, fontSize: 13, fontWeight: FontWeight.w500))),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
         ],
       ),
