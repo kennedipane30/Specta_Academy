@@ -171,7 +171,7 @@ class AdminTryoutController extends Controller
                 'tryout' => [
                     'class_id'  => (int)$classId,
                     'title'     => trim($request->title),
-                    'duration_minutes' => (int)$request->duration,
+                    'duration'  => (int)$request->duration,
                     'total_questions' => count($questionsForGo),
                     'status'    => 'published',
                     'is_active' => true
@@ -233,39 +233,54 @@ class AdminTryoutController extends Controller
         return view('admin.tryout.pilih_paket', compact('class', 'tryouts', 'serviceError'));
     }
 
+    // ✅ FUNGSI lihatNilai MENGGUNAKAN DIRECT DATABASE (BYPASS API GO)
     public function lihatNilai($tryout_id)
     {
-        $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
-
         $results = [];
         $tryoutTitle = 'Tryout';
         $serviceError = false;
 
         try {
-            $response = Http::timeout(5)->get($goUrl . '/api/tryouts/history', ['tryout_id' => $tryout_id]);
+            // 1. AMBIL JUDUL TRYOUT LANGSUNG DARI DATABASE
+            $tryout = DB::connection('pgsql_tryout')
+                        ->table('tryouts')
+                        ->where('tryout_id', $tryout_id)
+                        ->first();
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $results = $data['data'] ?? $data ?? [];
-            } else {
-                $serviceError = true;
+            if ($tryout) {
+                $tryoutTitle = $tryout->title;
             }
 
-            $tryoutResponse = Http::timeout(5)->get($goUrl . '/api/tryouts');
-            if ($tryoutResponse->successful()) {
-                $tryoutsData = $tryoutResponse->json();
-                $tryouts = $tryoutsData['data'] ?? $tryoutsData ?? [];
-                foreach ($tryouts as $t) {
-                    if (($t['tryout_id'] ?? 0) == $tryout_id) {
-                        $tryoutTitle = $t['title'] ?? 'Tryout';
-                        break;
-                    }
-                }
+            // 2. AMBIL SKOR LANGSUNG DARI TABEL SUBMISSIONS
+            $rawResults = DB::connection('pgsql_tryout')
+                            ->table('tryout_submissions')
+                            ->where('tryout_id', $tryout_id)
+                            ->orderBy('submitted_at', 'desc')
+                            ->get();
+
+            // 3. COCOKKAN DENGAN NAMA SISWA DI DATABASE LARAVEL
+            foreach ($rawResults as $item) {
+                $userId = $item->user_id;
+
+                // 🚨 PERBAIKAN: Hanya gunakan usersID karena kolom 'id' tidak ada di tabel users Anda
+                $student = DB::table('users')
+                            ->where('usersID', $userId)
+                            ->first();
+
+                $results[] = (object) [
+                    'score'        => $item->score,
+                    'total_correct'=> 0,
+                    'created_at'   => $item->submitted_at,
+                    'user_data'    => (object) [
+                        'name'  => $student ? $student->name : 'Siswa (ID: '.$userId.')',
+                        'email' => $student ? $student->email : '-'
+                    ]
+                ];
             }
 
         } catch (\Exception $e) {
             $serviceError = true;
-            Log::warning('Go Tryout Service tidak tersedia: ' . $e->getMessage());
+            Log::error('Gagal menarik data langsung dari DB pgsql_tryout: ' . $e->getMessage());
         }
 
         return view('admin.tryout.scores', compact('tryout_id', 'tryoutTitle', 'results', 'serviceError'));

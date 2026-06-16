@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart'; 
 import '../services/auth_service.dart';
-import 'announcement_detail_page.dart'; // ✅ Import halaman detail
+import 'announcement_detail_page.dart'; 
 
 class ReportPage extends StatefulWidget {
   final String token;
@@ -111,6 +111,18 @@ class _ReportPageState extends State<ReportPage> {
 
       final reportRes = await AuthService.getTryoutHistory(widget.token, currentUserId);
 
+      // BARU: Cek apakah server merespon 500+ (Internal Server Error)
+      if (annRes.statusCode >= 500 || reportRes.statusCode >= 500) {
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+             content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
+             backgroundColor: primaryRed,
+             behavior: SnackBarBehavior.floating,
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+           ));
+         }
+      }
+
       if (mounted) {
         setState(() {
           // Parsing Pengumuman
@@ -147,7 +159,16 @@ class _ReportPageState extends State<ReportPage> {
       }
     } catch (e) {
       debugPrint("❌ Error Fetching Report: $e");
-      if (mounted) setState(() => isLoading = false);
+      // BARU: Cek jika koneksi putus atau server mati
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+        ));
+      }
     }
   }
 

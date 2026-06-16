@@ -16,9 +16,8 @@ class PromoController extends Controller
     public function index()
     {
         $classes = ClassModel::orderBy('program_name')->get();
-        // Eager loading relasi class agar performa cepat
         $promos = Promotion::with('class')->orderBy('created_at', 'desc')->get();
-        
+
         return view('admin.promo.index', compact('classes', 'promos'));
     }
 
@@ -26,39 +25,90 @@ class PromoController extends Controller
      * Simpan Promo dari Web Admin
      */
     public function store(Request $request)
-{
-    // 1. Ubah input kode menjadi HURUF BESAR dulu sebelum dicek validasi
-    $request->merge([
-        'code' => strtoupper($request->code)
-    ]);
+    {
+        // 1. Ubah input kode menjadi HURUF BESAR dulu sebelum dicek validasi
+        $request->merge([
+            'code' => strtoupper($request->code)
+        ]);
 
-    // 2. Sekarang validasi 'unique' akan mengecek huruf besar yang sudah disamakan
-    $request->validate([
-        'code'           => 'required|string|unique:promotions,code', 
-        'class_id'       => 'required|exists:classes,class_id',
-        'discount_type'  => 'required|in:percent,fixed',
-        'discount_value' => 'required|numeric|min:0',
-        'quota'          => 'required|integer|min:1',
-        'start_date'     => 'required|date',
-        'end_date'       => 'required|date|after_or_equal:start_date',
-    ], [
-        'code.unique' => 'Gagal! Kode promo "' . $request->code . '" sudah ada di database. Silakan gunakan kode lain.',
-    ]);
+        // 2. Validasi
+        $request->validate([
+            'code'           => 'required|string|unique:promotions,code',
+            'class_id'       => 'required|exists:classes,class_id',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'quota'          => 'required|integer|min:1',
+            'start_date'     => 'required|date',
+            'end_date'       => 'required|date|after_or_equal:start_date',
+        ], [
+            'code.unique' => 'Gagal! Kode promo "' . $request->code . '" sudah ada di database. Silakan gunakan kode lain.',
+        ]);
 
-    // 3. Eksekusi simpan
-    Promotion::create([
-        'code'             => $request->code, // Sudah otomatis besar dari proses merge di atas
-        'class_id'         => $request->class_id,
-        'discount_type'    => $request->discount_type,
-        'discount_percent' => $request->discount_value, 
-        'quota'            => $request->quota,
-        'start_date'       => $request->start_date,
-        'end_date'         => $request->end_date,
-        'is_active'        => 1
-    ]);
+        // 3. Eksekusi simpan
+        Promotion::create([
+            'code'             => $request->code,
+            'class_id'         => $request->class_id,
+            'discount_type'    => $request->discount_type,
+            'discount_percent' => $request->discount_value,
+            'quota'            => $request->quota,
+            'start_date'       => $request->start_date,
+            'end_date'         => $request->end_date,
+            'is_active'        => 1
+        ]);
 
-    return redirect()->back()->with('success', 'Kode promo baru berhasil diterbitkan!');
-}
+        return redirect()->back()->with('success', 'Kode promo baru berhasil diterbitkan!');
+    }
+
+    /**
+     * 🔥 EDIT: Menampilkan form edit promo
+     */
+    public function edit($id)
+    {
+        // 🔥 PERBAIKAN: Gunakan nama variabel $editPromo
+        $editPromo = Promotion::findOrFail($id);
+        $classes = ClassModel::orderBy('program_name')->get();
+        $promos = Promotion::with('class')->orderBy('created_at', 'desc')->get();
+
+        return view('admin.promo.index', compact('classes', 'promos', 'editPromo'));
+    }
+
+    /**
+     * 🔥 UPDATE: Memperbarui data promo
+     */
+    public function update(Request $request, $id)
+    {
+        $promo = Promotion::findOrFail($id);
+
+        // Ubah input kode menjadi HURUF BESAR
+        $request->merge([
+            'code' => strtoupper($request->code)
+        ]);
+
+        // Validasi - abaikan unique untuk kode sendiri
+        $request->validate([
+            'code'           => 'required|string|unique:promotions,code,' . $id . ',promotion_id',
+            'class_id'       => 'required|exists:classes,class_id',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'quota'          => 'required|integer|min:1',
+            'start_date'     => 'required|date',
+            'end_date'       => 'required|date|after_or_equal:start_date',
+        ]);
+
+        // Update data
+        $promo->update([
+            'code'             => $request->code,
+            'class_id'         => $request->class_id,
+            'discount_type'    => $request->discount_type,
+            'discount_percent' => $request->discount_value,
+            'quota'            => $request->quota,
+            'start_date'       => $request->start_date,
+            'end_date'         => $request->end_date,
+        ]);
+
+        return redirect()->route('admin.promo.index')->with('success', 'Kode promo berhasil diperbarui!');
+    }
+
     /**
      * Hapus Promo
      */
@@ -66,7 +116,7 @@ class PromoController extends Controller
     {
         $promo = Promotion::findOrFail($id);
         $promo->delete();
-        
+
         return redirect()->back()->with('success', 'Kode promo berhasil dihapus dari sistem.');
     }
 
@@ -110,15 +160,13 @@ class PromoController extends Controller
 
         // 4. Logika Hitung Diskon
         if ($promo->discount_type == 'percent') {
-            // Diskon persentase (Contoh: 10% dari 150rb = 15rb)
             $discountAmount = ($basePrice * $promo->discount_percent) / 100;
         } else {
-            // Diskon nominal tetap (Contoh: Potongan langsung 50rb)
-            $discountAmount = $promo->discount_percent; 
+            $discountAmount = $promo->discount_percent;
         }
 
         $finalPrice = $basePrice - $discountAmount;
-        
+
         // Pastikan harga tidak minus
         if ($finalPrice < 0) $finalPrice = 0;
 

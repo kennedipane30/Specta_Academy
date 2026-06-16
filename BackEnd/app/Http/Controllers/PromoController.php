@@ -5,19 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Promotion;
-use App\Models\ClassModel; // Gunakan ClassModel sesuai file yang Anda miliki
+use App\Models\ClassModel;
+use Carbon\Carbon;
 
 class PromoController extends Controller
 {
     /**
-     * Tampilan Web Admin
+     * Tampilan untuk Web Admin
      */
     public function index()
     {
-        // Pastikan menggunakan ClassModel, bukan Classes
-        $classes = ClassModel::all();
+        $classes = ClassModel::orderBy('program_name')->get();
         $promos = Promotion::with('class')->orderBy('created_at', 'desc')->get();
-        
+
         return view('admin.promo.index', compact('classes', 'promos'));
     }
 
@@ -26,29 +26,88 @@ class PromoController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Ubah input kode menjadi HURUF BESAR dulu sebelum dicek validasi
+        $request->merge([
+            'code' => strtoupper($request->code)
+        ]);
+
+        // 2. Validasi
         $request->validate([
-            'code' => 'required|unique:promotions,code',
-            'class_id' => 'required',
-            'discount_type' => 'required|in:percent,fixed',
-            'discount_value' => 'required|numeric',
-            'quota' => 'required|integer',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'code'           => 'required|string|unique:promotions,code',
+            'class_id'       => 'required|exists:classes,class_id',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'quota'          => 'required|integer|min:1',
+            'start_date'     => 'required|date',
+            'end_date'       => 'required|date|after_or_equal:start_date',
+        ], [
+            'code.unique' => 'Gagal! Kode promo "' . $request->code . '" sudah ada di database. Silakan gunakan kode lain.',
         ]);
 
+        // 3. Eksekusi simpan
         Promotion::create([
-            'code'           => strtoupper($request->code),
-            'class_id'       => $request->class_id,
-            'discount_type'  => $request->discount_type,
-            // Simpan ke kolom discount_percent (sesuai struktur DB Anda di pgAdmin)
-            'discount_percent' => $request->discount_value, 
-            'quota'          => $request->quota,
-            'start_date'     => $request->start_date,
-            'end_date'       => $request->end_date,
-            'is_active'      => 1
+            'code'             => $request->code,
+            'class_id'         => $request->class_id,
+            'discount_type'    => $request->discount_type,
+            'discount_percent' => $request->discount_value,
+            'quota'            => $request->quota,
+            'start_date'       => $request->start_date,
+            'end_date'         => $request->end_date,
+            'is_active'        => 1
         ]);
 
-        return redirect()->back()->with('success', 'Kode promo berhasil diterbitkan!');
+        return redirect()->back()->with('success', 'Kode promo baru berhasil diterbitkan!');
+    }
+
+    /**
+     * 🔥 EDIT: Menampilkan form edit promo
+     */
+    public function edit($id)
+    {
+        // 🔥 PERBAIKAN: Gunakan $editPromo sebagai nama variabel
+        $editPromo = Promotion::findOrFail($id);
+        $classes = ClassModel::orderBy('program_name')->get();
+        $promos = Promotion::with('class')->orderBy('created_at', 'desc')->get();
+
+        // 🔥 Kirim $editPromo ke view
+        return view('admin.promo.index', compact('classes', 'promos', 'editPromo'));
+    }
+
+    /**
+     * 🔥 UPDATE: Memperbarui data promo
+     */
+    public function update(Request $request, $id)
+    {
+        $promo = Promotion::findOrFail($id);
+
+        // Ubah input kode menjadi HURUF BESAR
+        $request->merge([
+            'code' => strtoupper($request->code)
+        ]);
+
+        // Validasi - abaikan unique untuk kode sendiri
+        $request->validate([
+            'code'           => 'required|string|unique:promotions,code,' . $id . ',promotion_id',
+            'class_id'       => 'required|exists:classes,class_id',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'quota'          => 'required|integer|min:1',
+            'start_date'     => 'required|date',
+            'end_date'       => 'required|date|after_or_equal:start_date',
+        ]);
+
+        // Update data
+        $promo->update([
+            'code'             => $request->code,
+            'class_id'         => $request->class_id,
+            'discount_type'    => $request->discount_type,
+            'discount_percent' => $request->discount_value,
+            'quota'            => $request->quota,
+            'start_date'       => $request->start_date,
+            'end_date'         => $request->end_date,
+        ]);
+
+        return redirect()->route('admin.promo.index')->with('success', 'Kode promo berhasil diperbarui!');
     }
 
     /**
@@ -59,41 +118,42 @@ class PromoController extends Controller
         $promo = Promotion::findOrFail($id);
         $promo->delete();
 
-        return redirect()->back()->with('success', 'Kode promo berhasil dihentikan!');
+        return redirect()->back()->with('success', 'Kode promo berhasil dihapus dari sistem.');
     }
 
     /**
-     * 🔥 FUNGSI UNTUK API FLUTTER (CEK PROMO)
-     * Inilah yang dicari oleh aplikasi mobile Anda
+     * 🔥 FUNGSI UNTUK MOBILE (API CHECK PROMO)
      */
     public function checkPromo(Request $request)
     {
-        // 1. Validasi input dari Flutter
+        // 1. Validasi Input API
         $request->validate([
-            'code' => 'required',
-            'class_id' => 'required'
+            'code'     => 'required|string',
+            'class_id' => 'required|integer'
         ]);
 
-        // 2. Cari promo yang aktif, sesuai kelas, tanggal valid, dan kuota tersedia
+        $today = Carbon::today()->toDateString();
+
+        // 2. Cari promo yang aktif dan valid
         $promo = Promotion::where('code', strtoupper($request->code))
             ->where('class_id', $request->class_id)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
             ->where('quota', '>', 0)
             ->where('is_active', 1)
             ->first();
 
         if (!$promo) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Kode promo tidak valid, kadaluarsa, atau kuota habis.'
+                'status'  => 'error',
+                'message' => 'Maaf, kode promo tidak ditemukan, sudah kedaluwarsa, atau kuota habis.'
             ], 404);
         }
 
-        // 3. Ambil data kelas untuk hitung harga asli
+        // 3. Cari harga asli kelas
         $kelas = ClassModel::find($request->class_id);
         if (!$kelas) {
-            return response()->json(['message' => 'Data kelas tidak ditemukan'], 404);
+            return response()->json(['status' => 'error', 'message' => 'Data kelas tidak ditemukan'], 404);
         }
 
         $basePrice = (int) $kelas->price;
@@ -101,23 +161,23 @@ class PromoController extends Controller
 
         // 4. Logika Hitung Diskon
         if ($promo->discount_type == 'percent') {
-            // Diskon persen (misal 10%)
             $discountAmount = ($basePrice * $promo->discount_percent) / 100;
         } else {
-            // Diskon nominal (misal Rp 50.000)
-            $discountAmount = $promo->discount_percent; 
+            $discountAmount = $promo->discount_percent;
         }
 
         $finalPrice = $basePrice - $discountAmount;
-        
-        // Pastikan harga tidak negatif
+
+        // Pastikan harga tidak minus
         if ($finalPrice < 0) $finalPrice = 0;
 
         return response()->json([
-            'status' => 'success',
+            'status'          => 'success',
+            'promo_id'        => $promo->promotion_id,
+            'code'            => $promo->code,
             'discount_amount' => (int) $discountAmount,
-            'final_price' => (int) $finalPrice,
-            'promo_id' => $promo->promotion_id
+            'base_price'      => $basePrice,
+            'final_price'     => (int) $finalPrice
         ]);
     }
 }

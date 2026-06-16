@@ -18,8 +18,19 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
   List questions = [];
   bool isLoading = true;
   
-  // Warna Merah Specta Academy (Sesuai Branding)
-  final Color spektaRed = const Color(0xFF9C0412);
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  
   final String baseUrl = 'http://10.0.2.2:8000'; // IP Emulator Android
 
   @override
@@ -80,26 +91,45 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Bagikan Soal Baru", 
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textDark)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleCtrl, 
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Judul Dokumen",
+                labelStyle: const TextStyle(color: neutralGray),
                 hintText: "Contoh: Bank Soal TIU 2024",
-                prefixIcon: Icon(Icons.title),
+                prefixIcon: Icon(Icons.title, color: accentTeal),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: outlineVariant),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: accentTeal, width: 1.5),
+                ),
               ),
             ),
             const SizedBox(height: 15),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Pilih Mata Pelajaran",
-                prefixIcon: Icon(Icons.subject),
+                labelStyle: const TextStyle(color: neutralGray),
+                prefixIcon: Icon(Icons.subject, color: accentTeal),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: outlineVariant),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: accentTeal, width: 1.5),
+                ),
               ),
+              dropdownColor: Colors.white,
               items: ["TIU", "TWK", "TKP", "English", "Psychology", "General"]
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: textDark))))
                   .toList(),
               onChanged: (v) => selectedSubject = v,
             )
@@ -108,12 +138,13 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context), 
-            child: const Text("Batal", style: TextStyle(color: Colors.grey))
+            child: const Text("Batal", style: TextStyle(color: neutralGray))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: spektaRed,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+              backgroundColor: accentTeal,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
             onPressed: () async {
               if (titleCtrl.text.isEmpty || selectedSubject == null) {
@@ -160,8 +191,10 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message), 
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)), 
+        backgroundColor: accentTeal,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 3),
       )
     );
@@ -170,26 +203,41 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: pageBg,
       appBar: AppBar(
-        title: const Text("Question Bank Hub", 
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), 
-        backgroundColor: spektaRed, 
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryRed, accentTeal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          "Question Bank Hub", 
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)
+        ), 
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: isLoading 
-        ? Center(child: CircularProgressIndicator(color: spektaRed))
+        ? Center(child: CircularProgressIndicator(color: accentTeal))
         : RefreshIndicator(
-            color: spektaRed,
+            color: accentTeal,
             onRefresh: _loadData,
             child: questions.isEmpty 
               ? _buildEmptyState()
               : _buildListView(),
           ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: spektaRed,
+        backgroundColor: accentTeal,
         onPressed: _pickAndUpload,
         icon: const Icon(Icons.add_circle_outline, color: Colors.white),
         label: const Text("Share Soal", 
@@ -207,12 +255,23 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
         Center(
           child: Column(
             children: [
-              Icon(Icons.cloud_off_rounded, size: 80, color: Colors.grey.shade300),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: accentTeal.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.cloud_off_rounded, size: 60, color: accentTeal),
+              ),
               const SizedBox(height: 16),
-              const Text("Belum ada soal yang dibagikan.", 
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const Text("Tarik ke bawah untuk menyegarkan", 
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text(
+                "Belum ada soal yang dibagikan.", 
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)
+              ),
+              Text(
+                "Tarik ke bawah untuk menyegarkan", 
+                style: TextStyle(color: neutralGray, fontSize: 13)
+              ),
             ],
           ),
         ),
@@ -233,8 +292,9 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: outlineVariant.withOpacity(0.4)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
             ],
           ),
           child: ListTile(
@@ -242,19 +302,26 @@ class _QuestionSharingPageState extends State<QuestionSharingPage> {
             leading: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFEEEE),
+                color: accentTeal.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFC62828), size: 28),
+              child: Icon(Icons.picture_as_pdf_rounded, color: accentTeal, size: 28),
             ),
             title: Text(item['title'] ?? "Dokumen Tanpa Judul", 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textDark)),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text("$uploader • ${item['subject']}", 
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                style: TextStyle(color: neutralGray, fontSize: 12)),
             ),
-            trailing: const Icon(Icons.open_in_new_rounded, color: Colors.grey, size: 20),
+            trailing: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accentTeal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.open_in_new_rounded, color: accentTeal, size: 16),
+            ),
             onTap: () async {
               final String? path = item['file_path'];
               if (path == null || path.isEmpty) {

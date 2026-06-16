@@ -5,17 +5,17 @@ class ConsultationPage extends StatelessWidget {
   const ConsultationPage({super.key});
 
   // ============================================================
-  // 🎨 PALET WARNA BARU SPEKTA GEN-Z (KONTRAS TINGGI, CLEAN, PREMIUM)
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
   // ============================================================
-  static const Color primaryRed = Color(0xFFC5352C);       // Merah Spekta
-  static const Color brightRed = Color(0xFFE53935);        // Aksen Merah Terang
-  static const Color accentTeal = Color(0xFF2EA8AB);       // Teal Estetik
-  static const Color pageBg = Color(0xFFF8FAFC);           // Slate 50 (Abu Terang Bersih)
-  static const Color textDark = Color(0xFF0F172A);         // Slate 900
-  static const Color textDarkVariant = Color(0xFF334155);  // Slate 700
-  static const Color neutralGray = Color(0xFF64748B);      // Slate 500
-  static const Color outlineVariant = Color(0xFFE2E8F0);   // Border Abu Halus
-  static const Color lightBlueBg = Color(0xFFEFF4FF);      // Latar Ikon
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
 
   // Fungsi untuk membuka WhatsApp (Fokus Pembelian & Promo)
   Future<void> _openWhatsApp() async {
@@ -70,7 +70,7 @@ class ConsultationPage extends StatelessWidget {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [primaryRed, brightRed],
+              colors: [primaryRed, accentTeal],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -171,28 +171,28 @@ class ConsultationPage extends StatelessWidget {
                     stepNumber: "2",
                     title: "Konsultasikan dengan Admin",
                     description: "Hubungi Admin kami via WhatsApp untuk kendala aktivasi, konfirmasi slip pembayaran, atau klaim potongan harga khusus.",
-                    color: primaryRed,
+                    color: accentTeal,
                   ),
                   const Divider(height: 28, color: outlineVariant),
                   _buildStepItem(
                     stepNumber: "3",
                     title: "Aktivasi Instan & Mulai Belajar",
                     description: "Setelah pembayaran terverifikasi, akses kelas belajarmu akan diaktifkan instan oleh tim admin sehingga kamu bisa langsung belajar.",
-                    color: Colors.orange,
+                    color: darkTeal,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 32),
 
-            // --- TOMBOL WHATSAPP MENYALA (VIBRANT WHATSAPP CTA) ---
+            // --- TOMBOL WHATSAPP MENYALA (TEAL CTA) ---
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF25D366).withOpacity(0.25), // Efek glowing hijau WhatsApp
+                    color: accentTeal.withOpacity(0.3), // Efek glowing teal
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
@@ -200,7 +200,7 @@ class ConsultationPage extends StatelessWidget {
               ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366), // WhatsApp Green
+                  backgroundColor: accentTeal, // Teal branding
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

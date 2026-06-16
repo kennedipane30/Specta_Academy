@@ -81,9 +81,14 @@ class _KelasPageState extends State<KelasPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (mounted) setState(() => programs = data['data'] ?? []);
+      } else {
+        // BARU: Penanganan error saat server merespon 500 / Sibuk
+        if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
       }
     } catch (e) {
       debugPrint('CLASSES FETCH EXCEPTION: $e');
+      // BARU: Penanganan error saat koneksi terputus / Microservice mati total
+      if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -343,10 +348,15 @@ class _KelasPageState extends State<KelasPage> {
             )));
             return; 
           }
+        } else {
+          // BARU: Penanganan error dari Microservice saat tap detail
+          _showWarningSnack("Mohon maaf sistem sedang sibuk");
         }
       } catch (e) {
         if (mounted) Navigator.pop(context);
         debugPrint("Error Auto Navigate: $e");
+        // BARU: Penanganan error koneksi saat tap detail
+        if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
       }
     }
 

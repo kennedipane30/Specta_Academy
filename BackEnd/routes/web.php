@@ -76,7 +76,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // ✅ KEUANGAN & PROMO
     // Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     // Route::post('/pembayaran/verifikasi/{id}', [PembayaranController::class, 'verifikasi'])->name('pembayaran.verify');
-    Route::resource('promo', PromoController::class)->only(['index', 'store', 'destroy']);
+
+    // ✅ 🔥 PROMO MANAGEMENT (DIPERBAIKI - TIDAK ADA DUPLICATE PREFIX)
+    Route::prefix('promo')->name('promo.')->group(function () {
+        Route::get('/', [PromoController::class, 'index'])->name('index');
+        Route::post('/store', [PromoController::class, 'store'])->name('store');
+        Route::get('/edit/{id}', [PromoController::class, 'edit'])->name('edit');
+        Route::put('/update/{id}', [PromoController::class, 'update'])->name('update');
+        Route::delete('/destroy/{id}', [PromoController::class, 'destroy'])->name('destroy');
+    });
 
     // ✅ DEDICATED TUTOR (MANAJEMEN REQUEST SISWA)
     Route::get('/dedicated-tutor', [AdminDedicatedTutorController::class, 'index'])->name('tutor.index');
@@ -107,7 +115,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 // ============================================================
-// 🔥 3. GROUP PENGAJAR (Role: Pengajar) - DIPERBAIKI
+// 🔥 3. GROUP PENGAJAR (Role: Pengajar)
 // ============================================================
 Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar.')->group(function () {
 
@@ -132,30 +140,24 @@ Route::middleware(['auth', 'role:pengajar'])->prefix('pengajar')->name('pengajar
     });
 
     // ✅ ABSENSI SISWA
- Route::prefix('absensi')->name('absensi.')->group(function() {
-    Route::get('/', [AbsensiController::class, 'index'])->name('index');
-    Route::get('/weeks/{class_id}/{subject}', [AbsensiController::class, 'listWeeks'])->name('weeks');
-    Route::get('/create/{class_id}/{subject}/{week}', [AbsensiController::class, 'create'])->name('create');
-    Route::post('/store', [AbsensiController::class, 'store'])->name('store');
-    Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
+    Route::prefix('absensi')->name('absensi.')->group(function() {
+        Route::get('/', [AbsensiController::class, 'index'])->name('index');
+        Route::get('/weeks/{class_id}/{subject}', [AbsensiController::class, 'listWeeks'])->name('weeks');
+        Route::get('/create/{class_id}/{subject}/{week}', [AbsensiController::class, 'create'])->name('create');
+        Route::post('/store', [AbsensiController::class, 'store'])->name('store');
+        Route::get('/recap/{class_id}/{subject}/{week}', [AbsensiController::class, 'showRecap'])->name('recap');
+        Route::get('/edit/{class_id}/{subject}/{week}', [AbsensiController::class, 'edit'])->name('edit');
+        Route::put('/update/{class_id}/{subject}/{week}', [AbsensiController::class, 'update'])->name('update');
+        Route::delete('/destroy/{class_id}/{subject}/{week}', [AbsensiController::class, 'destroy'])->name('destroy');
+        Route::get('/export-pdf/{class_id}/{subject}/{week}', [AbsensiController::class, 'exportPdf'])->name('export-pdf');
+    });
 
-    // 🔹 TAMBAHKAN 4 ROUTE INI:
-    Route::get('/edit/{class_id}/{subject}/{week}', [AbsensiController::class, 'edit'])->name('edit');
-    Route::put('/update/{class_id}/{subject}/{week}', [AbsensiController::class, 'update'])->name('update');
-    Route::delete('/destroy/{class_id}/{subject}/{week}', [AbsensiController::class, 'destroy'])->name('destroy');
-    Route::get('/export-pdf/{class_id}/{subject}/{week}', [AbsensiController::class, 'exportPdf'])->name('export-pdf');
-});
-
-    // ✅ MANAJEMEN LATIHAN SOAL (CSV) - DIPERBAIKI
+    // ✅ MANAJEMEN LATIHAN SOAL (CSV)
     Route::prefix('latihan')->name('latihan.')->group(function() {
         Route::get('/', [PracticeQuestionController::class, 'index'])->name('index');
-        // Select practice - menggunakan subject_name
         Route::get('/pilih/{class_id}/{subject_name}', [PracticeQuestionController::class, 'selectPractice'])->name('pilih');
-        // Upload CSV
         Route::post('/upload/{class_id}', [PracticeQuestionController::class, 'storeCSV'])->name('store');
-        // Delete week - KONSISTEN menggunakan subject_name
         Route::delete('/destroy-week/{class_id}/{subject_name}/{week}', [PracticeQuestionController::class, 'destroyByWeek'])->name('destroy_week');
-        // Lihat soal per minggu
         Route::get('/questions/{class_id}/{subject_name}/{week}', [PracticeQuestionController::class, 'showQuestions'])->name('questions');
     });
 });

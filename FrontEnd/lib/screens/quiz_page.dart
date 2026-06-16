@@ -73,8 +73,9 @@ class _QuizPageState extends State<QuizPage> {
           (data['correct'] ?? "0").toString(),
         );
       } else {
+        // BARU: Penanganan Error 500/Server dari API Submit Tryout
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text("Gagal menyimpan nilai ke server!"),
+          content: const Text("Mohon maaf sistem sedang sibuk"), 
           backgroundColor: primaryRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -83,6 +84,16 @@ class _QuizPageState extends State<QuizPage> {
     } catch (e) {
       if (mounted) Navigator.pop(context);
       debugPrint("❌ Submit Error: $e");
+      
+      // BARU: Penanganan Error Koneksi/Mati Total saat Submit
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text("Mohon maaf sistem sedang sibuk"),
+          backgroundColor: primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
     }
   }
 

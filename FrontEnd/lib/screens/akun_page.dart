@@ -10,12 +10,14 @@ class AkunPage extends StatefulWidget {
   final String token;
   final Map userData;
   final VoidCallback onGoToHome;
+  final String userName; // ✅ Tambahkan userName
 
   const AkunPage({
     super.key,
     required this.token,
     required this.userData,
     required this.onGoToHome,
+    required this.userName, // ✅ Wajib diisi
   });
 
   @override
@@ -28,19 +30,19 @@ class _AkunPageState extends State<AkunPage> {
   bool isUploadingPhoto = false;
 
   // ============================================================
-  // 🎨 PALET WARNA BARU SPEKTA GEN-Z (KONTRAS TINGGI, CLEAN, PREMIUM)
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN MAINSCREEN)
   // ============================================================
-  static const Color primaryRed = Color(0xFFC5352C);       // Merah Spekta
-  static const Color brightRed = Color(0xFFE53935);        // Aksen Merah Terang
-  static const Color accentTeal = Color(0xFF2EA8AB);       // Teal Estetik
-  static const Color pageBg = Color(0xFFF8FAFC);           // Slate 50 (Abu Terang Bersih)
-  static const Color textDark = Color(0xFF0F172A);         // Slate 900
-  static const Color textDarkVariant = Color(0xFF334155);  // Slate 700
-  static const Color neutralGray = Color(0xFF64748B);      // Slate 500
-  static const Color outlineVariant = Color(0xFFE2E8F0);   // Border Abu Halus
-  static const Color lightBlueBg = Color(0xFFEFF4FF);      // Latar Ikon
-  static const Color softRed = Color(0xFFFEE2E2);          // Latar Merah Lembut
-  static const Color errorRed = Color(0xFFBA1A1A);         // Merah Logout
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color lightBlueBg     = Color(0xFFEFF4FF);
+  static const Color pageBg          = Color(0xFFF1F5F9);
+  static const Color textDark        = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
+  static const Color softRed         = Color(0xFFFEE2E2);
+  static const Color errorRed        = Color(0xFFBA1A1A);
 
   @override
   void initState() {
@@ -87,7 +89,7 @@ class _AkunPageState extends State<AkunPage> {
               children: [
                 const Text(
                   "Pilih Sumber Foto",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -145,22 +147,24 @@ class _AkunPageState extends State<AkunPage> {
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Foto profil berhasil diperbarui!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: Color(0xFF10B981),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: const Text("Foto profil berhasil diperbarui!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: darkTeal,
+              duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Gagal mengunggah foto. Coba lagi.", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+            SnackBar(
+              content: const Text("Gagal mengunggah foto. Coba lagi.", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: primaryRed,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
@@ -168,7 +172,6 @@ class _AkunPageState extends State<AkunPage> {
     }
   }
 
-  // DI SINI PERBAIKANNYA: Menghapus keyword 'const' yang tidak konstan pada parameter dinamis
   Widget _buildImageSourceOption({
     required IconData icon,
     required String label,
@@ -231,14 +234,14 @@ class _AkunPageState extends State<AkunPage> {
     return Scaffold(
       backgroundColor: pageBg,
       body: RefreshIndicator(
-        color: primaryRed,
+        color: accentTeal,
         onRefresh: _refreshProfile,
         child: Column(
           children: [
             _buildRedHeader(),
             Expanded(
               child: isLoading
-                  ? const Center(child: CircularProgressIndicator(color: primaryRed))
+                  ? const Center(child: CircularProgressIndicator(color: accentTeal))
                   : SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(18, 24, 18, 120),
@@ -264,7 +267,6 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  // HEADER ATAS GRADIEN MERAH LENGKUNG PREMIUM DENGAN PETA PENUTUP TANDA KURUNG YANG SUDAH DIPERBAIKI PRESISI
   Widget _buildRedHeader() {
     String photoUrl = currentData['photo_url'] ?? '';
     String name = currentData['name'] ?? "User Name";
@@ -335,7 +337,6 @@ class _AkunPageState extends State<AkunPage> {
                   ),
                   const SizedBox(height: 28),
                   
-                  // FOTO PROFIL BINGKAI PUTIH DENGAN EDIT BUTTON
                   GestureDetector(
                     onTap: _pickAndUploadImage,
                     child: Stack(
@@ -362,7 +363,7 @@ class _AkunPageState extends State<AkunPage> {
                                     height: 36,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 3,
-                                      valueColor: AlwaysStoppedAnimation<Color>(primaryRed),
+                                      color: accentTeal,
                                     ),
                                   )
                                 : ClipOval(
@@ -376,7 +377,7 @@ class _AkunPageState extends State<AkunPage> {
                                               child: SizedBox(
                                                 width: 24,
                                                 height: 24,
-                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: accentTeal),
                                               ),
                                             ),
                                             errorWidget: (context, url, error) => const Icon(
@@ -394,7 +395,7 @@ class _AkunPageState extends State<AkunPage> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(color: primaryRed, width: 2.0),
+                            border: Border.all(color: accentTeal, width: 2.0),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
@@ -403,14 +404,13 @@ class _AkunPageState extends State<AkunPage> {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.camera_alt_rounded, color: primaryRed, size: 14),
+                          child: const Icon(Icons.camera_alt_rounded, color: accentTeal, size: 14),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
                   
-                  // NAMA USER
                   Text(
                     name,
                     style: const TextStyle(
@@ -422,7 +422,6 @@ class _AkunPageState extends State<AkunPage> {
                   ),
                   const SizedBox(height: 4),
                   
-                  // EMAIL
                   Text(
                     email,
                     style: TextStyle(
@@ -433,7 +432,6 @@ class _AkunPageState extends State<AkunPage> {
                   ),
                   const SizedBox(height: 12),
                   
-                  // ROLE BADGE (Kapsul Glassmorphic)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
                     decoration: BoxDecoration(
@@ -460,7 +458,6 @@ class _AkunPageState extends State<AkunPage> {
     );
   }
 
-  // DAFTAR KELAS SAYA BERGAYA BENTO CARD
   Widget _buildEnrolledClasses() {
     List classes = currentData['enrolled_classes'] ?? [];
 
@@ -539,7 +536,7 @@ class _AkunPageState extends State<AkunPage> {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            color: primaryRed,
+            color: accentTeal,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
@@ -559,10 +556,15 @@ class _AkunPageState extends State<AkunPage> {
             subtitle: "Update address and parent info",
             icon: Icons.person_outline_rounded,
             onTap: () {
+              // ✅ Perbaikan: Kirim semua parameter yang dibutuhkan EditProfilePage
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => EditProfilePage(userData: currentData, token: widget.token),
+                  builder: (_) => EditProfilePage(
+                    userData: currentData,
+                    token: widget.token,
+                    userName: widget.userName, // ✅ Kirim userName
+                  ),
                 ),
               ).then((_) => _refreshProfile());
             },
@@ -574,7 +576,12 @@ class _AkunPageState extends State<AkunPage> {
             icon: Icons.lock_outline_rounded,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Fitur sedang dalam pengembangan")),
+                SnackBar(
+                  content: const Text("Fitur sedang dalam pengembangan"),
+                  backgroundColor: accentTeal,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               );
             },
           ),
@@ -612,11 +619,11 @@ class _AkunPageState extends State<AkunPage> {
                 children: [
                   Text(title, style: const TextStyle(color: textDark, fontSize: 15, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                  Text(subtitle, style: TextStyle(color: neutralGray, fontSize: 12)),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: neutralGray),
           ],
         ),
       ),

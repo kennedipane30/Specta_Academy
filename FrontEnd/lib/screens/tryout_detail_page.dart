@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http; 
 import '../services/auth_service.dart';
 import 'quiz_page.dart';
 import 'explanation_page.dart';
@@ -203,14 +204,14 @@ class TryoutDetailPage extends StatelessWidget {
                   );
 
                   try {
-                    final dynamic rawId =
-                        tryoutData['tryout_id'] ?? tryoutData['id'] ?? tryoutData['ID'] ?? 0;
+                    final dynamic rawId = tryoutData['tryout_id'] ?? tryoutData['id'] ?? tryoutData['ID'] ?? 0;
                     final int id = int.parse(rawId.toString());
 
+                    // Ambil soal dari server
                     var resp = await AuthService.getQuestions(id, token);
 
                     if (!context.mounted) return;
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Tutup loading pertama (ambil soal)
 
                     if (resp.statusCode == 200) {
                       var decoded = jsonDecode(resp.body);
@@ -227,6 +228,93 @@ class TryoutDetailPage extends StatelessWidget {
                       }
 
                       if (isDone) {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => const Center(
+                            child: CircularProgressIndicator(color: darkTeal),
+                          ),
+                        );
+
+                        try {
+                          String urlAPI = 'http://10.0.2.2:9002/api/tryouts/submissions?tryout_id=$id';
+                          debugPrint("🔍 [DEBUG-1] Menembak API: $urlAPI");
+
+                          final subRes = await http.get(
+                            Uri.parse(urlAPI),
+                            headers: {'Authorization': 'Bearer $token'},
+                          );
+
+                          debugPrint("🔍 [DEBUG-2] Status Code API: ${subRes.statusCode}");
+                          debugPrint("🔍 [DEBUG-3] Body API Mentah: ${subRes.body}");
+
+                          if (subRes.statusCode == 200) {
+                            final subDecoded = jsonDecode(subRes.body);
+                            
+                            List submissions = [];
+                            if (subDecoded is List) {
+                              submissions = subDecoded;
+                            } else if (subDecoded is Map && subDecoded['data'] != null) {
+                              submissions = subDecoded['data'];
+                            }
+
+                            debugPrint("🔍 [DEBUG-4] Total riwayat di Tryout ID $id: ${submissions.length}");
+                            debugPrint("🔍 [DEBUG-5] Mencari jawaban untuk User ID: $userId");
+
+                            var mySubmission;
+                            for (var s in submissions) {
+                              if (s['user_id'].toString() == userId.toString()) {
+                                mySubmission = s;
+                                break;
+                              }
+                            }
+
+                            if (mySubmission != null) {
+                              debugPrint("✅ [DEBUG-6] HORE! Jawaban milik User $userId DITEMUKAN!");
+                              debugPrint("✅ [DEBUG-7] Isi mentah dari DB: ${mySubmission['answers']}");
+                              
+                              if (mySubmission['answers'] != null) {
+                                Map<String, dynamic> userAnswersMap = {};
+                                
+                                if (mySubmission['answers'] is String) {
+                                  userAnswersMap = jsonDecode(mySubmission['answers']);
+                                } else if (mySubmission['answers'] is Map) {
+                                  userAnswersMap = mySubmission['answers'];
+                                }
+
+                                debugPrint("✅ [DEBUG-8] Map Jawaban berhasil: $userAnswersMap");
+
+                                for (var i = 0; i < questions.length; i++) {
+                                  String qId = questions[i]['question_id'].toString();
+                                  questions[i]['user_answer'] = userAnswersMap[qId];
+                                  debugPrint("   -> Soal ID $qId disuntik: ${userAnswersMap[qId]}");
+                                }
+                              }
+                            } else {
+                              debugPrint("❌ [DEBUG-ERROR] Gagal: Riwayat untuk User ID $userId TIDAK ADA.");
+                            }
+                          } else {
+                            debugPrint("❌ [DEBUG-ERROR] API Gagal. Status: ${subRes.statusCode}");
+                            // BARU: Penanganan Error Server saat mengambil Submission
+                            if (context.mounted) {
+                               Navigator.pop(context); // Tutup dialog loading
+                               _showError(context, "Mohon maaf sistem sedang sibuk");
+                            }
+                            return;
+                          }
+                        } catch (e) {
+                          debugPrint("❌ [DEBUG-FATAL] Terjadi Error Code: $e");
+                          // BARU: Penanganan Error Koneksi saat mengambil Submission
+                          if (context.mounted) {
+                             Navigator.pop(context); // Tutup dialog loading
+                             _showError(context, "Mohon maaf sistem sedang sibuk");
+                          }
+                          return;
+                        }
+
+                        if (!context.mounted) return;
+                        Navigator.pop(context); // Tutup loading kedua (ambil jawaban)
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -234,6 +322,7 @@ class TryoutDetailPage extends StatelessWidget {
                           ),
                         );
                       } else {
+                        // Jika belum dikerjakan, Buka QuizPage
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
@@ -247,12 +336,14 @@ class TryoutDetailPage extends StatelessWidget {
                         );
                       }
                     } else {
-                      _showError(context, "Gagal mengambil soal (Status: ${resp.statusCode})");
+                      // BARU: Penanganan Error Server 500 saat Fetch Questions
+                      _showError(context, "Mohon maaf sistem sedang sibuk");
                     }
                   } catch (e) {
-                    if (context.mounted) Navigator.pop(context);
+                    if (context.mounted) Navigator.pop(context); // Tutup loading
                     debugPrint("❌ Tryout Error: $e");
-                    _showError(context, "Kesalahan koneksi ke server Tryout.");
+                    // BARU: Penanganan Error Koneksi Terputus / Timeout saat klik Mulai Ujian
+                    _showError(context, "Mohon maaf sistem sedang sibuk");
                   }
                 },
                 child: Row(

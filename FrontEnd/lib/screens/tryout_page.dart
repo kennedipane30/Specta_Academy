@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,7 +21,7 @@ class _TryoutPageState extends State<TryoutPage> {
   static const String tryoutServiceUrl = 'http://$host:9002/api'; 
   
   // ============================================================
-  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // 🎨 PALET WARNA SPEKTA
   // ============================================================
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
@@ -34,6 +35,9 @@ class _TryoutPageState extends State<TryoutPage> {
 
   List _allTryouts = [];
   bool _loadingAll = false;
+  
+  // BARU: Penanda apakah request terakhir mengalami error
+  bool _isError = false;
 
   bool get _hasClass => _classId != null;
 
@@ -72,9 +76,26 @@ class _TryoutPageState extends State<TryoutPage> {
     }
   }
 
+  void _showErrorPopup() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: primaryRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      )
+    );
+  }
+
   Future<void> _fetchAllTryouts() async {
     if (!mounted) return;
-    setState(() => _loadingAll = true);
+    
+    // Reset status error setiap kali melakukan request baru
+    setState(() {
+      _loadingAll = true;
+      _isError = false; 
+    });
     
     try {
       final uri = Uri.parse('$tryoutServiceUrl/tryouts').replace(
@@ -87,18 +108,26 @@ class _TryoutPageState extends State<TryoutPage> {
       final res = await http.get(uri, headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer ${widget.token}',
-      });
+      }).timeout(const Duration(seconds: 8));
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
         if (mounted) {
           setState(() {
             _allTryouts = decoded['data'] ?? [];
+            _isError = false; // Sukses, tidak ada error
           });
         }
+      } else {
+        // Jika server membalas tapi dengan status gagal (500)
+        _isError = true; 
+        _showErrorPopup();
       }
     } catch (e) {
       debugPrint('❌ TRYOUT ALL EXCEPTION: $e');
+      // Jika server mati total / koneksi terputus
+      _isError = true; 
+      _showErrorPopup();
     } finally {
       if (mounted) setState(() => _loadingAll = false);
     }
@@ -152,6 +181,10 @@ class _TryoutPageState extends State<TryoutPage> {
 
   Widget _buildAllTryouts() {
     if (_loadingAll) return const Center(child: CircularProgressIndicator(color: accentTeal));
+    
+    // BARU: Jika terjadi error, kembalikan tampilan yang BENAR-BENAR KOSONG
+    if (_isError) return const SizedBox.shrink(); 
+    
     if (_allTryouts.isEmpty) return _buildEmptyState(icon: Icons.assignment_outlined, title: 'Belum Ada Tryout', subtitle: 'Cek apakah akun Anda sudah terdaftar di kelas yang benar.');
     
     return RefreshIndicator(

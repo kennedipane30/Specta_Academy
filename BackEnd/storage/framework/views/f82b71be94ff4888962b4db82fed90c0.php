@@ -1,92 +1,84 @@
-@extends('layouts.spekta')
+<?php $__env->startSection('title', 'Pilih Paket Tryout'); ?>
 
-@section('title', 'Hasil Nilai Siswa')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="cp-page">
 
-    {{-- ── 1. HEADER MINIMALIS MODERN ── --}}
+    
     <section class="cp-header">
         <div class="cp-header-left">
             <span class="cp-breadcrumb-capsule">Student Score Center</span>
-            <!-- Menampilkan judul dinamis dari variabel $tryoutTitle di controller Anda -->
-            <h1>Hasil: <span style="color: var(--spekta-teal);">{{ $tryoutTitle ?? 'Paket Tryout' }}</span></h1>
-            <!-- FIX: Menggunakan count($results) untuk menghitung array biasa -->
-            <p>Total {{ count($results) }} siswa telah menyelesaikan ujian ini secara nasional.</p>
+            <h1>Paket Tryout: <span style="color: var(--spekta-teal);"><?php echo e($class->program_name); ?></span></h1>
+            <p>Pilih salah satu paket di bawah ini untuk melihat rekapitulasi daftar nilai siswa.</p>
         </div>
-
         <div class="cp-header-actions">
-            <a href="{{ route('admin.scores.index') }}" class="cp-secondary-btn">
+            <a href="<?php echo e(route('admin.scores.index')); ?>" class="cp-secondary-btn">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
         </div>
     </section>
 
-    {{-- ── 2. TABLE CARD (DENGAN PENANGANAN OBJEK REKURSIF) ── --}}
+    
     <div class="cp-main-card">
         <div class="cp-table-wrap">
             <table class="cp-table">
                 <thead>
                     <tr>
-                        <th>Nama Siswa</th>
-                        <th>Jawaban Benar</th>
-                        <th>Skor Akhir</th>
-                        <th>Tanggal Selesai</th>
+                        <th>Nama Paket</th>
+                        <th>Durasi</th>
+                        <th class="text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($results as $res)
-                        @if($res)
-                            @php
-                                // Konversi paksa array bersarang (nested array) dari Go ke Object secara rekursif
-                                $resObj = (object) json_decode(json_encode($res));
-                                $studentName = $resObj->user_data->name ?? 'Siswa tidak ditemukan';
-                                $studentEmail = $resObj->user_data->email ?? '-';
-                                $createdAt = isset($resObj->created_at) ? \Carbon\Carbon::parse($resObj->created_at) : null;
-                            @endphp
+                    <?php $__empty_1 = true; $__currentLoopData = $tryouts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $to): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <!-- Pengaman 1: Pastikan elemen $to tidak bernilai NULL -->
+                        <?php if($to): ?>
+                            <?php
+                                // Pengaman 2: Konversi paksa array ke Object agar bisa dibaca dengan tanda ->
+                                $toObj = (object) $to;
+                                $duration = $toObj->duration ?? ($toObj->duration_minutes ?? 0);
+                                $tryoutId = $toObj->tryout_id ?? ($toObj->id ?? 0);
+                            ?>
                             <tr>
-                                {{-- Profil Siswa --}}
-                                <td>
-                                    <div class="cp-student-cell">
-                                        <div class="cp-student-avatar">
-                                            {{ strtoupper(substr($studentName, 0, 1)) }}
+                                
+                                <td class="to-package-title">
+                                    <div class="to-package-cell">
+                                        <div class="to-package-icon">
+                                            <i class="fa-solid fa-file-invoice"></i>
                                         </div>
-                                        <div class="cp-student-info">
-                                            <strong>{{ $studentName }}</strong>
-                                            <span>{{ $studentEmail }}</span>
-                                        </div>
+                                        <strong><?php echo e($toObj->title ?? 'Untitled Package'); ?></strong>
                                     </div>
                                 </td>
 
-                                {{-- Benar --}}
-                                <td class="text-correct">
-                                    <i class="fa-solid fa-circle-check"></i> {{ $resObj->total_correct ?? 0 }} Soal
+                                
+                                <td class="to-duration-cell">
+                                    <i class="fa-regular fa-clock"></i> <?php echo e($duration); ?> Menit
                                 </td>
 
-                                {{-- Skor Akhir --}}
-                                <td>
-                                    <span class="cp-score-badge">
-                                        {{ $resObj->score ?? 0 }}
-                                    </span>
-                                </td>
-
-                                {{-- Tanggal --}}
-                                <td class="cp-date-cell">
-                                    <i class="fa-regular fa-clock"></i>
-                                    {{ $createdAt ? $createdAt->format('d M Y, H:i') : '-' }} WIB
+                                
+                                <td class="text-right">
+                                    <a href="<?php echo e(route('admin.scores.result', $tryoutId)); ?>" class="to-btn-rekap">
+                                        <span>REKAP NILAI</span> <i class="fa-solid fa-chevron-right"></i>
+                                    </a>
                                 </td>
                             </tr>
-                        @endif
-                    @empty
+                        <?php endif; ?>
+                        <?php if(isset($serviceError) && $serviceError): ?>
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Server tryout sedang bermasalah. Data mungkin tidak lengkap.
+    </div>
+<?php endif; ?>
+
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
-                        <td colspan="4">
+                        <td colspan="3">
                             <div class="cp-empty-state">
-                                <i class="fa-solid fa-user-slash"></i>
-                                <span>Belum ada siswa yang mengerjakan tryout ini.</span>
+                                <i class="fa-solid fa-folder-open"></i>
+                                <span>Belum ada paket tryout yang diterbitkan untuk kelas ini.</span>
                             </div>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -170,6 +162,8 @@
         border-color: var(--spekta-gray);
     }
 
+    .cp-header-actions { display: flex; align-items: center; gap: 12px; }
+
     /* Table Container Card */
     .cp-main-card {
         background: var(--spekta-white);
@@ -180,50 +174,50 @@
     }
 
     .cp-table-wrap { overflow-x: auto; border-radius: 12px; }
-    .cp-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    .cp-table { width: 100%; border-collapse: collapse; min-width: 600px; }
     .cp-table th { text-align: left; padding: 12px 14px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--spekta-gray-light); font-weight: 800; letter-spacing: 0.05em; }
     .cp-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
     .cp-table tbody tr:last-child td { border-bottom: none; }
     .cp-table tbody tr:hover { background: #fafbfc; }
 
-    /* Student Cell Profile */
-    .cp-student-cell { display: flex; align-items: center; gap: 10px; }
-    .cp-student-avatar {
+    /* Package Title Cell */
+    .to-package-cell { display: flex; align-items: center; gap: 10px; }
+    .to-package-icon {
         width: 34px;
         height: 34px;
-        border-radius: 50%;
+        border-radius: 8px;
         display: grid;
         place-items: center;
         background: var(--spekta-teal-light);
         color: var(--spekta-teal);
-        font-weight: 900;
-        font-size: 13px;
+        font-size: 14px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        border: 1px solid var(--border-soft);
     }
-    .cp-student-info strong { display: block; font-size: 13px; font-weight: 800; color: var(--text-main); }
-    .cp-student-info span { display: block; font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
+    .to-package-cell strong { font-size: 13px; font-weight: 800; color: var(--text-main); }
 
-    .text-correct { color: #16a34a; font-weight: 700; font-size: 13px; }
-    .text-correct i { font-size: 12px; margin-right: 3px; }
+    .to-duration-cell { color: var(--text-muted); font-size: 12px; font-weight: 700; }
+    .to-duration-cell i { color: var(--spekta-gray); margin-right: 3px; }
 
-    /* Score Badge */
-    .cp-score-badge {
+    /* Rekap Nilai Button (Capsule) */
+    .to-btn-rekap {
+        background: linear-gradient(135deg, var(--spekta-red) 0%, var(--spekta-red-dark) 100%);
+        color: var(--spekta-white) !important;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        min-width: 50px;
-        height: 28px;
-        padding: 0 12px;
-        border-radius: 8px;
-        background: #1f2937;
-        color: var(--spekta-white);
-        font-size: 14px;
-        font-weight: 900;
-        box-shadow: 0 3px 8px rgba(31, 41, 55, 0.15);
+        gap: 6px;
+        box-shadow: 0 4px 10px rgba(229, 57, 53, 0.15);
+        transition: all 0.2s ease;
     }
-
-    .cp-date-cell { color: var(--text-muted); font-size: 11px; font-weight: 700; }
-    .cp-date-cell i { color: var(--spekta-gray); margin-right: 3px; }
+    .to-btn-rekap:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.25);
+    }
 
     .cp-empty-state {
         padding: 40px;
@@ -237,9 +231,12 @@
         gap: 8px;
     }
     .cp-empty-state i { font-size: 20px; color: var(--spekta-gray); }
+    .text-right { text-align: right; }
 
     @media (max-width: 768px) {
         .cp-header { flex-direction: column; align-items: flex-start; gap: 14px; }
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/tryout/pilih_paket.blade.php ENDPATH**/ ?>

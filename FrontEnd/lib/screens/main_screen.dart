@@ -22,7 +22,15 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final Color spektaRed = const Color(0xFF990000);
+  
+  // ============================================================
+  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // ============================================================
+  static const Color primaryRed      = Color(0xFFC5352C);
+  static const Color accentTeal      = Color(0xFF2EA8AB);
+  static const Color darkTeal        = Color(0xFF00696C);
+  static const Color neutralGray     = Color(0xFF64748B);
+  static const Color outlineVariant  = Color(0xFFE2BEBA);
 
   void _onItemTapped(int index) {
     setState(() {
@@ -35,17 +43,21 @@ class _MainScreenState extends State<MainScreen> {
     final List<Widget> pages = [
       HomePage(userName: widget.userName, token: widget.token, userData: widget.userProfileData),
       KelasPage(
-        token: widget.token, userData: widget.userProfileData,
+        token: widget.token, 
+        userData: widget.userProfileData,
         onGoToProfile: () => setState(() => _selectedIndex = 3), 
         onGoToHome: () => setState(() => _selectedIndex = 0),    
       ),
       ReportPage(
-        token: widget.token, userData: widget.userProfileData,
+        token: widget.token, 
+        userData: widget.userProfileData,
         onGoToHome: () => setState(() => _selectedIndex = 0),    
       ),
       AkunPage(
-        token: widget.token, userData: widget.userProfileData,
-        onGoToHome: () => setState(() => _selectedIndex = 0)
+        token: widget.token, 
+        userData: widget.userProfileData,
+        onGoToHome: () => setState(() => _selectedIndex = 0),
+        userName: widget.userName, // Tambahkan userName untuk AkunPage
       ),
     ];
 
@@ -55,7 +67,6 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: pages,
       ),
-      // MENGGUNAKAN DESAIN SOLID DOCKED (MENEMPEL DI BAWAH)
       bottomNavigationBar: _buildSolidBottomNav(),
     );
   }
@@ -64,14 +75,13 @@ class _MainScreenState extends State<MainScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        // Lengkungan sangat tipis di bagian atas
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04), // Bayangan hitam sangat lembut
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 20, 
             offset: const Offset(0, -5)
           ),
@@ -79,11 +89,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 65, // Ketinggian standar profesional
+          height: 65,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // ✨ PENGGUNAAN IKON OUTLINE (KOSONG) & FILLED (BERISI)
               _buildNavItem(
                 index: 0, 
                 label: "Home", 
@@ -126,18 +135,17 @@ class _MainScreenState extends State<MainScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => _onItemTapped(index),
-        behavior: HitTestBehavior.opaque, // Agar seluruh area bisa diklik
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ✨ INDIKATOR GARIS ATAS (Muncul saat aktif)
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               height: 3,
-              width: isSelected ? 24 : 0, // Garis memanjang jika dipilih
+              width: isSelected ? 24 : 0,
               decoration: BoxDecoration(
-                color: spektaRed,
+                color: isSelected ? primaryRed : Colors.transparent,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(5),
                   bottomRight: Radius.circular(5),
@@ -147,7 +155,6 @@ class _MainScreenState extends State<MainScreen> {
             
             const Spacer(),
             
-            // ✨ ANIMASI GANTI IKON & UKURAN
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               transitionBuilder: (Widget child, Animation<double> animation) {
@@ -155,19 +162,18 @@ class _MainScreenState extends State<MainScreen> {
               },
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon, 
-                key: ValueKey<bool>(isSelected), // Wajib untuk AnimatedSwitcher
+                key: ValueKey<bool>(isSelected),
                 size: isSelected ? 26 : 24, 
-                color: isSelected ? spektaRed : Colors.grey.shade400,
+                color: isSelected ? primaryRed : neutralGray,
               ),
             ),
             
             const SizedBox(height: 4),
             
-            // ✨ TEKS MENU
             Text(
               label, 
               style: TextStyle(
-                color: isSelected ? spektaRed : Colors.grey.shade400, 
+                color: isSelected ? primaryRed : neutralGray, 
                 fontSize: 11, 
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600
               )

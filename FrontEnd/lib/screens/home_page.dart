@@ -16,7 +16,9 @@ import 'fitur/consultation_page.dart';
 import 'banner_detail_page.dart'; 
 import 'tryout_page.dart';
 
-import 'class_detail_page.dart';
+// ✅ IMPORT HALAMAN BARU YANG DIBUTUHKAN
+import 'subject_list_page.dart';
+import 'practice_subject_list_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -74,6 +76,8 @@ class _HomePageState extends State<HomePage> {
   late PageController _bannerController;
   Timer? _bannerTimer;
 
+  bool _hasShownNetworkError = false; 
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +96,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> refreshAllData() async {
+    _hasShownNetworkError = false; 
     await Future.wait([
       refreshUserData(),
       fetchBanners(),
@@ -99,6 +104,13 @@ class _HomePageState extends State<HomePage> {
       fetchSchedules(),
       fetchLearningReport(),
     ]);
+  }
+
+  void _showGlobalNetworkError() {
+    if (!_hasShownNetworkError && mounted) {
+      _hasShownNetworkError = true;
+      _showWarning("Mohon maaf sistem sedang sibuk");
+    }
   }
 
   Future<void> refreshUserData() async {
@@ -175,7 +187,7 @@ class _HomePageState extends State<HomePage> {
             isImprovement = isImp;
           });
         }
-      }
+      } 
     } catch (e) {
       debugPrint('LEARNING REPORT ERROR: $e');
     } finally {
@@ -201,7 +213,7 @@ class _HomePageState extends State<HomePage> {
           activeBannerIndex = 0;
         });
         _startBannerAutoSlide();
-      }
+      } 
     } catch (e) {
       debugPrint('BANNER ERROR: $e');
     } finally {
@@ -225,7 +237,7 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           tryoutData = decoded['data'] ?? decoded['tryouts'] ?? [];
         });
-      }
+      } 
     } catch (e) {
       debugPrint('TRYOUT ERROR: $e');
     } finally {
@@ -255,7 +267,7 @@ class _HomePageState extends State<HomePage> {
              upcomingData = [];
           }
         });
-      }
+      } 
     } catch (e) {
       debugPrint('SCHEDULE ERROR: $e');
     } finally {
@@ -342,6 +354,7 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
+  // ✅ 1. PERUBAHAN FUNGSI KLIK MATERI (LANGSUNG KE SUBJECT LIST PAGE)
   Future<void> _handleLearningMaterials() async {
     final student = currentData?['student'] ?? widget.userData['student'];
     if (student == null || student['class_id'] == null) {
@@ -357,77 +370,98 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final classId = int.parse(student['class_id'].toString());
-      final response = await AuthService.getClassContent(classId, widget.token);
+      
+      // ✅ Tambahkan .timeout agar loading tidak nyangkut selamanya
+      final response = await AuthService.getClassContent(classId, widget.token).timeout(const Duration(seconds: 8));
 
       if (!mounted) return;
-      Navigator.pop(context); 
+      Navigator.pop(context); // Tutup Loading
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final int classPrice = int.tryParse(decoded['price']?.toString() ?? '0') ?? 0;
+        
+        // Ekstrak List Materi dari JSON Response
+        List listMateri = [];
+        if (decoded is List) {
+          listMateri = decoded;
+        } else if (decoded is Map) {
+          listMateri = decoded['materi'] ?? decoded['data'] ?? [];
+        }
 
+        // Langsung lompat ke SubjectListPage
         Navigator.push(
           context, 
           MaterialPageRoute(
-            builder: (context) => ClassDetailPage(
+            builder: (context) => SubjectListPage(
               classId: classId, 
-              className: decoded['program_name'] ?? "Materi Saya", 
-              price: classPrice, 
-              token: widget.token, 
-              userData: widget.userData, 
+              className: decoded is Map ? (decoded['program_name'] ?? "Materi Belajar") : "Materi Belajar", 
+              token: widget.token,
+              materi: listMateri, 
             ),
           ),
         );
+      } else {
+        _showWarning("Mohon maaf sistem sedang sibuk");
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      _showWarning("Gagal memuat materi kelas. Pastikan koneksi stabil.");
+      if (mounted) Navigator.pop(context); // Tutup Loading
+      _showWarning("Mohon maaf sistem sedang sibuk");
+    }
+  }
+
+  // ✅ 2. FUNGSI BARU UNTUK FITUR LATIHAN SOAL
+  Future<void> _handlePracticeQuestions() async {
+    final student = currentData?['student'] ?? widget.userData['student'];
+    if (student == null || student['class_id'] == null) {
+      _showWarning('Kamu belum terdaftar di kelas mana pun.');
+      return;
+    }
+
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: primaryRed))
+    );
+
+    try {
+      final classId = int.parse(student['class_id'].toString());
+      
+      // Mengambil data latihan soal (menggunakan endpoint getTryouts seperti pada kode lama)
+      final response = await AuthService.getTryouts(widget.token, classId: classId).timeout(const Duration(seconds: 8));
+
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup Loading
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        List practiceData = decoded is List ? decoded : (decoded['data'] ?? []);
+
+        if (practiceData.isEmpty) {
+          _showWarning("Latihan soal belum tersedia.");
+          return;
+        }
+
+        // Arahkan ke Halaman Daftar Latihan Soal
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PracticeSubjectListPage(
+              allExercises: practiceData,
+              token: widget.token,
+            ),
+          ),
+        );
+      } else {
+        _showWarning("Mohon maaf sistem sedang sibuk");
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Tutup Loading
+      _showWarning("Mohon maaf sistem sedang sibuk");
     }
   }
 
   void _handleTryout() {
     Navigator.push(context, MaterialPageRoute(builder: (c) => TryoutPage(token: widget.token, userData: widget.userData)));
-  }
-
-  void _showMoreFeaturesSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Semua Fitur Spekta Academy",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Seluruh menu pembelajaran utama Spekta Academy telah ditampilkan di layar beranda Anda. Silakan hubungi pusat bantuan jika Anda membutuhkan modul tambahan.",
-                style: TextStyle(fontSize: 13, color: textDarkVariant, height: 1.5),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryRed,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Tutup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              )
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -842,6 +876,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ✅ 3. TAMBAH FITUR LATIHAN SOAL KE DALAM BENTO GRID
   Widget _buildBentoGrid() {
     final bentoItems = [
       {
@@ -851,6 +886,14 @@ class _HomePageState extends State<HomePage> {
         'borderColor': const Color(0xFFBFEFF5),
         'iconColor': const Color(0xFF00696C),
         'action': () => _handleLearningMaterials()
+      },
+      {
+        'title': 'Latihan Soal', // FITUR BARU!
+        'icon': Icons.quiz_rounded, 
+        'bgColor': const Color(0xFFFFF7ED), // Orange muda pastel
+        'borderColor': const Color(0xFFFFEDD5),
+        'iconColor': const Color(0xFFEA580C), // Orange tegas
+        'action': () => _handlePracticeQuestions()
       },
       {
         'title': 'Tryout', 
@@ -1001,162 +1044,6 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }),
-    );
-  }
-
-  // Method _buildTryoutProgressCard() tetap ada di sini namun tidak dipanggil dari build()
-  Widget _buildTryoutProgressCard() {
-    if (isLoadingReport) {
-      return Container(
-        height: 100,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-        child: const Center(child: CircularProgressIndicator(color: primaryRed)),
-      );
-    }
-
-    if (latestTryoutResult == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: outlineVariant.withOpacity(0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 44,
-              width: 44,
-              decoration: const BoxDecoration(
-                color: lightBlueBg,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.analytics_outlined, color: primaryRed, size: 20),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Tryout Progress Belum Tersedia",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Selesaikan simulasi Tryout pertama Anda untuk melihat progres.",
-                    style: TextStyle(fontSize: 11, color: textDarkVariant, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final displayPercentageText = "${(progressPercentage * 100).round()}%";
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: outlineVariant.withOpacity(0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03), 
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Tryout Progress",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    "$currentScore",
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: textDark),
-                  ),
-                  Text(
-                    "/$maxScore",
-                    style: const TextStyle(fontSize: 13, color: textDarkVariant, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isImprovement ? const Color(0xFFE6F7F7) : const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isImprovement ? Icons.trending_up_rounded : Icons.trending_down_rounded, 
-                      color: isImprovement ? darkTeal : primaryRed, 
-                      size: 12,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      improvementText,
-                      style: TextStyle(
-                        color: isImprovement ? darkTeal : primaryRed, 
-                        fontSize: 10, 
-                        fontWeight: FontWeight.bold
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 60, 
-                height: 60,
-                child: CircularProgressIndicator(
-                  value: progressPercentage,
-                  strokeWidth: 8,
-                  backgroundColor: const Color(0xFFEFF4FF),
-                  valueColor: AlwaysStoppedAnimation<Color>(isImprovement ? darkTeal : primaryRed),
-                  strokeCap: StrokeCap.round, 
-                ),
-              ),
-              Text(
-                displayPercentageText,
-                style: TextStyle(
-                  fontSize: 13, 
-                  fontWeight: FontWeight.w900, 
-                  color: isImprovement ? darkTeal : primaryRed
-                ),
-              )
-            ],
-          ),
-        ],
-      ),
     );
   }
 

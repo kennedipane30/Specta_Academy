@@ -97,22 +97,23 @@
     </section>
 
     
-    <section class="pm-form-panel" id="promoForm">
+    <section class="pm-form-panel" id="promoForm" <?php if(isset($editPromo)): ?> style="max-height: 800px; padding: 20px; border: 1px solid var(--border-soft); opacity: 1;" <?php endif; ?>>
         <div class="pm-panel-heading">
             <div>
-                <h2>Buat Kode Promo Baru</h2>
-                <p>Masukkan kode promo, target kelas, besaran diskon, kuota, dan periode promo.</p>
+                <h2><?php if(isset($editPromo)): ?> Edit Kode Promo <?php else: ?> Buat Kode Promo Baru <?php endif; ?></h2>
+                <p><?php if(isset($editPromo)): ?> Perbarui data promo yang sudah ada <?php else: ?> Masukkan kode promo, target kelas, besaran diskon, kuota, dan periode promo. <?php endif; ?></p>
             </div>
         </div>
 
-        <form action="<?php echo e(route('admin.promo.store')); ?>" method="POST" class="pm-form" id="promoFormElement">
+        <form action="<?php if(isset($editPromo)): ?> <?php echo e(route('admin.promo.update', $editPromo->promotion_id)); ?> <?php else: ?> <?php echo e(route('admin.promo.store')); ?> <?php endif; ?>" method="POST" class="pm-form" id="promoFormElement">
             <?php echo csrf_field(); ?>
+            <?php if(isset($editPromo)): ?> <?php echo method_field('PUT'); ?> <?php endif; ?>
 
             <div class="pm-input-group">
                 <label>Kode Promo</label>
                 <div class="pm-input-wrap">
                     <i class="fa-solid fa-ticket"></i>
-                    <input type="text" name="code" id="promoCode" value="<?php echo e(old('code')); ?>" placeholder="CONTOH: SPEKTA50" required style="text-transform: uppercase;">
+                    <input type="text" name="code" id="promoCode" value="<?php echo e(isset($editPromo) ? $editPromo->code : old('code')); ?>" placeholder="CONTOH: SPEKTA50" required style="text-transform: uppercase;">
                 </div>
                 <small class="error-msg" id="codeError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Kode promo harus diisi</small>
             </div>
@@ -124,7 +125,7 @@
                     <select name="class_id" id="classId" required>
                         <option value="">Pilih Kelas</option>
                         <?php $__currentLoopData = $classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($c->class_id); ?>" <?php echo e(old('class_id') == $c->class_id ? 'selected' : ''); ?>>
+                            <option value="<?php echo e($c->class_id); ?>" <?php echo e((isset($editPromo) && $editPromo->class_id == $c->class_id) ? 'selected' : (old('class_id') == $c->class_id ? 'selected' : '')); ?>>
                                 <?php echo e($c->program_name); ?>
 
                             </option>
@@ -138,20 +139,20 @@
                 <label>Besar Diskon</label>
                 <div class="pm-discount-wrap">
                     <i class="fa-solid fa-percent"></i>
-                    <input type="number" name="discount_value" id="discountValue" value="<?php echo e(old('discount_value')); ?>" placeholder="Nilai diskon" required min="1">
+                    <input type="number" name="discount_value" id="discountValue" value="<?php echo e(isset($editPromo) ? ($editPromo->discount_percent ?? 0) : old('discount_value')); ?>" placeholder="Nilai diskon" required min="1">
                     <button type="button" id="btn-toggle-type" onclick="toggleDiscountType()" title="Klik untuk mengubah mata uang">
-                        <span id="display-type">%</span>
+                        <span id="display-type"><?php echo e(isset($editPromo) && $editPromo->discount_type == 'fixed' ? 'Rp' : '%'); ?></span>
                     </button>
                 </div>
                 <small class="error-msg" id="discountError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Diskon harus diisi dengan angka positif</small>
             </div>
-            <input type="hidden" name="discount_type" id="input_discount_type" value="<?php echo e(old('discount_type', 'percent')); ?>">
+            <input type="hidden" name="discount_type" id="input_discount_type" value="<?php echo e(isset($editPromo) ? $editPromo->discount_type : old('discount_type', 'percent')); ?>">
 
             <div class="pm-input-group">
                 <label>Kuota Penggunaan</label>
                 <div class="pm-input-wrap">
                     <i class="fa-solid fa-users"></i>
-                    <input type="number" name="quota" id="quota" value="<?php echo e(old('quota', 100)); ?>" placeholder="Contoh: 100" min="1" required>
+                    <input type="number" name="quota" id="quota" value="<?php echo e(isset($editPromo) ? $editPromo->quota : old('quota', 100)); ?>" placeholder="Contoh: 100" min="1" required>
                 </div>
                 <small class="error-msg" id="quotaError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Kuota minimal 1</small>
             </div>
@@ -160,7 +161,7 @@
                 <label>Tanggal Mulai</label>
                 <div class="pm-input-wrap">
                     <i class="fa-regular fa-calendar"></i>
-                    <input type="date" name="start_date" id="startDate" value="<?php echo e(old('start_date')); ?>" required min="<?php echo e(date('Y-m-d')); ?>">
+                    <input type="date" name="start_date" id="startDate" value="<?php echo e(isset($editPromo) ? $editPromo->start_date : old('start_date')); ?>" required min="<?php echo e(date('Y-m-d')); ?>">
                 </div>
                 <small class="error-msg" id="startDateError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Tanggal mulai tidak boleh kurang dari hari ini</small>
             </div>
@@ -169,15 +170,21 @@
                 <label>Tanggal Berakhir</label>
                 <div class="pm-input-wrap">
                     <i class="fa-regular fa-calendar-check"></i>
-                    <input type="date" name="end_date" id="endDate" value="<?php echo e(old('end_date')); ?>" required>
+                    <input type="date" name="end_date" id="endDate" value="<?php echo e(isset($editPromo) ? $editPromo->end_date : old('end_date')); ?>" required>
                 </div>
                 <small class="error-msg" id="endDateError" style="color: #e53935; font-size: 10px; display: none; margin-top: 4px; font-weight: 700;">Tanggal berakhir harus minimal 1 hari setelah tanggal mulai</small>
             </div>
 
             <div class="pm-form-action">
                 <button type="submit" class="pm-submit-btn">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Simpan & Terbitkan Promo
+                    <i class="fa-solid <?php if(isset($editPromo)): ?> fa-pen-to-square <?php else: ?> fa-cloud-arrow-up <?php endif; ?>"></i>
+                    <?php if(isset($editPromo)): ?> Perbarui Promo <?php else: ?> Simpan & Terbitkan Promo <?php endif; ?>
                 </button>
+                <?php if(isset($editPromo)): ?>
+                    <a href="<?php echo e(route('admin.promo.index')); ?>" class="pm-cancel-btn" style="margin-left: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; background: #f3f4f6; border-radius: 10px; color: #6b7280; text-decoration: none; font-weight: 800; font-size: 13px;">
+                        <i class="fa-solid fa-times"></i> Batal
+                    </a>
+                <?php endif; ?>
             </div>
         </form>
     </section>
@@ -254,14 +261,19 @@
                         </div>
                     </div>
 
-                    <form action="<?php echo e(route('admin.promo.destroy', $row->promotion_id)); ?>" method="POST" onsubmit="return confirm('Hapus promo ini secara permanen?')">
-                        <?php echo csrf_field(); ?>
-                        <?php echo method_field('DELETE'); ?>
-                        <button type="submit" class="pm-stop-btn">
-                            <i class="fa-solid fa-trash-can"></i>
-                            Hapus Promo
-                        </button>
-                    </form>
+                    
+                    <div class="pm-card-actions">
+                        <a href="<?php echo e(route('admin.promo.edit', $row->promotion_id)); ?>" class="pm-edit-btn">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </a>
+                        <form action="<?php echo e(route('admin.promo.destroy', $row->promotion_id)); ?>" method="POST" onsubmit="return confirm('Hapus promo ini secara permanen?')" style="display: inline-block; width: calc(50% - 6px);">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('DELETE'); ?>
+                            <button type="submit" class="pm-stop-btn">
+                                <i class="fa-solid fa-trash-can"></i> Hapus
+                            </button>
+                        </form>
+                    </div>
                 </article>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="pm-empty">
@@ -441,9 +453,8 @@
         if (startDateInput) {
             startDateInput.addEventListener('change', function() {
                 validateStartDate();
-                validateEndDate(); // re-validasi end date jika start date berubah
+                validateEndDate();
 
-                // Set min attribute untuk end date agar tidak bisa memilih tanggal yang sama atau sebelum start_date
                 const startDate = startDateInput.value;
                 if (startDate && endDateInput) {
                     const startDateObj = new Date(startDate);
@@ -464,7 +475,7 @@
         if (discountValueInput) discountValueInput.addEventListener('input', validateDiscount);
         if (quotaInput) quotaInput.addEventListener('input', validateQuota);
 
-        // Set initial min end date jika start date sudah terisi (misal dari old value)
+        // Set initial min end date jika start date sudah terisi (misal dari old value atau edit)
         if (startDateInput && startDateInput.value && endDateInput) {
             const startDate = startDateInput.value;
             const startDateObj = new Date(startDate);
@@ -777,9 +788,9 @@
         transition: all 0.2s ease;
         font-size: 12px;
     }
-    .pm-discount-wrap button:hover { 
-        background: var(--border-soft); 
-        color: var(--spekta-red); 
+    .pm-discount-wrap button:hover {
+        background: var(--border-soft);
+        color: var(--spekta-red);
     }
 
     .pm-form-action {
@@ -800,9 +811,14 @@
         transition: all 0.2s;
         box-shadow: 0 4px 10px rgba(229, 57, 53, 0.15);
     }
-    .pm-submit-btn:hover { 
-        transform: translateY(-1px); 
-        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.25); 
+    .pm-submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(229, 57, 53, 0.25);
+    }
+
+    .pm-cancel-btn:hover {
+        background: #e5e7eb !important;
+        color: #374151 !important;
     }
 
     /* PROMO GRID & CARDS (DESAIN SANGAT KECE) */
@@ -925,8 +941,37 @@
     .pm-card-status.active { color: #15803d; }
     .pm-card-status.inactive { color: var(--spekta-gray); }
 
+    /* 🔥 TOMBOL EDIT DAN HAPUS BERJAJAR */
+    .pm-card-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .pm-edit-btn {
+        flex: 1;
+        background: #3b82f6;
+        border: none;
+        color: white;
+        padding: 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .pm-edit-btn:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+    }
+
     .pm-stop-btn {
-        width: 100%;
+        flex: 1;
         background: var(--spekta-white);
         border: 1px solid var(--border-soft);
         color: var(--text-muted);
@@ -940,6 +985,7 @@
         align-items: center;
         gap: 6px;
         transition: all 0.2s;
+        width: 100%;
     }
     .pm-stop-btn:hover {
         background: var(--spekta-red-light);
@@ -986,7 +1032,9 @@
         .pm-form-action { justify-content: flex-start; }
         .pm-submit-btn { width: 100%; }
         .pm-form-panel.show { padding: 15px; }
+        .pm-card-actions { flex-direction: column; gap: 8px; }
     }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/promo/index.blade.php ENDPATH**/ ?>

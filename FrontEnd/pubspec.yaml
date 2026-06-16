@@ -63,5 +63,6 @@ flutter:
     - assets/images/ptn_unhan.png
     - assets/images/favorit.png
     - assets/images/reguler.png
+    - assets/images/logo.png
     # Tambahkan folder assets lainnya jika ada, misal:
     # - assets/icons/

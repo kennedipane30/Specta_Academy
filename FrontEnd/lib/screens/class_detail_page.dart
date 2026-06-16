@@ -124,6 +124,10 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       final tryoutRes = await AuthService.getSimulasi(widget.token, classId: widget.classId, userId: currentUserId);
       final pracRes = await AuthService.getTryouts(widget.token, classId: widget.classId);
 
+      if (matRes.statusCode >= 500 || tryoutRes.statusCode >= 500 || pracRes.statusCode >= 500) {
+         _showWarningSnack("Mohon maaf sistem sedang sibuk");
+      }
+
       List fetchedMateri = [];
       List fetchedTryouts = [];
       List fetchedPractice = [];
@@ -163,7 +167,10 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       }
     } catch (e) {
       debugPrint("❌ Error Fetch Multi-Service: $e");
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+        _showWarningSnack("Mohon maaf sistem sedang sibuk");
+      }
     }
   }
 
@@ -217,7 +224,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
 
   void _showWarningSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: primaryRed,
+        backgroundColor: accentTeal,
         content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
@@ -264,7 +271,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                           ),
                           const SizedBox(height: 28),
                           
-                          // TENTANG KELAS CARD
                           _buildTitleSection("Tentang Kelas", "💡"),
                           const SizedBox(height: 12),
                           Container(
@@ -287,7 +293,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                           ),
                           const SizedBox(height: 32),
                           
-                          // KURIKULUM & FITUR
                           _buildTitleSection("Kurikulum & Fitur Belajar", "🎯"),
                           const SizedBox(height: 16),
                           
@@ -299,7 +304,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                                 : "$subjectsCount Mata Pelajaran tersedia",
                             onTap: _navigateToMaterials,
                             isLocked: !isActive,
-                            color: primaryRed,
+                            color: accentTeal,
                           ),
                           _buildFeatureButton(
                             icon: Icons.check_circle_outline_rounded,
@@ -333,13 +338,12 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  // HEADER KELAS DENGAN FLOATING BACK BUTTON & GRADIENT TRANSPARAN
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 280.0,
       pinned: true,
       elevation: 0,
-      backgroundColor: primaryRed,
+      backgroundColor: accentTeal,
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
@@ -360,14 +364,13 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               errorBuilder: (context, error, stackTrace) => Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryRed, accentTeal],
+                    colors: [accentTeal, darkTeal],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
             ),
-            // Gradient overlay agar teks putih di atasnya lebih kontras & sinematik
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -383,7 +386,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  // WIDGET JUDUL SEKSI DENGAN AKSEN EMOJI PREMIUM
   Widget _buildTitleSection(String title, String emoji) {
     return Row(
       children: [
@@ -402,7 +404,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  // STATUS BADGE PIL KAPSUL MODERN
   Widget _buildStatusBadge(bool enrolled) {
     String txt = enrolled ? "TERDAFTAR" : "TERSEDIA KELAS";
     Color col = enrolled ? darkTeal : accentTeal;
@@ -424,14 +425,13 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  // FEATURE BUTTON PREMIUM BERGAYA GLASSMORPHISM DENGAN LOCK STATUS YANG JELAS
   Widget _buildFeatureButton(
       {required IconData icon,
       required String title,
       required String subtitle,
       required VoidCallback onTap,
       bool isLocked = true,
-      Color color = primaryRed}) {
+      Color color = accentTeal}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -479,7 +479,6 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
     );
   }
 
-  // BOTTOM BAR MODERN MELAYANG (FLOATING CAPSULE BAR)
   Widget _buildPremiumBottomBar(bool hasOtherClass) {
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -509,7 +508,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                       Text(
                         currency.format(basePrice),
                         style: const TextStyle(
-                          color: primaryRed,
+                          color: accentTeal,
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.5,

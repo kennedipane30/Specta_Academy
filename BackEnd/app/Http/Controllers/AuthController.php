@@ -297,7 +297,7 @@ class AuthController extends Controller {
         return response()->json(['status' => 'success', 'data' => $schedules]);
     }
 
-    /**
+/**
      * 12. GET PROFILE
      */
     public function getProfile(Request $request): JsonResponse {
@@ -343,10 +343,15 @@ class AuthController extends Controller {
                 'id'               => $user->usersID,
                 'name'             => $user->name,
                 'email'            => $user->email,
+
+                // ✅ PERBAIKAN: Tambahkan nomor HP/WA dari tabel users!
+                'phone'            => $user->phone,
+
                 'photo_url'        => $user->photo_url,
                 'role'             => strtoupper($roleName),
                 'joined_date'      => $joinedDate,
-                'enrolled_classes' => $enrolledClasses
+                'enrolled_classes' => $enrolledClasses,
+                'student'          => $student
             ]
         ]);
     }
@@ -377,4 +382,6 @@ class AuthController extends Controller {
 
         return response()->json(['status' => 'error', 'message' => 'Tidak ada gambar'], 400);
     }
+
+
 }
