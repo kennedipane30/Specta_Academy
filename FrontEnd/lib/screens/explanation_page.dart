@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ExplanationPage extends StatelessWidget {
   final List questions;
@@ -6,7 +9,7 @@ class ExplanationPage extends StatelessWidget {
   const ExplanationPage({super.key, required this.questions});
 
   // ============================================================
-  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN HOMEPAGE)
+  // 🎨 PALET WARNA SPEKTA 
   // ============================================================
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
@@ -17,6 +20,154 @@ class ExplanationPage extends StatelessWidget {
   static const Color textDarkVariant = Color(0xFF334155);
   static const Color neutralGray     = Color(0xFF64748B);
   static const Color outlineVariant  = Color(0xFFE2BEBA);
+
+  // Fungsi untuk menggambar dan mendownload PDF
+  Future<void> _generateAndDownloadPdf(BuildContext context) async {
+    // 1. Tampilkan loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: accentTeal)),
+    );
+
+    try {
+      // 2. Buat dokumen PDF kosong
+      final pdf = pw.Document();
+
+      // ✅ SOLUSI ERROR HELVETICA: Muat font Roboto dari Google Fonts
+      final fontRegular = await PdfGoogleFonts.robotoRegular();
+      final fontBold = await PdfGoogleFonts.robotoBold();
+
+      // 3. Tambahkan halaman
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          // ✅ Terapkan Font Roboto ke seluruh isi PDF agar Unicode (Simbol/Emoji) terbaca
+          theme: pw.ThemeData.withFont(
+            base: fontRegular,
+            bold: fontBold,
+          ),
+          build: (pw.Context pdfContext) {
+            List<pw.Widget> pdfContent = [];
+
+            // Header Judul Dokumen PDF
+            pdfContent.add(
+              pw.Header(
+                level: 0,
+                child: pw.Text("Pembahasan Tryout - Spekta Academy", 
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900)
+                ),
+              ),
+            );
+            pdfContent.add(pw.SizedBox(height: 20));
+
+            // Looping seluruh soal
+            for (var i = 0; i < questions.length; i++) {
+              final q = questions[i];
+              String userAnswer = (q['user_answer'] ?? '-').toString().trim().toUpperCase();
+              String correctAnswer = (q['correct_answer'] ?? '-').toString().trim().toUpperCase();
+              if (userAnswer == "" || userAnswer == "NULL") userAnswer = "-";
+
+              bool isCorrect = (userAnswer != "-") && (userAnswer == correctAnswer);
+              bool isUnanswered = userAnswer == "-";
+
+              String statusLabel = isCorrect ? "BENAR" : isUnanswered ? "TIDAK DIJAWAB" : "SALAH";
+              PdfColor statusColor = isCorrect ? PdfColors.teal700 : isUnanswered ? PdfColors.grey600 : PdfColors.red700;
+
+              // Blok per 1 Soal di dalam PDF
+              pdfContent.add(
+                pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 24),
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      // Header Soal
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text("SOAL #${i + 1}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                          pw.Text(statusLabel, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: statusColor)),
+                        ],
+                      ),
+                      pw.Divider(color: PdfColors.grey300),
+                      pw.SizedBox(height: 8),
+
+                      // Teks Pertanyaan (Dibersihkan dari null)
+                      pw.Text(q['question']?.toString() ?? 'Pertanyaan tidak ditemukan.', style: const pw.TextStyle(fontSize: 12)),
+                      pw.SizedBox(height: 12),
+
+                      // Perbandingan Jawaban
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(8),
+                        decoration: pw.BoxDecoration(color: PdfColors.grey100),
+                        child: pw.Row(
+                          children: [
+                            pw.Expanded(
+                              child: pw.Text("Jawaban Kamu: ${userAnswer == '-' ? 'Kosong' : 'Opsi $userAnswer'}", 
+                                style: pw.TextStyle(color: isCorrect ? PdfColors.teal700 : PdfColors.red700, fontWeight: pw.FontWeight.bold, fontSize: 10)
+                              ),
+                            ),
+                            pw.Expanded(
+                              child: pw.Text("Kunci Jawaban: Opsi $correctAnswer", 
+                                style: pw.TextStyle(color: PdfColors.teal700, fontWeight: pw.FontWeight.bold, fontSize: 10)
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(height: 12),
+
+                      // Penjelasan
+                      pw.Text("PENJELASAN:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.teal900)),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        q['explanation'] != null && q['explanation'].toString().isNotEmpty
+                            ? q['explanation'].toString()
+                            : "Tidak ada penjelasan tertulis untuk soal ini.",
+                        style: const pw.TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return pdfContent;
+          },
+        ),
+      );
+
+      // 4. Tutup loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // 5. Panggil fungsi bawaan HP untuk Share / Save File PDF
+      await Printing.sharePdf(
+        bytes: await pdf.save(), 
+        filename: 'Pembahasan_Tryout_Spekta.pdf'
+      );
+
+    } catch (e) {
+      // ✅ Saya tambahkan Print ini agar jika gagal lagi, error-nya terlihat jelas di terminal
+      debugPrint("❌ ERROR GENERATE PDF: $e");
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Gagal membuat PDF"),
+            backgroundColor: primaryRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          )
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +203,7 @@ class ExplanationPage extends StatelessWidget {
       body: questions.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
               itemCount: questions.length,
               itemBuilder: (context, index) {
                 final q = questions[index];
@@ -270,9 +421,9 @@ class ExplanationPage extends StatelessWidget {
               },
             ),
 
-      // ── Bottom bar ──
+      // ── Bottom bar menjadi 2 Tombol ──
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: outlineVariant.withOpacity(0.4))),
@@ -284,25 +435,50 @@ class ExplanationPage extends StatelessWidget {
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: () =>
-              Navigator.of(context).popUntil((route) => route.isFirst),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accentTeal,
-            minimumSize: const Size(double.infinity, 52),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
-            elevation: 0,
-          ),
-          child: const Text(
-            "KEMBALI KE BERANDA",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 14,
-              letterSpacing: 0.8,
+        child: Column(
+          mainAxisSize: MainAxisSize.min, 
+          children: [
+            // TOMBOL 1: DOWNLOAD PDF
+            OutlinedButton.icon(
+              onPressed: () => _generateAndDownloadPdf(context),
+              icon: const Icon(Icons.picture_as_pdf_rounded, color: darkTeal),
+              label: const Text(
+                "DOWNLOAD PEMBAHASAN (PDF)",
+                style: TextStyle(
+                  color: darkTeal,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 52),
+                side: const BorderSide(color: darkTeal, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+
+            // TOMBOL 2: KEMBALI KE BERANDA 
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentTeal,
+                minimumSize: const Size(double.infinity, 52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                "KEMBALI KE BERANDA",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

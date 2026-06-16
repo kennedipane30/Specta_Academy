@@ -31,11 +31,14 @@ dependencies:
   url_launcher: ^6.2.5
   path_provider: ^2.1.1
   pdfrx: ^1.0.67 # PDF Viewer yang ringan dan stabil
+  pdf: ^3.11.0
+  printing: ^5.12.0
   
   # --- Media & Camera ---
   image_picker: ^1.2.1
 
   # --- Data Visualization (✨ Untuk Grafik Laporan Belajar) ---
+
   fl_chart: 0.68.0 
 
   # --- Utils ---
