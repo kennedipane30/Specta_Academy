@@ -13,19 +13,16 @@ class DedicatedTutorPage extends StatefulWidget {
 }
 
 class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
-  // ============================================================
-  // 🎨 PALET WARNA BARU SPEKTA GEN-Z (KONTRAS TINGGI, CLEAN, PREMIUM)
-  // ============================================================
-  static const Color primaryRed = Color(0xFFC5352C);       // Merah Spekta
-  static const Color brightRed = Color(0xFFE53935);        // Aksen Merah Terang
-  static const Color accentTeal = Color(0xFF2EA8AB);       // Teal Estetik
-  static const Color darkTeal = Color(0xFF00696C);         // Teal Gelap
-  static const Color pageBg = Color(0xFFF8FAFC);           // Slate 50 (Abu Terang Bersih)
-  static const Color textDark = Color(0xFF0F172A);         // Slate 900
-  static const Color textDarkVariant = Color(0xFF334155);  // Slate 700
-  static const Color neutralGray = Color(0xFF64748B);      // Slate 500
-  static const Color outlineVariant = Color(0xFFE2E8F0);   // Border Abu Halus
-  static const Color lightBlueBg = Color(0xFFEFF4FF);      // Latar Ikon
+  static const Color primaryRed = Color(0xFFC5352C);
+  static const Color brightRed = Color(0xFFE53935);
+  static const Color accentTeal = Color(0xFF2EA8AB);
+  static const Color darkTeal = Color(0xFF00696C);
+  static const Color pageBg = Color(0xFFF8FAFC);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color textDarkVariant = Color(0xFF334155);
+  static const Color neutralGray = Color(0xFF64748B);
+  static const Color outlineVariant = Color(0xFFE2E8F0);
+  static const Color lightBlueBg = Color(0xFFEFF4FF);
   
   List materials = [];    
   List historyList = [];  
@@ -37,10 +34,21 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
 
+  // ✅ GETTER CEK KELAS
+  bool get _hasClass {
+    final student = widget.userData['student'];
+    return student != null && student['class_id'] != null;
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchPageData();
+    // ✅ Cek dulu sebelum load data
+    if (_hasClass) {
+      _fetchPageData();
+    } else {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _fetchPageData() async {
@@ -206,9 +214,9 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'confirmed': return const Color(0xFF10B981); // Hijau pastel
-      case 'rejected': return primaryRed;               // Merah pastel
-      case 'pending': return Colors.orange;             // Oranye pastel
+      case 'confirmed': return const Color(0xFF10B981);
+      case 'rejected': return primaryRed;
+      case 'pending': return Colors.orange;
       default: return Colors.grey;
     }
   }
@@ -227,42 +235,102 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     return Scaffold(
       backgroundColor: pageBg,
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: primaryRed),
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchPageData,
-              color: primaryRed,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Stack(
-                  children: [
-                    // 1. HEADER GRADIENT MELENGKUNG (Tinggi disesuaikan menjadi 310)
-                    _buildCurvedHeader(),
-
-                    // 2. KONTEN BODY MELAYANG (Geser awal top padding dari 210 menjadi 265 agar tidak menabrak)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 265, 16, 40),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildRequestForm(),
-                          const SizedBox(height: 24),
-                          _buildHistorySection(),
-                        ],
-                      ),
+          ? const Center(child: CircularProgressIndicator(color: primaryRed))
+          // ✅ Tampilkan not enrolled state jika belum terdaftar
+          : !_hasClass
+              ? _buildNotEnrolledState()
+              : RefreshIndicator(
+                  onRefresh: _fetchPageData,
+                  color: primaryRed,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Stack(
+                      children: [
+                        _buildCurvedHeader(),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 265, 16, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildRequestForm(),
+                              const SizedBox(height: 24),
+                              _buildHistorySection(),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
     );
   }
 
-  // WIDGET HEADER LENGKUNG PREMIUM DENGAN GLASS-CARD KUOTA
+  // ✅ STATE BELUM TERDAFTAR - konsisten dengan TryoutPage
+  Widget _buildNotEnrolledState() {
+    return Stack(
+      children: [
+        _buildCurvedHeader(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 265, 16, 40),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(25),
+                    decoration: BoxDecoration(
+                      color: accentTeal.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.lock_rounded, color: accentTeal, size: 60),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Akses Terkunci',
+                    style: TextStyle(
+                      color: textDark,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Akun Anda belum terdaftar di kelas manapun. Silakan hubungi Admin Spekta.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: textDarkVariant),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentTeal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                      minimumSize: const Size(150, 48),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'KEMBALI',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCurvedHeader() {
     return Container(
-      height: 310, // Ditingkatkan menjadi 310 agar kelengkungan bawah terlihat rapi
+      height: 310,
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -297,7 +365,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 40), // Penyeimbang horizontal
+              const SizedBox(width: 40),
             ],
           ),
           const SizedBox(height: 18),
@@ -307,7 +375,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
-  // KARTU KUOTA BERGAYA GLASSMORPHISM SANGAT ESTETIK
   Widget _buildQuotaCard() {
     final int usedQuota = maxQuota - remainingQuota;
     final double progress = (usedQuota / maxQuota).clamp(0.0, 1.0);
@@ -346,7 +413,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: "$remainingQuota",
+                      text: _hasClass ? "$remainingQuota" : "-",
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
@@ -375,7 +442,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                     Icon(Icons.check_circle_rounded, size: 12, color: Colors.white.withOpacity(0.9)),
                     const SizedBox(width: 4),
                     Text(
-                      "Digunakan $usedQuota",
+                      _hasClass ? "Digunakan $usedQuota" : "Belum Terdaftar",
                       style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -387,7 +454,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: progress,
+              value: _hasClass ? progress : 0,
               backgroundColor: Colors.white.withOpacity(0.25),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 6,
@@ -398,7 +465,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
-  // FORM REQUEST PENGAJUAN
   Widget _buildRequestForm() {
     final bool canSubmit = remainingQuota > 0;
 
@@ -430,8 +496,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             ],
           ),
           const SizedBox(height: 20),
-          
-          // Nama Siswa Box
           const Text(
             "Nama Siswa",
             style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
@@ -451,8 +515,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
-          // Pilih Topik Dropdown
           const Text(
             "Pilih Topik",
             style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: neutralGray),
@@ -460,8 +522,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
           const SizedBox(height: 6),
           _buildDropdownField(),
           const SizedBox(height: 16),
-          
-          // Tanggal & Waktu Row
           Row(
             children: [
               Expanded(
@@ -494,8 +554,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
             ],
           ),
           const SizedBox(height: 24),
-          
-          // Submit Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -524,7 +582,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
-  // DROPDOWN TOPIK PREMIUM
   Widget _buildDropdownField() {
     return Container(
       decoration: BoxDecoration(
@@ -645,7 +702,6 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
     );
   }
 
-  // RIWAYAT PENGAJUAN TUTOR PRIVATE BERGAYA BENTO CARD
   Widget _buildHistorySection() {
     if (historyList.isEmpty) {
       return Container(
@@ -659,12 +715,12 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
         child: const Column(
           children: [
             Icon(Icons.history_rounded, size: 48, color: neutralGray),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               "Belum ada riwayat pengajuan",
               style: TextStyle(color: textDarkVariant, fontSize: 13, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               "Ajukan permintaan bimbingan privat di atas",
               style: TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.w500),
@@ -723,21 +779,19 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
               );
               final topicTitle = material['title'] ?? 'Materi Umum';
 
-              // Tentukan lencana warna pastel transparan sesuai status
               Color badgeColor;
               Color badgeText;
               if (status.toString().toLowerCase() == 'confirmed') {
-                badgeColor = const Color(0xFFE8F5E9); // Hijau pastel
+                badgeColor = const Color(0xFFE8F5E9);
                 badgeText = const Color(0xFF2E7D32);
               } else if (status.toString().toLowerCase() == 'rejected') {
-                badgeColor = const Color(0xFFFEE2E2); // Merah pastel
+                badgeColor = const Color(0xFFFEE2E2);
                 badgeText = const Color(0xFF991B1B);
               } else {
-                badgeColor = const Color(0xFFFFF8E1); // Oranye pastel
+                badgeColor = const Color(0xFFFFF8E1);
                 badgeText = const Color(0xFFFFA000);
               }
 
-              // Ikon topik dinamis yang berubah sesuai nama mata pelajaran
               IconData topicIcon = Icons.school_rounded;
               if (topicTitle.toLowerCase().contains('psych') || topicTitle.toLowerCase().contains('psiko')) {
                 topicIcon = Icons.psychology_rounded;
@@ -756,11 +810,7 @@ class _DedicatedTutorPageState extends State<DedicatedTutorPage> {
                         color: badgeColor,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(
-                        topicIcon,
-                        color: badgeText,
-                        size: 24,
-                      ),
+                      child: Icon(topicIcon, color: badgeText, size: 24),
                     ),
                     const SizedBox(width: 14),
                     Expanded(

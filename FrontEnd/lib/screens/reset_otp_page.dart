@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:convert'; // 🔥 Ditambahkan untuk menangani jsonDecode respons Laravel
 import '../services/auth_service.dart';
 import 'new_password_page.dart';
 
@@ -20,12 +21,12 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
   // ============================================================
   // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
   // ============================================================
-  static const Color primaryRed      = Color(0xFFC5352C);
-  static const Color accentTeal      = Color(0xFF2EA8AB);
-  static const Color darkTeal        = Color(0xFF00696C);
-  static const Color lightBlueBg     = Color(0xFFEFF4FF);
-  static const Color pageBg          = Color(0xFFF1F5F9);
-  static const Color textDark        = Color(0xFF0F172A);
+  static const Color primaryRed       = Color(0xFFC5352C);
+  static const Color accentTeal       = Color(0xFF2EA8AB);
+  static const Color darkTeal         = Color(0xFF00696C);
+  static const Color lightBlueBg      = Color(0xFFEFF4FF);
+  static const Color pageBg           = Color(0xFFF1F5F9);
+  static const Color textDark         = Color(0xFF0F172A);
   static const Color textDarkVariant = Color(0xFF334155);
   static const Color neutralGray     = Color(0xFF64748B);
   static const Color outlineVariant  = Color(0xFFE2BEBA);
@@ -66,34 +67,82 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
   void handleResendOtp() async {
     if (!_isResendClickable) return;
 
-    showDialog(context: context, builder: (_) => Center(child: CircularProgressIndicator(color: accentTeal)));
+    showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator(color: accentTeal)));
     
-    // Gunakan fungsi forgotPassword untuk mengirim ulang kode ke email tersebut
     var resp = await AuthService.forgotPassword(widget.email);
     
     if (!mounted) return;
     Navigator.pop(context);
 
     if (resp.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: darkTeal, 
-          content: const Text("Kode OTP baru telah dikirim ke email!"),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        )
-      );
+      _showSnackBar("Kode OTP baru telah dikirim ke email!", darkTeal);
       startTimer();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: primaryRed, 
-          content: const Text("Gagal mengirim ulang kode."),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        )
-      );
+      _showSnackBar("Gagal mengirim ulang kode.", primaryRed);
     }
+  }
+
+  // 🔥 FUNGSI UTAMA: Verifikasi OTP ke Gerbang Laravel Sebelum Pindah Halaman
+  void _processVerification() async {
+    String otp = getOtpCode();
+    
+    if (otp.length < 6) {
+      _showSnackBar("Masukkan 6 digit kode lengkap!", primaryRed);
+      return;
+    }
+
+    // Tampilkan Animasi Loading
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => const Center(child: CircularProgressIndicator(color: accentTeal))
+    );
+
+    try {
+      // 1. Tembak Validasi OTP ke Server Lokal Laravel
+      var resp = await AuthService.validateResetOtp(widget.email, otp);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup loading
+
+      // 2. Evaluasi Hasil Pemeriksaan Database PostgreSQL
+      if (resp.statusCode == 200) {
+        _showSnackBar("Kode OTP Valid!", darkTeal);
+        
+        // 3. JIKA COCOK: Loloskan navigasi ke halaman password baru bawa data OTP asli
+        Navigator.push(
+          context, 
+          MaterialPageRoute(
+            builder: (_) => NewPasswordPage(email: widget.email, otp: otp)
+          )
+        );
+      } else {
+        // 4. JIKA SALAH: Tahan di sini dan muntahkan pesan kegagalan dari server
+        String serverError = "Kode OTP Salah atau Kadaluarsa";
+        try {
+          final data = jsonDecode(resp.body);
+          serverError = data['message'] ?? serverError;
+        } catch (_) {}
+
+        _showSnackBar(serverError, primaryRed);
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      debugPrint("❌ OTP VALIDATION EXCEPTION: $e");
+      _showSnackBar("Gagal terhubung ke server lokal", primaryRed);
+    }
+  }
+
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: color, 
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)), 
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      )
+    );
   }
 
   @override
@@ -134,7 +183,7 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
                 color: accentTeal.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.lock_reset_rounded, size: 80, color: accentTeal),
+              child: const Icon(Icons.lock_reset_rounded, size: 80, color: accentTeal),
             ),
             const SizedBox(height: 30),
             const Text(
@@ -168,21 +217,7 @@ class _ResetOtpPageState extends State<ResetOtpPage> {
                 elevation: 5,
                 shadowColor: accentTeal.withOpacity(0.3),
               ),
-              onPressed: () {
-                String otp = getOtpCode();
-                if (otp.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: primaryRed,
-                      content: const Text("Masukkan 6 digit kode lengkap!"),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    )
-                  );
-                  return;
-                }
-                Navigator.push(context, MaterialPageRoute(builder: (_) => NewPasswordPage(email: widget.email, otp: otp)));
-              },
+              onPressed: _processVerification, // 🔥 Panggil fungsi validasi real-time baru
               child: const Text(
                 "VERIFIKASI KODE", 
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)

@@ -14,15 +14,24 @@ use App\Models\Announcement;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AdminDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $today = Carbon::today();
+
+        // Ambil parameter month dan year dari request
+        $month = $request->query('month', Carbon::now()->month);
+        $year = $request->query('year', Carbon::now()->year);
+
+        // Pastikan month dan year valid
+        $month = max(1, min(12, (int)$month));
+        $year = max(2000, min(2100, (int)$year));
 
         // Ambil data dari microservice (dengan fallback jika offline)
         $total_materi_aktif = $this->getTotalMateriFromMicroservice();
@@ -80,52 +89,108 @@ class AdminDashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 3. DATA GRAFIK 30 HARI TERAKHIR (Gunakan data lokal saja)
+        | 3. DATA GRAFIK PER BULAN DENGAN 4 MINGGU (DINAMIS BERDASARKAN PARAMETER)
         |--------------------------------------------------------------------------
         */
 
-        $startDate = Carbon::today()->subDays(29);
-        $endDate = Carbon::today();
-        $period = CarbonPeriod::create($startDate, $endDate);
+        // Gunakan parameter month dan year yang sudah didapat
+        $currentMonth = $month;
+        $currentYear = $year;
 
-        $studentDaily = User::where('role_id', 3)
-            ->whereDate('created_at', '>=', $startDate)
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as total'))
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->pluck('total', 'date');
+        // Tentukan minggu ke-1 sampai ke-4 dalam bulan yang dipilih
+        $weeks = [];
 
-        $baseStudentCount = User::where('role_id', 3)
-            ->whereDate('created_at', '<', $startDate)
-            ->count();
+        // Dapatkan hari pertama bulan yang dipilih
+        $firstDayOfMonth = Carbon::create($currentYear, $currentMonth, 1);
+        // Dapatkan hari terakhir bulan yang dipilih
+        $lastDayOfMonth = Carbon::create($currentYear, $currentMonth, 1)->endOfMonth();
 
-        $enrollmentDaily = Enrollment::whereDate('created_at', '>=', $startDate)
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as total'))
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->pluck('total', 'date');
+        // Hitung minggu ke-1 (hari 1-7)
+        $week1Start = $firstDayOfMonth->copy();
+        $week1End = $firstDayOfMonth->copy()->addDays(6);
 
-        $tutorDaily = DedicatedTutor::whereDate('created_at', '>=', $startDate)
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as total'))
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->pluck('total', 'date');
+        // Minggu ke-2 (hari 8-14)
+        $week2Start = $firstDayOfMonth->copy()->addDays(7);
+        $week2End = $firstDayOfMonth->copy()->addDays(13);
+
+        // Minggu ke-3 (hari 15-21)
+        $week3Start = $firstDayOfMonth->copy()->addDays(14);
+        $week3End = $firstDayOfMonth->copy()->addDays(20);
+
+        // Minggu ke-4 (hari 22 - akhir bulan)
+        $week4Start = $firstDayOfMonth->copy()->addDays(21);
+        $week4End = $lastDayOfMonth->copy();
+
+        $weeks = [
+            [
+                'start' => $week1Start,
+                'end' => $week1End,
+                'label' => 'Minggu 1',
+                'range' => $week1Start->format('d') . '-' . $week1End->format('d M')
+            ],
+            [
+                'start' => $week2Start,
+                'end' => $week2End,
+                'label' => 'Minggu 2',
+                'range' => $week2Start->format('d') . '-' . $week2End->format('d M')
+            ],
+            [
+                'start' => $week3Start,
+                'end' => $week3End,
+                'label' => 'Minggu 3',
+                'range' => $week3Start->format('d') . '-' . $week3End->format('d M')
+            ],
+            [
+                'start' => $week4Start,
+                'end' => $week4End,
+                'label' => 'Minggu 4',
+                'range' => $week4Start->format('d') . '-' . $week4End->format('d M')
+            ],
+        ];
 
         $chart_labels = [];
         $chart_siswa_baru = [];
         $chart_aktivitas_harian = [];
         $chart_total_siswa = [];
 
+        // Akumulasi total siswa dari bulan-bulan SEBELUM bulan yang dipilih
+        $baseStudentCount = User::where('role_id', 3)
+            ->where(function($query) use ($currentYear, $currentMonth) {
+                $query->whereYear('created_at', '<', $currentYear)
+                    ->orWhere(function($q) use ($currentYear, $currentMonth) {
+                        $q->whereYear('created_at', $currentYear)
+                            ->whereMonth('created_at', '<', $currentMonth);
+                    });
+            })
+            ->count();
+
         $runningTotalStudent = $baseStudentCount;
 
-        foreach ($period as $date) {
-            $key = $date->format('Y-m-d');
+        foreach ($weeks as $week) {
+            $startDate = $week['start'];
+            $endDate = $week['end'];
 
-            $newStudents = (int) ($studentDaily[$key] ?? 0);
-            $dailyActivity =
-                (int) ($enrollmentDaily[$key] ?? 0) +
-                (int) ($tutorDaily[$key] ?? 0);
+            // Hitung siswa baru per minggu (hanya dari bulan yang dipilih)
+            $newStudents = User::where('role_id', 3)
+                ->whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)
+                ->count();
 
+            // Hitung aktivitas per minggu (enrollment + dedicated tutor)
+            $enrollments = Enrollment::whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)
+                ->count();
+
+            $tutors = DedicatedTutor::whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)
+                ->count();
+
+            $dailyActivity = $enrollments + $tutors;
+
+            // Akumulasi total siswa
             $runningTotalStudent += $newStudents;
 
-            $chart_labels[] = $date->translatedFormat('d M');
+            $chart_labels[] = $week['label'] . "\n" . $week['range'];
             $chart_siswa_baru[] = $newStudents;
             $chart_aktivitas_harian[] = $dailyActivity;
             $chart_total_siswa[] = $runningTotalStudent;

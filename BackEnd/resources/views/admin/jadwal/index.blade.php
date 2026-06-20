@@ -173,7 +173,11 @@
                             <td>{{ $row->teacher->name ?? '-' }}</td>
                             <td><span class="sc-status-badge {{ $status }}">{{ ucfirst($status) }}</span></td>
                             <td>
+                            <td>
                                 <div class="sc-actions-wrap">
+                                    <a href="{{ route('admin.jadwal.edit', $row->schedule_id) }}" class="btn-edit">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
                                     <form action="{{ route('admin.jadwal.destroy', $row->schedule_id) }}" method="POST" style="display: inline-flex;">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn-delete" onclick="return confirm('Hapus jadwal ini?')">
@@ -181,6 +185,7 @@
                                         </button>
                                     </form>
                                 </div>
+                            </td>
                             </td>
                         </tr>
                     @empty
@@ -200,6 +205,8 @@
 </div>
 
 <style>
+
+
     :root {
         --spekta-red-dark: #c5352c;
         --spekta-red: #e53935;
@@ -214,9 +221,36 @@
         --border-soft: #e5e7eb;
     }
 
-    .sc-page { 
-        font-family: 'Montserrat', sans-serif; 
-        padding: 10px; 
+        .sc-actions-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-edit {
+        color: #2ea8ab;
+        border: none;
+        background: rgba(46, 168, 171, 0.08);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+    .btn-edit:hover {
+        transform: scale(1.05);
+        background: #a7f3d0;
+        color: #065f46;
+    }
+
+    .sc-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
         animation: fadeIn 0.4s ease-out;
     }
 
@@ -226,15 +260,15 @@
     }
 
     /* ── Header ── */
-    .sc-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: flex-end; 
-        margin-bottom: 24px; 
-        border-bottom: 1px solid var(--border-soft); 
-        padding-bottom: 20px; 
+    .sc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 20px;
     }
-    
+
     .sc-breadcrumb {
         display: flex;
         align-items: center;
@@ -251,20 +285,20 @@
 
     .sc-title-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 8px;}
     .sc-header h1 { font-size: 24px; font-weight: 900; color: var(--text-main); margin: 0; letter-spacing: -0.02em; }
-    
-    .sc-badge-live { 
-        background: var(--spekta-gray-light); 
-        padding: 4px 12px; 
-        border-radius: 20px; 
-        font-size: 10px; 
-        font-weight: 800; 
-        color: var(--text-muted); 
-        display: flex; 
-        align-items: center; 
-        gap: 6px; 
-        border: 1px solid var(--border-soft); 
+
+    .sc-badge-live {
+        background: var(--spekta-gray-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border-soft);
     }
-    
+
     .dot-pulse { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
     .sc-header p { margin: 0; color: var(--text-muted); font-size: 13px; font-weight: 600;}
@@ -274,20 +308,20 @@
     .sc-alert.success { background: #e6f7ed; color: #15803d; border: 1px solid #bbf7d0;}
 
     /* ── Stats Cards (Metrik yang Rapi di Atas) ── */
-    .sc-stats { 
-        display: grid; 
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 16px; 
-        margin-bottom: 24px; 
+    .sc-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
     }
-    .sc-stat-card { 
-        background: var(--spekta-white); 
-        border-radius: 14px; 
-        padding: 16px; 
-        display: flex; 
-        align-items: center; 
-        gap: 14px; 
-        border: 1px solid var(--border-soft); 
+    .sc-stat-card {
+        background: var(--spekta-white);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid var(--border-soft);
         box-shadow: 0 2px 10px rgba(0,0,0,0.01);
         transition: all 0.2s ease;
     }
@@ -320,13 +354,13 @@
     .sc-input-group label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
     .sc-input-group input, .sc-input-group select { padding: 11px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--spekta-gray-light); font-weight: 600; outline: none; transition: all 0.25s; font-family: inherit; font-size: 12px; }
     .sc-input-group input:focus, .sc-input-group select:focus { border-color: var(--spekta-teal); background: var(--spekta-white); box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12); }
-    
+
     /* Perubahan Read-Only State yang Seimbang & Pasif */
-    .sc-input-readonly { 
-        background: #f9fafb !important; 
-        border-color: var(--border-soft) !important; 
-        color: var(--text-muted) !important; 
-        cursor: not-allowed; 
+    .sc-input-readonly {
+        background: #f9fafb !important;
+        border-color: var(--border-soft) !important;
+        color: var(--text-muted) !important;
+        cursor: not-allowed;
         box-shadow: none !important;
     }
 
@@ -341,46 +375,46 @@
     .sc-table td { padding: 14px; border-bottom: 1px solid var(--spekta-gray-light); font-size: 13px; font-weight: 600; color: var(--text-main); vertical-align: middle; }
     .sc-table tbody tr:last-child td { border-bottom: none; }
     .sc-table tbody tr:hover { background: #fafbfc; }
-    
+
     /* Status Badge alignment */
-    .sc-status-badge { 
-        display: inline-flex; 
-        align-items: center; 
-        justify-content: center; 
-        height: 22px; 
-        padding: 0 10px; 
-        border-radius: 6px; 
-        font-size: 9px; 
-        font-weight: 800; 
-        text-transform: uppercase; 
+    .sc-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 22px;
+        padding: 0 10px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
         letter-spacing: 0.02em;
     }
     .sc-status-badge.ongoing { background: #e6f7ed; color: #15803d; }
     .sc-status-badge.scheduled { background: #e0f2fe; color: #0269a1; }
     .sc-status-badge.finished { background: var(--spekta-gray-light); color: var(--text-muted); }
-    
+
     .sc-actions-wrap {
         display: flex;
         align-items: center;
         justify-content: flex-start;
     }
 
-    .btn-delete { 
-        color: var(--spekta-red); 
-        border: none; 
-        background: var(--spekta-red-light); 
-        width: 30px; 
-        height: 30px; 
-        border-radius: 8px; 
-        cursor: pointer; 
-        font-size: 12px; 
-        transition: 0.2s; 
-        display: inline-flex; 
-        align-items: center; 
+    .btn-delete {
+        color: var(--spekta-red);
+        border: none;
+        background: var(--spekta-red-light);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
     }
     .btn-delete:hover { transform: scale(1.05); background: #fecaca; color: #991b1b; }
-    
+
     .sc-empty-state {
         padding: 24px;
         text-align: center;

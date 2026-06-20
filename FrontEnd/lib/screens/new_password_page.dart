@@ -5,7 +5,7 @@ import 'dart:convert';
 
 class NewPasswordPage extends StatefulWidget {
   final String email;
-  final String otp; // Ini harus berisi 6 digit angka dari halaman sebelumnya
+  final String otp; // Berisi 6 digit angka dari halaman verifikasi OTP sebelumnya
 
   const NewPasswordPage({super.key, required this.email, required this.otp});
 
@@ -20,12 +20,12 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
   // ============================================================
   // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
   // ============================================================
-  static const Color primaryRed      = Color(0xFFC5352C);
-  static const Color accentTeal      = Color(0xFF2EA8AB);
-  static const Color darkTeal        = Color(0xFF00696C);
-  static const Color lightBlueBg     = Color(0xFFEFF4FF);
-  static const Color pageBg          = Color(0xFFF1F5F9);
-  static const Color textDark        = Color(0xFF0F172A);
+  static const Color primaryRed       = Color(0xFFC5352C);
+  static const Color accentTeal       = Color(0xFF2EA8AB);
+  static const Color darkTeal         = Color(0xFF00696C);
+  static const Color lightBlueBg      = Color(0xFFEFF4FF);
+  static const Color pageBg           = Color(0xFFF1F5F9);
+  static const Color textDark         = Color(0xFF0F172A);
   static const Color textDarkVariant = Color(0xFF334155);
   static const Color neutralGray     = Color(0xFF64748B);
   static const Color outlineVariant  = Color(0xFFE2BEBA);
@@ -34,7 +34,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
   bool _isObscureConfirm = true;
 
   void _handleReset() async {
-    // 1. Validasi Input di HP
+    // 1. Validasi Input Lokal di HP
     if (_passCtrl.text.isEmpty) {
       _showSnackBar("Password baru tidak boleh kosong", primaryRed);
       return;
@@ -50,10 +50,10 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
       return;
     }
 
-    // --- DIAGNOSIS (Cek di Debug Console VS Code) ---
-    print("Mencoba Reset Password...");
-    print("Email: ${widget.email}");
-    print("OTP yang diterima dari halaman sebelumnya: ${widget.otp}");
+    // --- DIAGNOSIS DEBUG CONSOLE ---
+    debugPrint("=== PROSES RESET PASSWORD ===");
+    debugPrint("Email Target : ${widget.email}");
+    debugPrint("OTP Terbawa  : ${widget.otp}");
     // ------------------------------------------------
 
     showDialog(
@@ -63,7 +63,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
     );
 
     try {
-      // 2. Kirim ke Server
+      // 2. Kirim ke Server dengan format JSON yang sudah diamankan di AuthService
       var resp = await AuthService.resetPassword({
         'email': widget.email.trim(),
         'otp': widget.otp.trim(),
@@ -72,25 +72,36 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
       });
 
       if (!mounted) return;
-      Navigator.pop(context); // Tutup loading
+      Navigator.pop(context); // Tutup animasi loading
 
-      // 3. Respon dari Laravel
+      // 3. Respon dari Laravel Controller
       if (resp.statusCode == 200) {
         _showSnackBar("Password berhasil diperbarui!", darkTeal);
         
-        // Balik ke Login dan hapus semua halaman sebelumnya
+        // Balik ke Login dan hapus seluruh tumpukan halaman history di belakangnya
         Navigator.pushAndRemoveUntil(
           context, 
           MaterialPageRoute(builder: (_) => const LoginPage()), 
           (route) => false
         );
       } else {
-        final data = jsonDecode(resp.body);
-        _showSnackBar(data['message'] ?? "Kode OTP Salah atau Kadaluarsa", primaryRed);
+        // 🔥 PERBAIKAN UTAMA: Pelindung dari muntahan error teks HTML Laravel
+        String serverMessage = "Kode OTP Salah atau Kadaluarsa";
+        
+        try {
+          final data = jsonDecode(resp.body);
+          serverMessage = data['message'] ?? serverMessage;
+        } catch (_) {
+          // Jika resp.body berupa teks HTML (Error 500/502), bypass ke pesan statis aman ini
+          serverMessage = "Gagal memproses password baru. Status: ${resp.statusCode}";
+        }
+
+        _showSnackBar(serverMessage, primaryRed);
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _showSnackBar("Kesalahan koneksi ke server", primaryRed);
+      debugPrint("❌ CRASH AT NEW PASSWORD RESET: $e");
+      _showSnackBar("Terjadi kesalahan teknis: ${e.toString().split('\n').first}", primaryRed);
     }
   }
 
@@ -104,6 +115,13 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
         duration: const Duration(seconds: 3)
       )
     );
+  }
+
+  @override
+  void dispose() {
+    _passCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -143,7 +161,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
                 color: accentTeal.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.lock_open_rounded, size: 80, color: accentTeal),
+              child: const Icon(Icons.lock_open_rounded, size: 80, color: accentTeal),
             ),
             const SizedBox(height: 20),
             Container(
@@ -165,7 +183,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
             ),
             const SizedBox(height: 40),
             
-            // Password Baru
+            // Input Password Baru
             TextField(
               controller: _passCtrl,
               obscureText: _isObscurePass,
@@ -173,7 +191,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
               decoration: InputDecoration(
                 labelText: "Password Baru",
                 labelStyle: const TextStyle(color: neutralGray),
-                prefixIcon: Icon(Icons.vpn_key_outlined, color: accentTeal),
+                prefixIcon: const Icon(Icons.vpn_key_outlined, color: accentTeal),
                 suffixIcon: IconButton(
                   icon: Icon(_isObscurePass ? Icons.visibility_off : Icons.visibility, color: neutralGray), 
                   onPressed: () => setState(() => _isObscurePass = !_isObscurePass)
@@ -196,7 +214,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
             ),
             const SizedBox(height: 20),
 
-            // Konfirmasi Password
+            // Input Konfirmasi Password
             TextField(
               controller: _confirmPassCtrl,
               obscureText: _isObscureConfirm,
@@ -204,7 +222,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
               decoration: InputDecoration(
                 labelText: "Konfirmasi Password",
                 labelStyle: const TextStyle(color: neutralGray),
-                prefixIcon: Icon(Icons.check_circle_outline, color: accentTeal),
+                prefixIcon: const Icon(Icons.check_circle_outline, color: accentTeal),
                 suffixIcon: IconButton(
                   icon: Icon(_isObscureConfirm ? Icons.visibility_off : Icons.visibility, color: neutralGray), 
                   onPressed: () => setState(() => _isObscureConfirm = !_isObscureConfirm)

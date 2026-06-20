@@ -31,6 +31,7 @@ Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/validate-reset-otp', [AuthController::class, 'validateResetOtp']);
 
 // Webhook Midtrans (Dipanggil otomatis oleh Midtrans)
 Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification']);
@@ -113,22 +114,64 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:siswa')->group(function () {
 
         // Report Grafik Belajar
-        Route::get('/learning-report', function(Request $request) {
-            $data = TryoutResult::where('user_id', $request->user()->usersID)
-                ->latest()
-                ->take(7)
-                ->get()
-                ->reverse()
-                ->values();
-            return response()->json(['status' => 'success', 'data' => $data]);
+        // Route::get('/learning-report', function(Request $request) {
+        //     $data = TryoutResult::where('user_id', $request->user()->usersID)
+        //         ->latest()
+        //         ->take(7)
+        //         ->get()
+        //         ->reverse()
+        //         ->values();
+        //     return response()->json(['status' => 'success', 'data' => $data]);
+        // });
+
+        // 🔥 UBAH BARIS INI: Laravel bertindak sebagai jembatan/gateway ke Golang
+        Route::get('/materials', function (Request $request) {
+            try {
+                // Mengambil URL Golang Materi dari file .env (http://127.0.0.1:9001)
+                $goMateriUrl = env('GO_MATERI_URL', 'http://127.0.0.1:9001');
+
+                // Meneruskan tembakan ke Golang materi-service secara otomatis
+                $response = Http::withHeaders([
+                    'Authorization' => $request->header('Authorization'),
+                    'Accept'        => 'application/json',
+                ])->get("{$goMateriUrl}/api/materials", [
+                    'class_id' => $request->class_id
+                ]);
+
+                return response()->json($response->json(), $response->status());
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal terhubung ke Layanan Materi Golang: ' . $e->getMessage()
+                ], 500);
+            }
         });
 
-        // Materi Belajar berdasarkan Kelas
-        Route::get('/materials', function (Request $request) {
-            return response()->json([
-                'status' => 'success',
-                'data' => Material::where('class_id', $request->class_id)->orderBy('week', 'asc')->get()
-            ]);
+        // 🔥 TAMBAHKAN BLOK INI: Jembatan Gateway Laravel ke Golang Practice Service (Port 9003)
+        Route::get('/practices', function (Request $request) {
+            try {
+                // Mengambil URL Golang Practice dari file .env Laravel (http://127.0.0.1:9003)
+                $goPracticeUrl = env('GO_PRACTICE_URL', 'http://127.0.0.1:9003');
+
+                // Teruskan parameter class_id jika dikirim oleh Flutter
+                $queryParams = [];
+                if ($request->has('class_id')) {
+                    $queryParams['class_id'] = $request->class_id;
+                }
+
+                // Meneruskan tembakan ke Golang practice-service secara otomatis
+                $response = Http::withHeaders([
+                    'Authorization' => $request->header('Authorization'),
+                    'Accept'        => 'application/json',
+                ])->get("{$goPracticeUrl}/api/practices", $queryParams);
+
+                return response()->json($response->json(), $response->status());
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal terhubung ke Layanan Latihan Soal Golang: ' . $e->getMessage()
+                ], 500);
+            }
         });
 
         Route::post('/class/content', [AuthController::class, 'getClassContent']);

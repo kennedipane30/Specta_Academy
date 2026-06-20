@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/banner_model.dart';
+import '../config/app_config.dart '; // 👈 Tambahkan import file konfigurasi terpusat Anda di sini
 
 class BannerService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // ✨ MODIFIKASI: Menggunakan baseUrl langsung dari AppConfig
+  static const String baseUrl = AppConfig.baseUrl;
 
-  // ✨ MODIFIKASI: Tambahkan parameter token dan header
+  // ✨ Parameter token dan header tetap dipertahankan
   static Future<List<BannerModel>> getBanners(String token) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/banners'),
+      Uri.parse('$baseUrl/banners'), // Otomatis menembak ke http://3.107.184.92/api/banners
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',

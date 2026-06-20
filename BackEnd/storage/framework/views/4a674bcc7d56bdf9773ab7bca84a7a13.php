@@ -24,7 +24,7 @@
 ?>
 
 <div class="am-page">
-    
+
     
     <section class="am-header">
         <div class="am-header-left">
@@ -202,14 +202,19 @@
                                 <span class="badge-subject"><?php echo e($assign->subject_name ?? 'N/A'); ?></span>
                             </td>
                             <td>
-                                <div class="am-actions-wrap">
-                                    <form action="<?php echo e(route('admin.assignments.destroy', $assign->id)); ?>" method="POST" style="display: inline-flex;">
-                                        <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
-                                        <button type="submit" class="am-btn-del" onclick="return confirm('Hapus penugasan ini?')">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                                <td>
+                                    <div class="am-actions-wrap">
+                                        <a href="<?php echo e(route('admin.assignments.edit', $assign->id)); ?>" class="am-btn-edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <form action="<?php echo e(route('admin.assignments.destroy', $assign->id)); ?>" method="POST" style="display: inline-flex;">
+                                            <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
+                                            <button type="submit" class="am-btn-del" onclick="return confirm('Hapus penugasan ini?')">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </td>
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -285,10 +290,39 @@ $(document).ready(function() {
         --border-soft: #e5e7eb;
     }
 
-    .am-page { 
-        font-family: 'Montserrat', sans-serif; 
-        padding: 10px; 
-        color: var(--text-main); 
+        .am-actions-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .am-btn-edit {
+        background: rgba(46, 168, 171, 0.08);
+        border: none;
+        color: var(--spekta-teal);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .am-btn-edit:hover {
+        background: #a7f3d0;
+        color: #065f46;
+        transform: scale(1.05);
+    }
+
+    .am-page {
+        font-family: 'Montserrat', sans-serif;
+        padding: 10px;
+        color: var(--text-main);
         animation: fadeIn 0.4s ease-out;
     }
 
@@ -337,19 +371,19 @@ $(document).ready(function() {
     }
 
     /* ── Stats Strip ── */
-    .am-strip { 
-        display: grid; 
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 16px; 
-        margin-bottom: 24px; 
+    .am-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
     }
-    .am-strip-card { 
-        background: var(--spekta-white); 
-        padding: 16px 20px; 
-        border-radius: 14px; 
-        border: 1px solid var(--border-soft); 
-        text-align: center; 
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01); 
+    .am-strip-card {
+        background: var(--spekta-white);
+        padding: 16px 20px;
+        border-radius: 14px;
+        border: 1px solid var(--border-soft);
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
     }
@@ -381,7 +415,7 @@ $(document).ready(function() {
     .am-field label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.02em; }
     .am-field select { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--spekta-gray-light); font-weight: 600; font-family: inherit; font-size: 12px; outline: none; transition: all 0.25s; }
     .am-field select:focus { border-color: var(--spekta-teal); background: var(--spekta-white); box-shadow: 0 0 0 3px rgba(46, 168, 171, 0.12); }
-    
+
     /* Disabled select styling */
     .am-select-disabled {
         background: #f9fafb !important;
@@ -415,29 +449,29 @@ $(document).ready(function() {
     .am-list-table td { padding: 12px; border-bottom: 1px solid var(--spekta-gray-light); vertical-align: middle; }
     .am-list-table tbody tr:last-child td { border-bottom: none; }
     .am-list-table tbody tr:hover { background: #fafbfc; }
-    
+
     .am-t-cell { display: flex; align-items: center; gap: 10px; }
     .am-avatar { width: 32px; height: 32px; background: var(--spekta-teal-light); color: var(--spekta-teal); border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     .badge-subject { background: #e0f2fe; color: #0269a1; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; }
-    
+
     .am-actions-wrap {
         display: flex;
         align-items: center;
         justify-content: flex-start;
     }
 
-    .am-btn-del { 
-        background: var(--spekta-red-light); 
-        border: none; 
-        color: var(--spekta-red); 
-        width: 30px; 
-        height: 30px; 
-        border-radius: 8px; 
-        cursor: pointer; 
-        font-size: 12px; 
-        transition: 0.2s; 
-        display: inline-flex; 
-        align-items: center; 
+    .am-btn-del {
+        background: var(--spekta-red-light);
+        border: none;
+        color: var(--spekta-red);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
     }
     .am-btn-del:hover { background: #fecaca; color: #991b1b; transform: scale(1.05); }
@@ -469,4 +503,5 @@ $(document).ready(function() {
     .text-center { text-align: center; }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/assignments/index.blade.php ENDPATH**/ ?>

@@ -4,20 +4,22 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
+import '../config/app_config.dart'; // 👈 Tambahkan import file konfigurasi terpusat Anda di sini
 
 class AuthService {
   // ============================================================
-  // 🌐 CONFIGURATION
+  // 🌐 CONFIGURATION (LINKED TO CENTRAL APPCONFIG)
   // ============================================================
-  static const String host = '10.0.2.2'; // Emulator Android ke Localhost
-  static const String baseUrl = 'http://$host:8000/api';
-  static const String storageBaseUrl = 'http://$host:8000/storage';
-  static const String alternativeBaseUrl = 'http://$host:8000/pdf-materi';
+  static const String baseUrl            = AppConfig.baseUrl;
+  static const String storageBaseUrl     = AppConfig.storageUrl;
   
-  // Endpoint Microservices sesuai spesifikasi port Anda
-  static const String materiUrl   = 'http://$host:9001/api'; // Port 9001 (Materi)
-  static const String tryoutUrl   = 'http://$host:9002/api'; // Port 9002 (Tryout/Simulasi)
-  static const String practiceUrl = 'http://$host:9003/api'; // Port 9003 (Latihan Soal)
+  // Mengikuti pola host dari AppConfig untuk fallback download berkas PDF materi
+  static const String alternativeBaseUrl = 'http://${AppConfig.host}/pdf-materi';
+  
+  // Endpoint Microservices yang rutenya dialihkan secara terpusat oleh Nginx Reverse Proxy
+  static const String materiUrl          = AppConfig.materiUrl;
+  static const String tryoutUrl          = AppConfig.tryoutUrl;
+  static const String practiceUrl        = AppConfig.practiceUrl;
 
   // ============================================================
   // 📥 DOWNLOAD & CACHE SERVICE (PDF)
@@ -88,7 +90,7 @@ class AuthService {
   }
 
   // ============================================================
-  // 📝 ENROLLMENT (LARAVEL 8000)
+  // 📝 ENROLLMENT (LARAVEL)
   // ============================================================
 
   static Future<http.StreamedResponse> joinClass(int classId, String imagePath, String token) async {
@@ -100,7 +102,7 @@ class AuthService {
   }
 
   // ============================================================
-  // 🔐 AUTHENTICATION METHODS (LARAVEL 8000)
+  // 🔐 AUTHENTICATION METHODS (LARAVEL)
   // ============================================================
 
   static Future<http.Response> register(Map<String, dynamic> data) async {
@@ -138,10 +140,10 @@ class AuthService {
   }
 
   // ============================================================
-  // 📚 CONTENT & MICROSERVICES METHODS (9001, 9002, 9003)
+  // 📚 CONTENT & MICROSERVICES METHODS
   // ============================================================
   
-  // Ambil Materi (Materi Service - 9001)
+  // Ambil Materi (Materi Service via Reverse Proxy Nginx)
   static Future<http.Response> getClassContent(int classId, String token) async {
     return await http.get(
       Uri.parse('$materiUrl/materials?class_id=$classId'),
@@ -149,7 +151,7 @@ class AuthService {
     ).timeout(const Duration(seconds: 15));
   }
 
-  // Ambil Latihan Soal Mingguan (Practice Service - 9003)
+  // Ambil Latihan Soal Mingguan (Practice Service via Reverse Proxy Nginx)
   static Future<http.Response> getTryouts(String token, {int? classId}) async {
     String url = '$practiceUrl/tryouts';
     if (classId != null) url += '?class_id=$classId';
@@ -159,7 +161,7 @@ class AuthService {
     ).timeout(const Duration(seconds: 15));
   }
 
-  // Ambil Simulasi Tryout (Tryout Service - 9002)
+  // Ambil Simulasi Tryout (Tryout Service via Reverse Proxy Nginx)
   static Future<http.Response> getSimulasi(String token, {int? classId}) async {
     String url = '$tryoutUrl/tryouts';
     if (classId != null) url += '?class_id=$classId';
@@ -169,7 +171,7 @@ class AuthService {
     ).timeout(const Duration(seconds: 15));
   }
 
-  // Ambil Soal-soal Tryout (Tryout Service - 9002)
+  // Ambil Soal-soal Tryout (Tryout Service via Reverse Proxy Nginx)
   static Future<http.Response> getQuestions(int tryoutId, String token) async {
     return await http.get(
       Uri.parse('$tryoutUrl/tryouts/$tryoutId/questions'), 
@@ -177,7 +179,7 @@ class AuthService {
     ).timeout(const Duration(seconds: 15));
   }
 
-  // Sejarah Tryout & Submit (Biasanya Laravel 8000 sebagai Aggregator)
+  // Sejarah Tryout & Submit
   static Future<http.Response> getTryoutHistory(String token) async =>
       await http.get(Uri.parse('$baseUrl/tryouts/my'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
 

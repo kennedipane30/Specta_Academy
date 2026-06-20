@@ -28,7 +28,6 @@ func (r *practiceRepo) BulkInsert(questions []models.PracticeQuestion) error {
 // GetByClass mengambil semua soal untuk kelas tertentu (Digunakan di Dashboard Flutter)
 func (r *practiceRepo) GetByClass(classID uint) ([]models.PracticeQuestion, error) {
 	var results []models.PracticeQuestion
-	// ✨ PASTI: Gunakan Find untuk mengambil semua baris (Mathematics 1-5)
 	err := r.db.Where("class_id = ?", classID).Find(&results).Error
 	return results, err
 }

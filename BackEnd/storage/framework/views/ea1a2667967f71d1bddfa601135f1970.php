@@ -18,31 +18,29 @@
     // Hitung ulang total distribusi setelah dibersihkan dari "Kelas Aktif"
     $totalDistribusiFiltered = $filteredDistribusi->sum('value');
 
-
     // ------------------------------------------------------------------------
     // 3. PERHITUNGAN MATEMATIS DINAMIS DARI DATA GRAFIK SISTEM (TREN REAL-TIME)
     // ------------------------------------------------------------------------
-    
+
     // A. Perhitungan Dinamis: Siswa Baru Terdaftar
     $siswaBaruCollection = collect($chart_siswa_baru);
-    $totalSiswaBaru = $siswaBaruCollection->sum(); // Total pendaftaran baru di periode ini
-    
+    $totalSiswaBaru = $siswaBaruCollection->sum();
+
     $halfPeriod = ceil($siswaBaruCollection->count() / 2);
-    
-    // Hitung persentase kenaikan/penurunan dibanding paruh pertama periode
+
     $firstHalfSiswaBaru = $siswaBaruCollection->take($halfPeriod)->sum();
     $secondHalfSiswaBaru = $siswaBaruCollection->slice($halfPeriod)->sum();
     $siswaBaruTrend = 0;
     if ($firstHalfSiswaBaru > 0) {
         $siswaBaruTrend = round((($secondHalfSiswaBaru - $firstHalfSiswaBaru) / $firstHalfSiswaBaru) * 100);
     } elseif ($secondHalfSiswaBaru > 0) {
-        $siswaBaruTrend = 100; // Kenaikan 100% jika sebelumnya 0
+        $siswaBaruTrend = 100;
     }
 
     // B. Perhitungan Dinamis: Rata-Rata Keaktifan Harian
     $aktifHarianCollection = collect($chart_aktivitas_harian);
-    $avgAktifHarian = round($aktifHarianCollection->average() ?? 0); // Nilai rata-rata real-time
-    
+    $avgAktifHarian = round($aktifHarianCollection->average() ?? 0);
+
     $firstHalfAktif = $aktifHarianCollection->take($halfPeriod)->average() ?? 0;
     $secondHalfAktif = $aktifHarianCollection->slice($halfPeriod)->average() ?? 0;
     $aktifHarianTrend = 0;
@@ -54,13 +52,16 @@
 
     // C. Perhitungan Dinamis: Total Akumulasi Siswa
     $totalSiswaCollection = collect($chart_total_siswa);
-    // Mengambil data terupdate (index terakhir) dari grafik total siswa
     $latestTotalSiswa = $totalSiswaCollection->last() ?? ($filteredStats->firstWhere('title', 'TOTAL SISWA')['value'] ?? 0);
     $firstTotalSiswa = $totalSiswaCollection->first() ?? 0;
     $totalSiswaTrend = 0;
     if ($firstTotalSiswa > 0) {
         $totalSiswaTrend = round((($latestTotalSiswa - $firstTotalSiswa) / $firstTotalSiswa) * 100);
     }
+
+    // D. Debug: Cek apakah data grafik ada
+    $hasChartData = !empty($chart_labels) && count($chart_labels) > 0;
+    $chartDataEmpty = !$hasChartData;
 ?>
 
 <div class="spekta-dashboard">
@@ -115,86 +116,92 @@
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </section>
 
-    <!-- 3. GRAFIK PERTUMBUHAN SISWA (DATA KINI 100% DINAMIS DARI CONTROLLER) -->
+    <!-- 3. GRAFIK PERTUMBUHAN SISWA (PER BULAN - 4 MINGGU) -->
     <section class="analytics-row">
         <div class="panel analytics-panel">
             <div class="analytics-header-row">
                 <div class="panel-header-text">
                     <h3>Analitik Pertumbuhan & Aktivitas Siswa</h3>
-                    <p class="panel-subtitle">Pantau performa pendaftaran dan keaktifan harian secara real-time</p>
+                    <p class="panel-subtitle">Data per minggu dalam bulan
+                        <?php
+                            $monthParam = request()->query('month', now()->month);
+                            $yearParam = request()->query('year', now()->year);
+                            $monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                            echo $monthNames[$monthParam - 1] . ' ' . $yearParam;
+                        ?>
+                    </p>
                 </div>
 
-                <!-- Segmented Control Filter -->
-                <div class="segmented-control" id="timeFilterGroup">
-                    <button type="button" class="control-btn" data-days="7">7 Hari</button>
-                    <button type="button" class="control-btn active" data-days="30">30 Hari</button>
-                    <button type="button" class="control-btn" data-days="90">90 Hari</button>
+                <!-- Bulan navigasi -->
+                <div class="month-navigation">
+                    <button type="button" class="nav-btn" id="prevMonth">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="current-month-label" id="currentMonthLabel">
+                        <?php
+                            echo $monthNames[$monthParam - 1] . ' ' . $yearParam;
+                        ?>
+                    </span>
+                    <button type="button" class="nav-btn" id="nextMonth">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- LEGENDA RINGKASAN DATA: KINI DINAMIS DAN INTERAKTIF SENSITIF DATA -->
+            <!-- LEGENDA RINGKASAN DATA -->
             <div class="chart-summary-row">
                 <!-- A. Card Keaktifan Harian Dinamis -->
                 <div class="summary-indicator-card teal-accent">
                     <div class="indicator-header">
                         <span class="dot-indicator dot-teal"></span>
-                        <span class="indicator-title">Keaktifan Harian (Rata-Rata)</span>
+                        <span class="indicator-title">Rata-rata Aktivitas/Minggu</span>
                     </div>
                     <div class="indicator-value">
-                        <?php echo e(number_format($avgAktifHarian)); ?>
+                        <?php echo e(number_format(count($chart_aktivitas_harian) > 0 ? round(array_sum($chart_aktivitas_harian) / count($chart_aktivitas_harian)) : 0)); ?>
 
-                        <?php if($aktifHarianTrend > 0): ?>
-                            <span class="indicator-trend up"><i class="fa-solid fa-arrow-up"></i> +<?php echo e($aktifHarianTrend); ?>%</span>
-                        <?php elseif($aktifHarianTrend < 0): ?>
-                            <span class="indicator-trend down"><i class="fa-solid fa-arrow-down"></i> <?php echo e($aktifHarianTrend); ?>%</span>
-                        <?php else: ?>
-                            <span class="indicator-trend neutral"><i class="fa-solid fa-minus"></i> 0%</span>
-                        <?php endif; ?>
+                        <span class="indicator-trend neutral"><i class="fa-solid fa-minus"></i> Bulan Ini</span>
                     </div>
                 </div>
 
-                <!-- B. Card Siswa Baru Terdaftar Dinamis -->
+                <!-- B. Card Siswa Baru Terdaftar -->
                 <div class="summary-indicator-card red-accent">
                     <div class="indicator-header">
                         <span class="dot-indicator dot-red"></span>
-                        <span class="indicator-title">Siswa Baru Terdaftar (Total)</span>
+                        <span class="indicator-title">Siswa Baru Bulan Ini</span>
                     </div>
                     <div class="indicator-value">
-                        +<?php echo e(number_format($totalSiswaBaru)); ?>
+                        +<?php echo e(number_format(array_sum($chart_siswa_baru))); ?>
 
-                        <?php if($siswaBaruTrend > 0): ?>
-                            <span class="indicator-trend up"><i class="fa-solid fa-arrow-up"></i> +<?php echo e($siswaBaruTrend); ?>%</span>
-                        <?php elseif($siswaBaruTrend < 0): ?>
-                            <span class="indicator-trend down"><i class="fa-solid fa-arrow-down"></i> <?php echo e($siswaBaruTrend); ?>%</span>
-                        <?php else: ?>
-                            <span class="indicator-trend neutral"><i class="fa-solid fa-minus"></i> 0%</span>
-                        <?php endif; ?>
+                        <span class="indicator-trend up"><i class="fa-solid fa-arrow-up"></i>
+                            <?php echo $monthNames[$monthParam - 1]; ?>
+                        </span>
                     </div>
                 </div>
 
-                <!-- C. Card Total Akumulasi Dinamis -->
+                <!-- C. Card Total Akumulasi -->
                 <div class="summary-indicator-card gray-accent">
                     <div class="indicator-header">
                         <span class="dot-indicator dot-gray"></span>
                         <span class="indicator-title">Total Akumulasi Siswa</span>
                     </div>
                     <div class="indicator-value">
-                        <?php echo e(number_format($latestTotalSiswa)); ?>
+                        <?php echo e(number_format(end($chart_total_siswa) ?? 0)); ?>
 
-                        <?php if($totalSiswaTrend > 0): ?>
-                            <span class="indicator-trend up"><i class="fa-solid fa-arrow-up"></i> +<?php echo e($totalSiswaTrend); ?>%</span>
-                        <?php elseif($totalSiswaTrend < 0): ?>
-                            <span class="indicator-trend down"><i class="fa-solid fa-arrow-down"></i> <?php echo e($totalSiswaTrend); ?>%</span>
-                        <?php else: ?>
-                            <span class="indicator-trend neutral">Stabil</span>
-                        <?php endif; ?>
+                        <span class="indicator-trend neutral">Aktif</span>
                     </div>
                 </div>
             </div>
 
             <!-- Canvas Grafik -->
             <div class="line-chart-wrap">
-                <canvas id="studentGrowthChart"></canvas>
+                <?php if($chartDataEmpty): ?>
+                    <div class="empty-chart-state">
+                        <i class="fa-regular fa-chart-line"></i>
+                        <span>Belum ada data untuk bulan ini</span>
+                    </div>
+                <?php endif; ?>
+                <canvas id="studentGrowthChart" style="<?php echo e($chartDataEmpty ? 'display:none;' : ''); ?>"></canvas>
             </div>
         </div>
     </section>
@@ -396,189 +403,283 @@
     </section>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script>
-    const chartLabels = <?php echo json_encode($chart_labels, 15, 512) ?>;
-    const siswaBaruData = <?php echo json_encode($chart_siswa_baru, 15, 512) ?>;
-    const aktivitasHarianData = <?php echo json_encode($chart_aktivitas_harian, 15, 512) ?>;
-    const totalSiswaData = <?php echo json_encode($chart_total_siswa, 15, 512) ?>;
+    document.addEventListener("DOMContentLoaded", function() {
+        // ── CEK APAKAH CHART.JS TERLOAD ──
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js tidak terload!');
+            const chartContainer = document.getElementById('studentGrowthChart');
+            if (chartContainer) {
+                chartContainer.style.display = 'none';
+                const parent = chartContainer.parentElement;
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'padding:40px;text-align:center;color:#e53935;font-weight:700;';
+                errorMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="font-size:24px;display:block;margin-bottom:10px;"></i> Gagal memuat Chart.js';
+                parent.appendChild(errorMsg);
+            }
+            return;
+        }
 
-    const distribusiLabels = <?php echo json_encode($filteredDistribusi->pluck('label'), 15, 512) ?>;
-    const distribusiValues = <?php echo json_encode($filteredDistribusi->pluck('value'), 15, 512) ?>;
+        // ── AMBIL DATA DARI PHP ──
+        const chartLabels = <?php echo json_encode($chart_labels ?? [], 15, 512) ?>;
+        const siswaBaruData = <?php echo json_encode($chart_siswa_baru ?? [], 15, 512) ?>;
+        const aktivitasHarianData = <?php echo json_encode($chart_aktivitas_harian ?? [], 15, 512) ?>;
+        const totalSiswaData = <?php echo json_encode($chart_total_siswa ?? [], 15, 512) ?>;
+        const distribusiLabels = <?php echo json_encode($filteredDistribusi->pluck('label') ?? [], 15, 512) ?>;
+        const distribusiValues = <?php echo json_encode($filteredDistribusi->pluck('value') ?? [], 15, 512) ?>;
 
-    // FILTER CONTROL DINAMIS (SEGMENTED CONTROL STYLE)
-    document.addEventListener("DOMContentLoaded", function () {
-        const filterButtons = document.querySelectorAll("#timeFilterGroup .control-btn");
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentDays = urlParams.get('days') || '30';
+        console.log('Chart Labels:', chartLabels);
+        console.log('Siswa Baru Data:', siswaBaruData);
+        console.log('Aktivitas Harian:', aktivitasHarianData);
+        console.log('Total Siswa:', totalSiswaData);
 
-        filterButtons.forEach(button => {
-            if (button.getAttribute("data-days") === currentDays) {
-                button.classList.add("active");
-            } else {
-                button.classList.remove("active");
+        // ── LINE CHART ──
+        const lineCtx = document.getElementById('studentGrowthChart');
+
+        if (lineCtx) {
+            // Jika data kosong, tampilkan pesan
+            if (chartLabels.length === 0 || siswaBaruData.length === 0) {
+                lineCtx.style.display = 'none';
+                const parent = lineCtx.parentElement;
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'empty-chart-state';
+                emptyMsg.style.cssText = 'padding:40px;text-align:center;color:#9e9e9e;font-weight:700;';
+                emptyMsg.innerHTML = '<i class="fa-regular fa-chart-line" style="font-size:30px;display:block;margin-bottom:10px;color:#d1d5db;"></i> Belum ada data untuk bulan ini';
+                if (!parent.querySelector('.empty-chart-state')) {
+                    parent.appendChild(emptyMsg);
+                }
+                return;
             }
 
-            button.addEventListener("click", function () {
-                const days = this.getAttribute("data-days");
-                window.location.href = "<?php echo e(route('admin.dashboard')); ?>?days=" + days;
+            const ctx = lineCtx.getContext('2d');
+
+            // Gradasi Area
+            const redGradient = ctx.createLinearGradient(0, 0, 0, 240);
+            redGradient.addColorStop(0, 'rgba(229, 57, 53, 0.15)');
+            redGradient.addColorStop(1, 'rgba(229, 57, 53, 0.00)');
+
+            const tealGradient = ctx.createLinearGradient(0, 0, 0, 240);
+            tealGradient.addColorStop(0, 'rgba(46, 168, 171, 0.15)');
+            tealGradient.addColorStop(1, 'rgba(46, 168, 171, 0.00)');
+
+            new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'Siswa Baru',
+                            data: siswaBaruData,
+                            borderColor: '#e53935',
+                            backgroundColor: redGradient,
+                            tension: 0.38,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#e53935',
+                            fill: true,
+                        },
+                        {
+                            label: 'Aktivitas Mingguan',
+                            data: aktivitasHarianData,
+                            borderColor: '#2ea8ab',
+                            backgroundColor: tealGradient,
+                            tension: 0.38,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#2ea8ab',
+                            borderDash: [6, 4],
+                            fill: true,
+                        },
+                        {
+                            label: 'Total Siswa',
+                            data: totalSiswaData,
+                            borderColor: '#9e9e9e',
+                            backgroundColor: 'transparent',
+                            tension: 0.38,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#9e9e9e',
+                            borderDash: [8, 6],
+                            fill: false,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Montserrat',
+                                    weight: '700',
+                                    size: 11
+                                },
+                                usePointStyle: true,
+                                padding: 20,
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#ffffff',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            titleFont: {
+                                family: 'Montserrat',
+                                weight: '700',
+                                size: 11
+                            },
+                            bodyFont: {
+                                family: 'Montserrat',
+                                weight: '600',
+                                size: 11
+                            },
+                            callbacks: {
+                                title: function(items) {
+                                    return items[0].label.replace('\n', ' - ');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#9e9e9e',
+                                font: {
+                                    size: 10,
+                                    weight: '600',
+                                    family: 'Montserrat'
+                                },
+                                maxRotation: 0,
+                                minRotation: 0
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f3f4f6'
+                            },
+                            ticks: {
+                                color: '#9e9e9e',
+                                font: {
+                                    size: 10,
+                                    weight: '600',
+                                    family: 'Montserrat'
+                                },
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
             });
-        });
-    });
+        }
 
-    const lineCtx = document.getElementById('studentGrowthChart');
+        // ── DOUGHNUT CHART ──
+        const donutCtx = document.getElementById('activityDistributionChart');
 
-    if (lineCtx) {
-        const ctx = lineCtx.getContext('2d');
+        if (donutCtx) {
+            const labels = distribusiLabels.length > 0 ? distribusiLabels : ['Tidak Ada Data'];
+            const values = distribusiValues.length > 0 ? distribusiValues : [1];
 
-        // MEMBUAT EFEK GRADASI AREA HALUS PADA GRAFIK
-        const redGradient = ctx.createLinearGradient(0, 0, 0, 240);
-        redGradient.addColorStop(0, 'rgba(229, 57, 53, 0.12)'); 
-        redGradient.addColorStop(1, 'rgba(229, 57, 53, 0.00)');
-
-        const tealGradient = ctx.createLinearGradient(0, 0, 0, 240);
-        tealGradient.addColorStop(0, 'rgba(46, 168, 171, 0.12)'); 
-        tealGradient.addColorStop(1, 'rgba(46, 168, 171, 0.00)');
-
-        new Chart(lineCtx, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: [
-                    {
-                        label: 'Siswa Baru',
-                        data: siswaBaruData,
-                        borderColor: '#e53935',
-                        backgroundColor: redGradient, 
-                        tension: 0.38,
-                        borderWidth: 3,
-                        pointRadius: 3,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: '#e53935',
-                        fill: true,
-                    },
-                    {
-                        label: 'Aktif Harian',
-                        data: aktivitasHarianData,
-                        borderColor: '#2ea8ab',
-                        backgroundColor: tealGradient, 
-                        tension: 0.38,
-                        borderWidth: 3,
-                        pointRadius: 3,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: '#2ea8ab',
-                        borderDash: [6, 4],
-                        fill: true,
-                    },
-                    {
-                        label: 'Total Siswa',
-                        data: totalSiswaData,
-                        borderColor: '#9e9e9e',
-                        backgroundColor: 'transparent',
-                        tension: 0.38,
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        borderDash: [8, 6],
-                        fill: false,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: {
-                        display: false 
-                    },
-                    tooltip: {
-                        backgroundColor: '#ffffff',
-                        titleColor: '#1f2937',
-                        bodyColor: '#4b5563',
-                        borderColor: '#e5e7eb',
-                        borderWidth: 1,
-                        padding: 12,
-                        boxPadding: 6,
-                        usePointStyle: true,
-                        titleFont: {
-                            family: 'Montserrat',
-                            weight: '700',
-                            size: 11
-                        },
-                        bodyFont: {
-                            family: 'Montserrat',
-                            weight: '600',
-                            size: 11
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            data: values,
+                            backgroundColor: ['#2ea8ab', '#e53935', '#c5352c', '#9e9e9e'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            cutout: '72%'
                         }
-                    }
+                    ]
                 },
-                scales: {
-                    x: {
-                        grid: {
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
                             display: false
-                        },
-                        ticks: {
-                            color: '#9e9e9e',
-                            maxTicksLimit: 8,
-                            font: {
-                                size: 10,
-                                weight: '600',
-                                family: 'Montserrat'
-                            }
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: '#f3f4f6'
-                        },
-                        ticks: {
-                            color: '#9e9e9e',
-                            font: {
-                                size: 10,
-                                weight: '600',
-                                family: 'Montserrat'
-                            }
                         }
                     }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    // INSTANSIASI GRAFIK DOUGHNUT
-    const donutCtx = document.getElementById('activityDistributionChart');
+        // ── MONTH NAVIGATION ──
+        const prevBtn = document.getElementById('prevMonth');
+        const nextBtn = document.getElementById('nextMonth');
+        const currentMonthLabel = document.getElementById('currentMonthLabel');
 
-    if (donutCtx) {
-        new Chart(donutCtx, {
-            type: 'doughnut',
-            data: {
-                labels: distribusiLabels,
-                datasets: [
-                    {
-                        data: distribusiValues,
-                        backgroundColor: ['#2ea8ab', '#e53935', '#c5352c', '#9e9e9e'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                        cutout: '72%'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
+        if (prevBtn && nextBtn && currentMonthLabel) {
+            const currentText = currentMonthLabel.textContent.trim();
+            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                               'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+            let currentMonthIndex = -1;
+            let currentYear = new Date().getFullYear();
+
+            monthNames.forEach((name, index) => {
+                if (currentText.includes(name)) {
+                    currentMonthIndex = index;
+                    const yearMatch = currentText.match(/\d{4}/);
+                    if (yearMatch) {
+                        currentYear = parseInt(yearMatch[0]);
                     }
                 }
+            });
+
+            if (currentMonthIndex === -1) {
+                const now = new Date();
+                currentMonthIndex = now.getMonth();
+                currentYear = now.getFullYear();
             }
-        });
-    }
+
+            prevBtn.addEventListener('click', function() {
+                let newMonth = currentMonthIndex - 1;
+                let newYear = currentYear;
+
+                if (newMonth < 0) {
+                    newMonth = 11;
+                    newYear--;
+                }
+
+                const monthParam = newMonth + 1;
+                window.location.href = "<?php echo e(route('admin.dashboard')); ?>?month=" + monthParam + "&year=" + newYear;
+            });
+
+            nextBtn.addEventListener('click', function() {
+                let newMonth = currentMonthIndex + 1;
+                let newYear = currentYear;
+
+                if (newMonth > 11) {
+                    newMonth = 0;
+                    newYear++;
+                }
+
+                const monthParam = newMonth + 1;
+                window.location.href = "<?php echo e(route('admin.dashboard')); ?>?month=" + monthParam + "&year=" + newYear;
+            });
+        }
+    });
 </script>
 
 <style>
@@ -673,6 +774,46 @@
     .welcome-date strong { font-size: 13px; font-weight: 800; color: var(--text-main); }
     .welcome-date span { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
 
+    /* Month Navigation */
+    .month-navigation {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--spekta-gray-light);
+        padding: 4px 8px;
+        border-radius: 10px;
+        border: 1px solid var(--border-soft);
+    }
+
+    .nav-btn {
+        border: none;
+        background: var(--spekta-white);
+        color: var(--text-muted);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .nav-btn:hover {
+        background: var(--spekta-teal);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .current-month-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-main);
+        min-width: 120px;
+        text-align: center;
+    }
+
     /* 2. STATS GRID */
     .stats-grid {
         display: grid;
@@ -694,6 +835,7 @@
         color: inherit;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
+        text-decoration: none;
     }
 
     .stat-card:hover {
@@ -743,9 +885,9 @@
     .badge-warning { background: #fef3c7; color: #b45309; }
     .stat-meta small { color: var(--text-muted); font-size: 10px; font-weight: 600; }
 
-    /* 3. SEGMENTED CONTROL & HEADER */
+    /* 3. ANALYTICS */
     .analytics-row { margin-bottom: 24px; }
-    
+
     .analytics-header-row {
         display: flex;
         align-items: center;
@@ -769,33 +911,7 @@
         font-weight: 600;
     }
 
-    .segmented-control {
-        display: flex;
-        background: var(--spekta-gray-light);
-        padding: 4px;
-        border-radius: 10px;
-        border: 1px solid var(--border-soft);
-    }
-
-    .control-btn {
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-size: 11px;
-        font-weight: 800;
-        padding: 6px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .control-btn.active {
-        background: var(--spekta-white);
-        color: var(--text-main);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    /* KARTU LEGENDA RINGKASAN BARU (SUMMARY GRID) */
+    /* Chart Summary */
     .chart-summary-row {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -846,6 +962,7 @@
         display: flex;
         align-items: baseline;
         gap: 8px;
+        flex-wrap: wrap;
     }
 
     .indicator-trend {
@@ -863,10 +980,26 @@
     .indicator-trend.neutral { background: var(--spekta-gray-light); color: var(--text-muted); }
 
     .line-chart-wrap {
-        height: 280px;
+        height: 320px;
         border-top: 1px solid var(--border-soft);
         padding-top: 20px;
         position: relative;
+    }
+
+    .empty-chart-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #9e9e9e;
+        font-weight: 700;
+        gap: 10px;
+    }
+
+    .empty-chart-state i {
+        font-size: 36px;
+        color: #d1d5db;
     }
 
     /* 4. SUMMARY & BOTTOM GRID */
@@ -905,10 +1038,11 @@
         align-items: center;
         gap: 4px;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
     .view-all-link:hover { color: var(--spekta-red); transform: translateX(2px); }
 
-    /* 5. DISTRIBUSI */
+    /* DISTRIBUSI */
     .distribution-panel, .tasks-panel { min-height: 280px; }
     .distribution-content { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: 20px; }
     .donut-wrap { height: 160px; position: relative; }
@@ -972,6 +1106,7 @@
         border-radius: 10px;
         border: 1px solid transparent;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
 
     .task-item:hover { background: var(--spekta-gray-light); border-color: var(--border-soft); transform: translateX(4px); }
@@ -1058,6 +1193,7 @@
         color: inherit;
         transition: all 0.2s ease;
         cursor: pointer;
+        text-decoration: none;
     }
 
     .quick-icon {
@@ -1117,10 +1253,9 @@
         .line-chart-wrap { height: 240px; }
         .activity-item { grid-template-columns: 36px 1fr; }
         .activity-right { grid-column: 2 / 3; text-align: left; margin-top: 4px; }
+        .month-navigation { width: 100%; justify-content: center; }
     }
-    /* test hapus disini kenn */
 </style>
 <?php $__env->stopSection(); ?>
-
 
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>

@@ -290,7 +290,7 @@ class _LoginPageState extends State<LoginPage>
               const SizedBox(height: 28),
 
               // Full Name Field
-              _fieldLabel(isDark, 'Full Name'),
+              _fieldLabel(isDark, 'Gmail Anda'),
               const SizedBox(height: 8),
               _buildInput(
                 isDark,

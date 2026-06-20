@@ -130,6 +130,7 @@ class AuthController extends Controller {
     }
 
     /**
+     /**
      * 5. GET CLASS CONTENT (Gateway Microservices + Subjects)
      */
     public function getClassContent(Request $request): JsonResponse {
@@ -144,13 +145,33 @@ class AuthController extends Controller {
             $tryoutRes   = Http::get(env('GO_TRYOUT_URL') . "/api/tryouts?class_id=$classId");
             $practiceRes = Http::get(env('GO_PRACTICE_URL') . "/api/practice?class_id=$classId");
 
+            // 🔥 TRICK PAMUNGKAS: Ambil data materi, lalu ganti paksa IP-nya jika mendeteksi localhost
+            $materiData = $materiRes->json()['data'] ?? [];
+
+            // Kita ubah isi file_path atau url di dalam array secara rekursif/manual
+            foreach ($materiData as &$materi) {
+                if (isset($materi['file_path']) && !empty($materi['file_path'])) {
+                    // Pastikan url yang terbentuk menggunakan domain dinamis sesuai request atau IP 10.0.2.2
+                    // Jika di Flutter Anda menggabungkan url, kita pastikan di sini jalurnya bersih.
+                }
+            }
+
+            // Membaca bentukan token download bawaan Laravel Sanctum jika ada
+            $cleanMateri = $materiRes->json()['data'] ?? [];
+
+            // Kita konversi seluruh response array menjadi string JSON,
+            // ganti 127.0.0.1 menjadi 10.0.2.2, lalu kembalikan jadi array lagi.
+            $jsonString = json_encode($cleanMateri);
+            $jsonString = str_replace('127.0.0.1', '10.0.2.2', $jsonString);
+            $finalMateri = json_decode($jsonString, true);
+
             return response()->json([
                 'status'        => 'success',
                 'enroll_status' => 'active',
                 'program_name'  => $class->program_name,
                 'price'         => $class->price,
                 'description'   => $class->description ?? "Materi belajar tersedia.",
-                'materi'        => $materiRes->json()['data'] ?? [],
+                'materi'        => $finalMateri, // 🔥 Menggunakan data yang sudah diganti paksa IP-nya
                 'tryouts'       => $tryoutRes->json()['data'] ?? [],
                 'practice_questions' => $practiceRes->json()['data'] ?? [],
             ]);
@@ -158,7 +179,6 @@ class AuthController extends Controller {
             return response()->json(['status' => 'error', 'message' => 'Microservice Offline'], 500);
         }
     }
-
     /**
      * 6. CHECK PROMO
      */
@@ -383,5 +403,141 @@ class AuthController extends Controller {
         return response()->json(['status' => 'error', 'message' => 'Tidak ada gambar'], 400);
     }
 
+    /**
+     * 🔥 14. FORGOT PASSWORD (Kirim OTP untuk Reset)
+     */
+    public function forgotPassword(Request $request): JsonResponse {
+        // 1. Validasi input request wajib berbasis JSON email
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        // 2. Cari user berdasarkan email yang diinput
+        $user = User::where('email', trim($request->email))->first();
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Alamat email tidak terdaftar di sistem kami.'
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 3. Generate 6 digit kode OTP acak aman
+            $otp = rand(100000, 999999);
+
+            // 4. Update atau buat baru record masa berlaku OTP (10 menit) di tabel otps
+            OtpCode::updateOrCreate(
+                ['user_id' => $user->usersID],
+                [
+                    'otp' => $otp,
+                    'valid_until' => Carbon::now()->addMinutes(10)
+                ]
+            );
+
+            // 5. Kirim email menggunakan Mailable OtpMail bawaan proyek Anda
+            Mail::to($user->email)->send(new OtpMail($otp));
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Kode OTP berhasil dikirim ke email Anda!'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Forgot Password Error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirim email verifikasi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 🔥 15. RESET PASSWORD (Validasi OTP & Update Password Baru)
+     */
+    public function resetPassword(Request $request): JsonResponse {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'otp' => 'required',
+            'password' => 'required|min:8|confirmed', // Wajib ada password_confirmation dari Flutter
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 422);
+        }
+
+        // 1. Cari user berdasarkan email
+        $user = User::where('email', trim($request->email))->first();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan.'], 404);
+        }
+
+        // 2. Validasi Kode OTP asli yang tersimpan di database OtpCode
+        $otpRecord = OtpCode::where('user_id', $user->usersID)
+                            ->where('otp', $request->otp)
+                            ->where('valid_until', '>', Carbon::now())
+                            ->first();
+
+        if (!$otpRecord) {
+            return response()->json(['status' => 'error', 'message' => 'Kode OTP salah atau telah kadaluarsa!'], 401);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 3. Update password baru user ke database
+            $user->update([
+                'password' => bcrypt($request->password)
+            ]);
+
+            // 4. Hapus OTP yang sudah sukses digunakan agar tidak bisa dipakai ulang
+            $otpRecord->delete();
+
+            DB::commit();
+            return response()->json(['status' => 'success', 'message' => 'Password Anda berhasil diperbarui!'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui password: ' . $e->getMessage()], 500);
+        }
+    }
+
+
+    /**
+     * 🔥 16. VALIDATE RESET OTP (Gerbang Cek OTP di Flutter)
+     */
+    public function validateResetOtp(Request $request): JsonResponse {
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required',
+        ]);
+
+        $user = User::where('email', trim($request->email))->first();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'User tidak ditemukan.'], 404);
+        }
+
+        // Cek OTP di database
+        $otpRecord = OtpCode::where('user_id', $user->usersID)
+                            ->where('otp', $request->otp)
+                            ->where('valid_until', '>', Carbon::now())
+                            ->first();
+
+        if (!$otpRecord) {
+            return response()->json(['status' => 'error', 'message' => 'Kode OTP salah atau telah kadaluarsa!'], 401);
+        }
+
+        // Jika benar, kirim status sukses (jangan hapus OTP dulu, biarkan dihapus saat reset password sukses)
+        return response()->json(['status' => 'success', 'message' => 'Kode OTP Valid!'], 200);
+    }
 
 }

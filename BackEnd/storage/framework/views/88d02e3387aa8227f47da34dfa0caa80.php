@@ -4,12 +4,12 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Login | Spekta Academy</title>
-    
+
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
-    
+
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -116,7 +116,7 @@
         }
         .mesh-gradient {
             background-color: #f8f9fa;
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, rgba(197, 53, 44, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 0%, rgba(0, 105, 108, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(197, 53, 44, 0.1) 0px, transparent 50%),
@@ -134,7 +134,7 @@
         .portal-pill {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         /* Kunci Font-Family Icon */
         .material-symbols-outlined {
             font-family: 'Material Symbols Outlined' !important;
@@ -154,22 +154,10 @@
     <main class="flex-grow flex items-center justify-center px-margin-mobile md:px-margin-desktop py-12">
         <!-- Glass Island Login Card -->
         <div class="glass-island w-full max-w-[440px] p-lg md:p-xl rounded-xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-            
+
             <div class="text-center mb-xl">
                 <h1 class="font-headline-lg text-headline-lg text-primary tracking-tight mb-xs">Spekta Academy</h1>
                 <p class="font-label-md text-label-md text-on-surface-variant">Enter your credentials to access the portal</p>
-            </div>
-
-            <!-- Portal Selector -->
-            <div class="flex p-base bg-surface-container rounded-full mb-lg relative">
-                <button type="button" class="portal-pill flex-1 py-sm font-label-md text-label-md text-on-secondary-container rounded-full z-10" id="portal-admin" onclick="switchPortal('admin')">
-                    Admin
-                </button>
-                <button type="button" class="portal-pill flex-1 py-sm font-label-md text-label-md text-on-surface-variant rounded-full z-10" id="portal-teacher" onclick="switchPortal('teacher')">
-                    Teacher
-                </button>
-                <!-- Penanda Slider Latar Belakang -->
-                <div class="absolute top-base bottom-base left-base w-[calc(50%-4px)] bg-secondary-container rounded-full transition-transform duration-300" id="portal-slider"></div>
             </div>
 
             <!-- ALERT ERROR (Style Glassmorphism) -->
@@ -182,10 +170,7 @@
 
             <!-- Login Form (Mengarahkan ke URL /login) -->
             <form class="space-y-lg" method="POST" action="<?php echo e(url('/login')); ?>" id="loginForm">
-                <?php echo csrf_field(); ?> 
-
-                <!-- Hidden Input untuk Role yang dinamis saat slider di-klik -->
-                <input type="hidden" name="role" id="roleInput" value="admin">
+                <?php echo csrf_field(); ?>
 
                 <!-- Input Email -->
                 <div class="space-y-sm">
@@ -230,30 +215,6 @@
 
     <!-- JS Logic -->
     <script>
-        // Logika Perpindahan Portal Slider Sempurna
-        function switchPortal(type) {
-            const adminBtn = document.getElementById('portal-admin');
-            const teacherBtn = document.getElementById('portal-teacher');
-            const slider = document.getElementById('portal-slider');
-            const roleInput = document.getElementById('roleInput');
-
-            if (type === 'admin') {
-                slider.style.transform = 'translateX(0)';
-                adminBtn.classList.remove('text-on-surface-variant');
-                adminBtn.classList.add('text-on-secondary-container');
-                teacherBtn.classList.remove('text-on-secondary-container');
-                teacherBtn.classList.add('text-on-surface-variant');
-                if (roleInput) roleInput.value = 'admin';
-            } else {
-                slider.style.transform = 'translateX(calc(100% + 4px))';
-                teacherBtn.classList.remove('text-on-surface-variant');
-                teacherBtn.classList.add('text-on-secondary-container');
-                adminBtn.classList.remove('text-on-secondary-container');
-                adminBtn.classList.add('text-on-surface-variant');
-                if (roleInput) roleInput.value = 'teacher';
-            }
-        }
-
         // Logika Intip Password (Show / Hide Password)
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('passwordInput');
@@ -281,4 +242,5 @@
         });
     </script>
 </body>
-</html><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/auth/login.blade.php ENDPATH**/ ?>
+</html>
+<?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/auth/login.blade.php ENDPATH**/ ?>

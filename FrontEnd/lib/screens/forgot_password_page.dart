@@ -109,7 +109,6 @@ class ForgotPasswordPage extends StatelessWidget {
                 shadowColor: accentTeal.withOpacity(0.3),
               ),
               onPressed: () async {
-                // Gunakan .trim() untuk menghapus spasi tak terlihat
                 String emailInput = emailCtrl.text.trim();
 
                 if (emailInput.isEmpty || !emailInput.contains('@')) {
@@ -128,11 +127,10 @@ class ForgotPasswordPage extends StatelessWidget {
                 showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (_) =>
-                        const Center(child: CircularProgressIndicator(color: accentTeal)));
+                    builder: (_) => const Center(child: CircularProgressIndicator(color: accentTeal)));
 
                 try {
-                  // Memanggil API forgotPassword dengan email yang sudah di-trim
+                  // Memanggil API forgotPassword dengan format payload JSON yang baru
                   var resp = await AuthService.forgotPassword(emailInput);
                   
                   if (!context.mounted) return;
@@ -156,25 +154,35 @@ class ForgotPasswordPage extends StatelessWidget {
                       ),
                     );
                   } else {
-                    // Ambil pesan error asli dari Laravel
-                    final Map<String, dynamic> errorData = jsonDecode(resp.body);
+                    // 🔥 PERBAIKAN SAKTI: Amankan jsonDecode dari crash HTML teks mentah Laravel
+                    String errorMessage = "Email not found or server busy!";
+                    
+                    try {
+                      final Map<String, dynamic> errorData = jsonDecode(resp.body);
+                      errorMessage = errorData['message'] ?? errorMessage;
+                    } catch (_) {
+                      // Jika gagal didecode berarti Laravel memuntahkan HTML Error (Eror 500)
+                      errorMessage = "Server Error (${resp.statusCode}). Please contact Admin.";
+                    }
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         backgroundColor: primaryRed,
-                        content: Text(errorData['message'] ?? "Email not found!"),
+                        content: Text(errorMessage),
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       )
                     );
                   }
                 } catch (e) {
                   if (context.mounted) Navigator.pop(context);
+                  debugPrint("❌ FORGOT PASSWORD EXCEPTION: $e");
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       backgroundColor: primaryRed,
-                      content: Text("Connection Error! Check your internet."),
+                      content: Text("Request Failed: ${e.toString().split('\n').first}"),
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     )
                   );
                 }

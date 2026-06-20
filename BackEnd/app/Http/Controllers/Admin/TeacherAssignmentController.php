@@ -173,4 +173,55 @@ class TeacherAssignmentController extends Controller
         TeacherAssignment::findOrFail($id)->delete();
         return back()->with('success', 'Penugasan berhasil dihapus.');
     }
+
+        /**
+     * Show the form for editing the specified assignment.
+     */
+    public function edit($id)
+    {
+        $assignment = TeacherAssignment::with(['teacher', 'classModel'])->findOrFail($id);
+
+        $teachers = User::where('role_id', 2)->orderBy('name')->get();
+        $classes = ClassModel::orderBy('program_name')->get();
+
+        // Ambil subjects dari microservice berdasarkan class yang dipilih
+        $subjects = $this->getSubjectsByClassFromMicroservice((int) $assignment->class_id);
+
+        return view('admin.assignments.edit', compact('assignment', 'teachers', 'classes', 'subjects'));
+    }
+
+    /**
+     * Update the specified assignment in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'teacher_id'    => 'required|exists:users,usersID',
+            'class_id'      => 'required|exists:classes,class_id',
+            'subject_id'    => 'required|string',
+            'subject_name'  => 'required|string'
+        ]);
+
+        $assignment = TeacherAssignment::findOrFail($id);
+
+        // Cek apakah sudah ada penugasan untuk class dan subject yang sama (kecuali dirinya sendiri)
+        $exists = TeacherAssignment::where([
+            'class_id'   => $request->class_id,
+            'subject_id' => $request->subject_id
+        ])->where('id', '!=', $id)->exists();
+
+        if ($exists) {
+            return back()->with('error', 'Mata pelajaran ini sudah memiliki pengajar di kelas tersebut.');
+        }
+
+        $assignment->update([
+            'user_id'      => $request->teacher_id,
+            'class_id'     => $request->class_id,
+            'subject_id'   => $request->subject_id,
+            'subject_name' => $request->subject_name
+        ]);
+
+        return redirect()->route('admin.assignments.index')
+            ->with('success', 'Penugasan berhasil diperbarui!');
+    }
 }

@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart'; // 👈 Tambahkan import file konfigurasi terpusat Anda di sini
 
 class QuestionBankService {
-  // Gunakan 10.0.2.2 untuk emulator Android
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // ✨ MODIFIKASI: Menggunakan baseUrl langsung dari AppConfig
+  static const String baseUrl = AppConfig.baseUrl;
 
   /**
    * Mengambil daftar semua soal dari Hub
@@ -11,7 +12,7 @@ class QuestionBankService {
    */
   static Future<http.Response> getAllQuestions(String token) async {
     return await http.get(
-      Uri.parse('$baseUrl/question-bank'),
+      Uri.parse('$baseUrl/question-bank'), // Otomatis menembak ke http://3.107.184.92/api/question-bank
       headers: {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json'

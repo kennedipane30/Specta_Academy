@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http; 
 import '../services/auth_service.dart';
+import '../config/app_config.dart'; 
 import 'quiz_page.dart';
 import 'explanation_page.dart';
 
@@ -20,7 +21,7 @@ class TryoutDetailPage extends StatelessWidget {
   });
 
   // ============================================================
-  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN HOMEPAGE)
+  // 🎨 PALET WARNA SPEKTA
   // ============================================================
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
@@ -237,16 +238,14 @@ class TryoutDetailPage extends StatelessWidget {
                         );
 
                         try {
-                          String urlAPI = 'http://10.0.2.2:9002/api/tryouts/submissions?tryout_id=$id';
-                          debugPrint("🔍 [DEBUG-1] Menembak API: $urlAPI");
+                          // ✨ MODIFIKASI: Ganti baseUrl dengan tryoutUrl (Arahkan ke Golang Port 9002)
+                          String urlAPI = '${AppConfig.tryoutUrl}/tryouts/submissions?tryout_id=$id';
+                          debugPrint("🔍 [DEBUG] URL API Pembahasan: $urlAPI");
 
                           final subRes = await http.get(
                             Uri.parse(urlAPI),
                             headers: {'Authorization': 'Bearer $token'},
-                          );
-
-                          debugPrint("🔍 [DEBUG-2] Status Code API: ${subRes.statusCode}");
-                          debugPrint("🔍 [DEBUG-3] Body API Mentah: ${subRes.body}");
+                          ).timeout(const Duration(seconds: 10));
 
                           if (subRes.statusCode == 200) {
                             final subDecoded = jsonDecode(subRes.body);
@@ -258,9 +257,6 @@ class TryoutDetailPage extends StatelessWidget {
                               submissions = subDecoded['data'];
                             }
 
-                            debugPrint("🔍 [DEBUG-4] Total riwayat di Tryout ID $id: ${submissions.length}");
-                            debugPrint("🔍 [DEBUG-5] Mencari jawaban untuk User ID: $userId");
-
                             var mySubmission;
                             for (var s in submissions) {
                               if (s['user_id'].toString() == userId.toString()) {
@@ -270,9 +266,6 @@ class TryoutDetailPage extends StatelessWidget {
                             }
 
                             if (mySubmission != null) {
-                              debugPrint("✅ [DEBUG-6] HORE! Jawaban milik User $userId DITEMUKAN!");
-                              debugPrint("✅ [DEBUG-7] Isi mentah dari DB: ${mySubmission['answers']}");
-                              
                               if (mySubmission['answers'] != null) {
                                 Map<String, dynamic> userAnswersMap = {};
                                 
@@ -282,38 +275,31 @@ class TryoutDetailPage extends StatelessWidget {
                                   userAnswersMap = mySubmission['answers'];
                                 }
 
-                                debugPrint("✅ [DEBUG-8] Map Jawaban berhasil: $userAnswersMap");
-
                                 for (var i = 0; i < questions.length; i++) {
                                   String qId = questions[i]['question_id'].toString();
                                   questions[i]['user_answer'] = userAnswersMap[qId];
-                                  debugPrint("   -> Soal ID $qId disuntik: ${userAnswersMap[qId]}");
                                 }
                               }
-                            } else {
-                              debugPrint("❌ [DEBUG-ERROR] Gagal: Riwayat untuk User ID $userId TIDAK ADA.");
                             }
                           } else {
-                            debugPrint("❌ [DEBUG-ERROR] API Gagal. Status: ${subRes.statusCode}");
-                            // BARU: Penanganan Error Server saat mengambil Submission
                             if (context.mounted) {
-                               Navigator.pop(context); // Tutup dialog loading
-                               _showError(context, "Mohon maaf sistem sedang sibuk");
+                               Navigator.pop(context); 
+                               debugPrint("❌ Gagal: Status ${subRes.statusCode}, Body: ${subRes.body}");
+                               _showError(context, "Mohon maaf sistem sedang sibuk (Error Server: ${subRes.statusCode})");
                             }
                             return;
                           }
                         } catch (e) {
-                          debugPrint("❌ [DEBUG-FATAL] Terjadi Error Code: $e");
-                          // BARU: Penanganan Error Koneksi saat mengambil Submission
                           if (context.mounted) {
-                             Navigator.pop(context); // Tutup dialog loading
-                             _showError(context, "Mohon maaf sistem sedang sibuk");
+                               Navigator.pop(context); 
+                               debugPrint("❌ Error Fetching Submissions: $e");
+                               _showError(context, "Gagal terhubung ke server. Periksa koneksi Anda.");
                           }
                           return;
                         }
 
                         if (!context.mounted) return;
-                        Navigator.pop(context); // Tutup loading kedua (ambil jawaban)
+                        Navigator.pop(context); // Tutup loading kedua
 
                         Navigator.push(
                           context,
@@ -323,7 +309,7 @@ class TryoutDetailPage extends StatelessWidget {
                         );
                       } else {
                         // Jika belum dikerjakan, Buka QuizPage
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => QuizPage(
@@ -333,17 +319,19 @@ class TryoutDetailPage extends StatelessWidget {
                               userId: userId,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        });
                       }
                     } else {
-                      // BARU: Penanganan Error Server 500 saat Fetch Questions
                       _showError(context, "Mohon maaf sistem sedang sibuk");
                     }
                   } catch (e) {
-                    if (context.mounted) Navigator.pop(context); // Tutup loading
+                    if (context.mounted) Navigator.pop(context); 
                     debugPrint("❌ Tryout Error: $e");
-                    // BARU: Penanganan Error Koneksi Terputus / Timeout saat klik Mulai Ujian
-                    _showError(context, "Mohon maaf sistem sedang sibuk");
+                    _showError(context, "Terjadi kesalahan, pastikan internet stabil.");
                   }
                 },
                 child: Row(

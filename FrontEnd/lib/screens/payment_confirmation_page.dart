@@ -4,6 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'midtrans_payment_page.dart';
 import '../../services/auth_service.dart';
+import '../../config/app_config.dart';
+
+// ✨ MODIFIKASI: Mengganti import home_page menjadi main_screen
+import 'main_screen.dart'; 
 
 class PaymentConfirmationPage extends StatefulWidget {
   final int classId;
@@ -27,7 +31,7 @@ class PaymentConfirmationPage extends StatefulWidget {
 
 class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   // ============================================================
-  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // 🎨 PALET WARNA SPEKTA
   // ============================================================
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
@@ -62,7 +66,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://10.0.2.2:8000/api/promo/check"),
+        Uri.parse("${AppConfig.baseUrl}/promo/check"),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Accept': 'application/json'
@@ -137,7 +141,51 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         );
 
         if (paymentResult == true) {
-          if (mounted) Navigator.pop(context, true);
+          if (!mounted) return;
+
+          showDialog(
+            context: context, 
+            barrierDismissible: false, 
+            builder: (_) => const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: accentTeal),
+                  SizedBox(height: 16),
+                  Text(
+                    "Mengaktifkan Kelas...", 
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontWeight: FontWeight.bold, 
+                      decoration: TextDecoration.none, 
+                      fontSize: 14
+                    )
+                  ),
+                ],
+              )
+            )
+          );
+
+          await Future.delayed(const Duration(seconds: 2));
+
+          if (!mounted) return;
+          
+          Navigator.pop(context); 
+
+          String uName = widget.userData['name'] ?? 'Siswa';
+
+          // ✨ MODIFIKASI: Arahkan ke MainScreen agar Menu Bawah tetap ada
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainScreen(
+                userName: uName,
+                token: widget.token,
+                userProfileData: widget.userData,
+              )
+            ),
+            (Route<dynamic> route) => false, 
+          );
         }
       } else {
         _showError(result?['message'] ?? "Gagal memproses pembayaran");
@@ -248,16 +296,16 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     style: const TextStyle(color: textDark, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       hintText: "Masukkan Kode",
-                      hintStyle: TextStyle(color: neutralGray),
+                      hintStyle: const TextStyle(color: neutralGray),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15), 
-                        borderSide: BorderSide(color: outlineVariant)
+                        borderSide: const BorderSide(color: outlineVariant)
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15), 
-                        borderSide: BorderSide(color: outlineVariant)
+                        borderSide: const BorderSide(color: outlineVariant)
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15), 
@@ -317,7 +365,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(label, style: TextStyle(color: neutralGray, fontSize: 13, fontWeight: FontWeight.w500))),
+          Expanded(child: Text(label, style: const TextStyle(color: neutralGray, fontSize: 13, fontWeight: FontWeight.w500))),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
         ],
       ),

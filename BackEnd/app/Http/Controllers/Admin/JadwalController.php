@@ -219,4 +219,44 @@ class JadwalController extends Controller
 
         return response()->json($schedules);
     }
+
+        /**
+     * Show the form for editing the specified schedule.
+     */
+    public function edit($id)
+    {
+        $schedule = Schedule::with(['class', 'teacher'])->findOrFail($id);
+
+        $classes = ClassModel::orderBy('program_name')->get();
+
+        $subjects = TeacherAssignment::where('class_id', $schedule->class_id)
+            ->whereNotNull('subject_name')
+            ->select('subject_id', 'subject_name as name')
+            ->distinct()
+            ->get();
+
+        return view('admin.jadwal.edit', compact('schedule', 'classes', 'subjects'));
+    }
+
+    /**
+     * Update the specified schedule in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'class_id'     => 'required|exists:classes,class_id',
+            'subject_id'   => 'nullable|string',
+            'teacher_id'   => 'required|exists:users,usersID',
+            'title'        => 'required|string|max:255',
+            'date'         => 'required|date|after_or_equal:today',
+            'start_time'   => 'required',
+            'end_time'     => 'required|after:start_time',
+        ]);
+
+        $schedule = Schedule::findOrFail($id);
+        $schedule->update($validated);
+
+        return redirect()->route('admin.jadwal.index')
+            ->with('success', 'Jadwal berhasil diperbarui!');
+    }
 }

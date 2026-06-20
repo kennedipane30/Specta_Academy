@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../config/app_config.dart'; // 👈 Tambahkan import file konfigurasi terpusat Anda di sini
 
 class MidtransPaymentPage extends StatefulWidget {
   final String url;
@@ -96,8 +97,10 @@ class _MidtransPaymentPageState extends State<MidtransPaymentPage> {
     });
 
     try {
+      // ✨ MODIFIKASI: Mengganti AppConfig.host menjadi AppConfig.baseUrl
+      // Agar port :8000 ikut terbawa saat mengupdate status sukses di server lokal
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/payment/manual-success'),
+        Uri.parse('${AppConfig.baseUrl}/payment/manual-success'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',

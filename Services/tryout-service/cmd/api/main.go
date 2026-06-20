@@ -48,22 +48,18 @@ func main() {
 		c.JSON(200, gin.H{"message": "Tryout Service is Running on Port 9002"})
 	})
 
+	// ============================================================
+	// 🌐 SINKRONISASI ROUTING UNTUK TRYOUT SERVICE
+	// ============================================================
+
+	// 1. Grup Standar (/api) - Digunakan untuk sub-routing spesifik
 	api := r.Group("/api")
 	{
-		// Tryout & Question endpoints
-		api.POST("/tryouts/sync", handler.SyncTryout)
-		api.GET("/tryouts", handler.GetTryouts)
-		api.GET("/tryouts/:id/questions", handler.GetQuestions)
-		api.POST("/tryouts/:id/submit", handler.SubmitTryout)
 		api.GET("/questions", handler.GetQuestions)
-		api.DELETE("/tryouts/:id", handler.DeleteTryout)
-
-		// Submission endpoints
+		api.POST("/tryouts/sync", handler.SyncTryout)
 		api.POST("/tryouts/submissions/sync", handler.SyncSubmissions)
-		api.GET("/tryouts/history", handler.GetHistory)
-		api.GET("/tryouts/submissions", handler.GetSubmissions)
 
-		// Draft endpoints
+		// Drafts Management (Digunakan oleh Web Guru / Pengajar)
 		api.POST("/tryouts/drafts", handler.CreateDraft)
 		api.PUT("/tryouts/drafts/:id", handler.UpdateDraft)
 		api.DELETE("/tryouts/drafts/:id", handler.DeleteDraft)
@@ -73,12 +69,24 @@ func main() {
 		api.GET("/tryouts/drafts/count", handler.GetDraftCount)
 	}
 
+	// 2. 🔥 GRUP UTAMA (/api/tryouts) - Kebal Duplikasi & Mendukung Semua Client
+	tryoutsGroup := r.Group("/api/tryouts")
+	{
+		tryoutsGroup.GET("", handler.GetTryouts)                 // GET    /api/tryouts (Flutter & Web Guru)
+		tryoutsGroup.DELETE("/:id", handler.DeleteTryout)         // DELETE /api/tryouts/:id
+		tryoutsGroup.GET("/:id/questions", handler.GetQuestions) // GET    /api/tryouts/:id/questions
+		tryoutsGroup.POST("/:id/submit", handler.SubmitTryout)   // POST   /api/tryouts/:id/submit
+		tryoutsGroup.GET("/submissions", handler.GetSubmissions) // GET    /api/tryouts/submissions
+		tryoutsGroup.GET("/history", handler.GetHistory)         // GET    /api/tryouts/history
+	}
+
+	// Determine Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "9002"
 	}
 
-	fmt.Println("🚀 Spekta Tryout Service started on port: " + port)
+	fmt.Println("🚀 Spekta Tryout Service successfully started on port: " + port)
 
 	err := r.Run(":" + port)
 	if err != nil {

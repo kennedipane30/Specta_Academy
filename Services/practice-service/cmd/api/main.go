@@ -44,25 +44,29 @@ func main() {
 	handler := http.NewPracticeHandler(uc)
 
 	// Initialize Gin
-	r := gin.Default()
-	r.Use(CORSMiddleware())
+    r := gin.Default()
+    r.Use(CORSMiddleware())
 
-	// API Routes
-	api := r.Group("/api")
-	{
-		// GET Routes
-		api.GET("/tryouts", handler.GetPractice)
-		api.GET("/practice", handler.GetPractice)
+    // 🔥 GRUP 1: Mengatur jalur tunggal (/api/practice)
+    practiceGroup := r.Group("/api/practice")
+    {
+        practiceGroup.GET("", handler.GetPractice)            // GET /api/practice
+        practiceGroup.POST("/sync", handler.Sync)             // POST /api/practice/sync
+        practiceGroup.DELETE("/class/:class_id/week/:week", handler.DeleteWeek)
+        practiceGroup.POST("/class/:class_id/week/:week", handler.DeleteWeek)
+    }
 
-		// POST Routes
-		api.POST("/practice/sync", handler.Sync)
+    // 🔥 GRUP 2: Mengatur jalur jamak (/api/practices) -> SINKRON DENGAN FLUTTER LOKAL & AWS
+    practicesGroup := r.Group("/api/practices")
+    {
+        practicesGroup.GET("", handler.GetPractice)           // GET /api/practices
+        practicesGroup.POST("/sync", handler.Sync)            // POST /api/practices/sync
+        practicesGroup.DELETE("/class/:class_id/week/:week", handler.DeleteWeek)
+        practicesGroup.POST("/class/:class_id/week/:week", handler.DeleteWeek)
+    }
 
-		// DELETE Routes
-		api.DELETE("/practice/class/:class_id/week/:week", handler.DeleteWeek)
-		
-		// Support POST with _method=DELETE for Laravel compatibility
-		api.POST("/practice/class/:class_id/week/:week", handler.DeleteWeek)
-	}
+    // Jalur kecocokan tambahan untuk Modul Tryout
+    r.GET("/api/tryouts", handler.GetPractice)
 
 	// Determine Port
 	port := os.Getenv("PORT")

@@ -11,15 +11,6 @@
             <h1>Manajemen Siswa</h1>
             <p>Kelola data siswa Spekta Academy secara efisien berdasarkan data pendaftaran dari aplikasi.</p>
         </div>
-        <div class="ss-header-actions">
-            <a href="<?php echo e(route('admin.siswa.pendaftaran')); ?>" class="ss-btn-primary">
-                <i class="fa-solid fa-circle-check"></i>
-                <span>Konfirmasi Kelas</span>
-                <?php if(($pendingEnrollment ?? 0) > 0): ?>
-                    <em class="bounce-pulse"><?php echo e($pendingEnrollment); ?></em>
-                <?php endif; ?>
-            </a>
-        </div>
     </section>
 
     
@@ -582,8 +573,8 @@
 .ss-table tbody tr {
     transition: background-color 0.15s ease;
 }
-.ss-table tbody tr:hover { 
-    background: #fafbfc; 
+.ss-table tbody tr:hover {
+    background: #fafbfc;
 }
 
 /* student cell */
@@ -806,4 +797,5 @@
 }
 </style>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.spekta', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Windows\Documents\GitHub\PAAAAA2\BackEnd\resources\views/admin/siswa/index.blade.php ENDPATH**/ ?>

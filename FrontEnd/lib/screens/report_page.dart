@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async'; // ✨ MODIFIKASI: Import async untuk menjalankan Timer otomatis
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart'; 
 import '../services/auth_service.dart';
@@ -27,9 +28,11 @@ class _ReportPageState extends State<ReportPage> {
   List announcements = [];
   List<FlSpot> chartData = []; 
   List<String> tryoutTitles = []; 
+  
+  Timer? _autoRefreshTimer; // ✨ MODIFIKASI: Variabel Timer
 
   // ============================================================
-  // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
+  // 🎨 PALET WARNA SPEKTA
   // ============================================================
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
@@ -44,39 +47,32 @@ class _ReportPageState extends State<ReportPage> {
   @override
   void initState() {
     super.initState();
-    _fetchReportData();
+    _fetchReportData(); // Ambil data pertama kali dengan loading
+    
+    // ✨ MODIFIKASI: Jalankan Auto-Refresh diam-diam setiap 5 detik
+    // Jadi saat user selesai ujian dan buka tab ini, nilainya sudah terupdate!
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _fetchReportData(isSilent: true);
+    });
   }
 
-  /// ✅ Perbaiki URL gambar
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel(); // ✨ MODIFIKASI: Matikan timer jika halaman ditutup
+    super.dispose();
+  }
+
   String _fixImageUrl(String path) {
     if (path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
     
-    // Jika sudah full URL, return langsung
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      return path;
-    }
-    
-    // Bersihkan path dari leading slash
     String cleanPath = path;
-    if (cleanPath.startsWith('/')) {
-      cleanPath = cleanPath.substring(1);
-    }
-    
-    // Jika sudah mengandung storage/, langsung gunakan
-    if (cleanPath.startsWith('storage/')) {
-      return 'http://10.0.2.2:8000/' + cleanPath;
-    }
-    
-    // Jika path dimulai dengan announcements/
-    if (cleanPath.startsWith('announcements/')) {
-      return 'http://10.0.2.2:8000/storage/' + cleanPath;
-    }
-    
-    // Default: simpan di folder announcements
+    if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+    if (cleanPath.startsWith('storage/')) return 'http://10.0.2.2:8000/' + cleanPath;
+    if (cleanPath.startsWith('announcements/')) return 'http://10.0.2.2:8000/storage/' + cleanPath;
     return 'http://10.0.2.2:8000/storage/announcements/' + cleanPath;
   }
 
-  // Ambil User ID
   int _getUserId() {
     try {
       var data = widget.userData;
@@ -102,17 +98,15 @@ class _ReportPageState extends State<ReportPage> {
     return 0;
   }
 
-  Future<void> _fetchReportData() async {
+  // ✨ MODIFIKASI: Menambahkan parameter isSilent agar tidak muncul loading saat auto-refresh
+  Future<void> _fetchReportData({bool isSilent = false}) async {
     try {
       final annRes = await AuthService.getAnnouncements(widget.token).catchError((_) => http.Response('[]', 500));
       
       int currentUserId = _getUserId();
-      debugPrint("📊 Mengambil riwayat untuk User ID: $currentUserId");
+      final reportRes = await AuthService.getTryoutHistory(widget.token, currentUserId).catchError((_) => http.Response('[]', 500));
 
-      final reportRes = await AuthService.getTryoutHistory(widget.token, currentUserId);
-
-      // BARU: Cek apakah server merespon 500+ (Internal Server Error)
-      if (annRes.statusCode >= 500 || reportRes.statusCode >= 500) {
+      if (!isSilent && (annRes.statusCode >= 500 || reportRes.statusCode >= 500)) {
          if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
              content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -125,42 +119,42 @@ class _ReportPageState extends State<ReportPage> {
 
       if (mounted) {
         setState(() {
-          // Parsing Pengumuman
           if (annRes.statusCode == 200) {
             final annDecoded = jsonDecode(annRes.body);
             announcements = annDecoded is List ? annDecoded : (annDecoded['data'] ?? []);
           }
 
-          // Parsing Riwayat Nilai
           if (reportRes.statusCode == 200) {
             final decoded = jsonDecode(reportRes.body);
             List history = decoded is List ? decoded : (decoded['data'] ?? []);
             
-            chartData.clear();
-            tryoutTitles.clear();
+            // Simpan data ke list penampung sementara agar grafik tidak berkedip saat update
+            List<FlSpot> tempChartData = [];
+            List<String> tempTitles = [];
             
             if (history.isNotEmpty) {
-              // Balik urutan agar data terlama di kiri, terbaru di kanan
               history = history.reversed.toList();
               int count = history.length > 7 ? 7 : history.length;
               
               for (var i = 0; i < count; i++) {
                 double score = double.parse((history[i]['score'] ?? 0).toString());
-                chartData.add(FlSpot(i.toDouble(), score));
+                tempChartData.add(FlSpot(i.toDouble(), score));
                 
-                // Gunakan 'title' sesuai JSON response dari Golang
                 String title = history[i]['title'] ?? history[i]['tryout_name'] ?? 'TO ${i+1}';
-                tryoutTitles.add(title.length > 6 ? '${title.substring(0,6)}...' : title);
+                tempTitles.add(title.length > 6 ? '${title.substring(0,6)}...' : title);
               }
             }
+            
+            // Timpa data lama dengan data baru yang didapat
+            chartData = tempChartData;
+            tryoutTitles = tempTitles;
           }
-          isLoading = false;
+          if (!isSilent) isLoading = false;
         });
       }
     } catch (e) {
       debugPrint("❌ Error Fetching Report: $e");
-      // BARU: Cek jika koneksi putus atau server mati
-      if (mounted) {
+      if (mounted && !isSilent) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -195,7 +189,7 @@ class _ReportPageState extends State<ReportPage> {
       body: isLoading 
         ? const Center(child: CircularProgressIndicator(color: accentTeal))
         : RefreshIndicator(
-            onRefresh: _fetchReportData,
+            onRefresh: () => _fetchReportData(isSilent: false),
             color: accentTeal,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -205,14 +199,13 @@ class _ReportPageState extends State<ReportPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.campaign_rounded, color: accentTeal),
+                      const Icon(Icons.campaign_rounded, color: accentTeal),
                       const SizedBox(width: 10),
                       const Text("Pengumuman Terbaru", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
                     ],
                   ),
                   const SizedBox(height: 15),
                   
-                  // ✅ GAMBAR BISA DIKLIK - LANGSUNG KE DETAIL
                   if (announcements.isNotEmpty)
                     GestureDetector(
                       onTap: () {
@@ -240,7 +233,7 @@ class _ReportPageState extends State<ReportPage> {
                               height: 180,
                               width: double.infinity,
                               color: Colors.grey[200],
-                              child: Center(
+                              child: const Center(
                                 child: CircularProgressIndicator(strokeWidth: 2, color: accentTeal),
                               ),
                             );
@@ -273,7 +266,7 @@ class _ReportPageState extends State<ReportPage> {
 
                   Row(
                     children: [
-                      Icon(Icons.auto_graph_rounded, color: accentTeal),
+                      const Icon(Icons.auto_graph_rounded, color: accentTeal),
                       const SizedBox(width: 10),
                       const Text("Statistik Belajar (7 Terakhir)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
                     ],
@@ -308,18 +301,17 @@ class _ReportPageState extends State<ReportPage> {
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   reservedSize: 30,
+                                  interval: 1, 
                                   getTitlesWidget: (value, meta) {
                                     int index = value.toInt();
-                                    if (index >= 0 && index < tryoutTitles.length) {
+                                    if (value % 1 == 0 && index >= 0 && index < tryoutTitles.length) {
                                       return SideTitleWidget(
                                         axisSide: meta.axisSide,
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: Text(tryoutTitles[index], style: const TextStyle(fontSize: 10, color: neutralGray)),
-                                        ),
+                                        space: 8,
+                                        child: Text(tryoutTitles[index], style: const TextStyle(fontSize: 10, color: neutralGray)),
                                       );
                                     }
-                                    return const Text('');
+                                    return const SizedBox.shrink();
                                   },
                                 ),
                               ),
@@ -327,6 +319,7 @@ class _ReportPageState extends State<ReportPage> {
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   reservedSize: 40,
+                                  interval: 20, 
                                   getTitlesWidget: (value, meta) => SideTitleWidget(
                                     axisSide: meta.axisSide, 
                                     child: Text("${value.toInt()}", style: const TextStyle(fontSize: 10, color: neutralGray))
@@ -342,7 +335,7 @@ class _ReportPageState extends State<ReportPage> {
                             lineBarsData: [
                               LineChartBarData(
                                 spots: chartData.length == 1 
-                                    ? [chartData[0], FlSpot(1.0, chartData[0].y)]
+                                    ? [chartData[0], FlSpot(1.0, chartData[0].y)] 
                                     : chartData,
                                 isCurved: true,
                                 color: accentTeal,
@@ -365,8 +358,8 @@ class _ReportPageState extends State<ReportPage> {
                     Center(
                       child: TextButton.icon(
                         onPressed: widget.onGoToHome, 
-                        icon: Icon(Icons.arrow_back, color: accentTeal), 
-                        label: Text("Kembali ke Beranda", style: TextStyle(color: accentTeal, fontWeight: FontWeight.bold))
+                        icon: const Icon(Icons.arrow_back, color: accentTeal), 
+                        label: const Text("Kembali ke Beranda", style: TextStyle(color: accentTeal, fontWeight: FontWeight.bold))
                       ),
                     ),
                     

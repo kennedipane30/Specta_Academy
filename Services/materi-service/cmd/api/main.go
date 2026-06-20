@@ -79,22 +79,23 @@ func main() {
 	handler := http.NewMaterialHandler(uc)
 
 	// 5. Setup Router
-	r := gin.Default()
-	r.Use(CORSMiddleware())
+	// 5. Setup Router
+    r := gin.Default()
+    r.Use(CORSMiddleware())
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "Materi Service is Running with Postgres"})
-	})
+    r.GET("/", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "Materi Service is Running with Postgres"})
+    })
 
-	// API Group
-	api := r.Group("/api")
-	{
-		api.POST("/materials", handler.SyncMaterial)
-		api.POST("/materials/sync", handler.SyncMaterial)
-		api.GET("/materials", handler.GetMaterials)
-		api.PUT("/materials/:id", handler.UpdateMaterial)
-		api.DELETE("/materials/:id", handler.DeleteMaterial)
-	}
+    // 🔥 GRUP UTAMA: Menangani semua variasi tembakan Flutter & Laravel
+    materiRoute := r.Group("/api/materials")
+    {
+        materiRoute.GET("", handler.GetMaterials)            // Menangani: GET    /api/materials (Untuk Flutter Lokal/AWS)
+        materiRoute.POST("", handler.SyncMaterial)           // Menangani: POST   /api/materials
+        materiRoute.POST("/sync", handler.SyncMaterial)      // Menangani: POST   /api/materials/sync (Untuk Laravel)
+        materiRoute.PUT("/:id", handler.UpdateMaterial)      // Menangani: PUT    /api/materials/:id
+        materiRoute.DELETE("/:id", handler.DeleteMaterial)   // Menangani: DELETE /api/materials/:id
+    }
 
 	port := os.Getenv("PORT")
 	if port == "" {

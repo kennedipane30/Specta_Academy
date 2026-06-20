@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async'; // 🔥 Diperlukan untuk Timer Debouncing
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; 
 import 'class_detail_page.dart';
 import 'subject_list_page.dart';
 import '../services/auth_service.dart';
+import '../config/app_config.dart'; 
 
 class KelasPage extends StatefulWidget {
   final String token;
@@ -28,20 +30,22 @@ class _KelasPageState extends State<KelasPage> {
   // ============================================================
   // 🎨 PALET WARNA SPEKTA (KONSISTEN DENGAN TRYOUTDETAILPAGE)
   // ============================================================
-  static const Color primaryRed      = Color(0xFFC5352C);
-  static const Color accentTeal      = Color(0xFF2EA8AB);
-  static const Color darkTeal        = Color(0xFF00696C);
-  static const Color lightBlueBg     = Color(0xFFEFF4FF);
-  static const Color pageBg          = Color(0xFFF1F5F9);
-  static const Color textDark        = Color(0xFF0F172A);
+  static const Color primaryRed       = Color(0xFFC5352C);
+  static const Color accentTeal       = Color(0xFF2EA8AB);
+  static const Color darkTeal         = Color(0xFF00696C);
+  static const Color lightBlueBg      = Color(0xFFEFF4FF);
+  static const Color pageBg           = Color(0xFFF1F5F9);
+  static const Color textDark         = Color(0xFF0F172A);
   static const Color textDarkVariant = Color(0xFF334155);
   static const Color neutralGray     = Color(0xFF64748B);
   static const Color outlineVariant  = Color(0xFFE2BEBA);
   static const Color spektaYellow    = Color(0xFFF5A623);
+  static const Color successGreen    = Color(0xFF22C55E);
 
   List programs = [];
   Map? currentData;
   bool isLoading = true;
+
   final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
@@ -49,6 +53,11 @@ class _KelasPageState extends State<KelasPage> {
     super.initState();
     currentData = widget.userData;
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _initializeData() async {
@@ -60,8 +69,9 @@ class _KelasPageState extends State<KelasPage> {
 
   Future<void> _refreshUserStatus() async {
     try {
+      // 🔥 PERBAIKAN: Menggunakan AppConfig.baseUrl agar port :8000 lokal terikat
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/user'),
+        Uri.parse('${AppConfig.baseUrl}/user'),
         headers: {'Authorization': 'Bearer ${widget.token}', 'Accept': 'application/json'},
       );
       if (response.statusCode == 200) {
@@ -74,20 +84,23 @@ class _KelasPageState extends State<KelasPage> {
 
   Future<void> _fetchPrograms() async {
     try {
+      // 🔥 PERBAIKAN: Menggunakan AppConfig.baseUrl agar port :8000 lokal terikat
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/classes'),
+        Uri.parse('${AppConfig.baseUrl}/classes'),
         headers: {'Authorization': 'Bearer ${widget.token}', 'Accept': 'application/json'},
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (mounted) setState(() => programs = data['data'] ?? []);
+        if (mounted) {
+          setState(() {
+            programs = data['data'] ?? [];
+          });
+        }
       } else {
-        // BARU: Penanganan error saat server merespon 500 / Sibuk
         if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
       }
     } catch (e) {
       debugPrint('CLASSES FETCH EXCEPTION: $e');
-      // BARU: Penanganan error saat koneksi terputus / Microservice mati total
       if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -123,11 +136,8 @@ class _KelasPageState extends State<KelasPage> {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 _buildCurvedAppBar(),
-                SliverToBoxAdapter(
-                  child: _buildSearchBar(),
-                ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => _buildProgramCard(context, programs[index]), 
@@ -185,35 +195,6 @@ class _KelasPageState extends State<KelasPage> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: outlineVariant.withOpacity(0.6)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.015),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: const TextField(
-        style: TextStyle(fontSize: 14, color: textDark, fontWeight: FontWeight.bold),
-        decoration: InputDecoration(
-          hintText: "Search program...",
-          hintStyle: TextStyle(color: neutralGray, fontSize: 13, fontWeight: FontWeight.bold),
-          prefixIcon: Icon(Icons.search_rounded, color: neutralGray, size: 20),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-
   Widget _buildProgramCard(BuildContext context, Map<String, dynamic> item) {
     dynamic activeClassId = currentData?['student']?['class_id'];
     bool isMyClass = activeClassId?.toString() == item['class_id'].toString();
@@ -235,65 +216,58 @@ class _KelasPageState extends State<KelasPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), 
-                child: Image.asset(
-                  _getProgramImage(item['class_id']), 
-                  height: 180, 
-                  width: double.infinity, 
-                  fit: BoxFit.cover,
-                ),
-              ),
-              if (isMyClass) 
-                Positioned(
-                  top: 15, 
-                  left: 15, 
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), 
-                    decoration: BoxDecoration(
-                      color: darkTeal,
-                      borderRadius: BorderRadius.circular(8),
-                    ), 
-                    child: const Row(
-                      children: [
-                        Text("PROGRAM ANDA ✅", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                      ],
-                    ),
-                  ),
-                ),
-              Positioned(
-                top: 15, 
-                right: 15, 
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
-                  decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      )
-                    ],
-                  ), 
-                  child: Text(
-                    currencyFormat.format(int.tryParse(item['price'].toString()) ?? 0), 
-                    style: const TextStyle(color: primaryRed, fontWeight: FontWeight.w900, fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
+          // ============================================================
+          // 🖼️ GAME OVERLAY IMAGE
+          // ============================================================
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), 
+            child: Image.asset(
+              _getProgramImage(item['class_id']), 
+              height: 180, 
+              width: double.infinity, 
+              fit: BoxFit.cover,
+            ),
           ),
+          
+          // ============================================================
+          // 📝 BAGIAN DESKRIPSI
+          // ============================================================
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("OFFICIAL ACADEMY PROGRAM", style: TextStyle(color: neutralGray, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
-                const SizedBox(height: 6),
+                // Baris Header dengan badge "TERDAFTAR" jika sudah terdaftar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "OFFICIAL ACADEMY PROGRAM", 
+                      style: TextStyle(color: neutralGray, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.1),
+                    ),
+                    // Menampilkan badge "TERDAFTAR" jika sudah terdaftar
+                    if (isMyClass)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                        decoration: BoxDecoration(
+                          color: successGreen, 
+                          borderRadius: BorderRadius.circular(6),
+                        ), 
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.check_circle, color: Colors.white, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              "TERDAFTAR", 
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 9),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Text(item['program_name'], style: const TextStyle(color: textDark, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                 const SizedBox(height: 8),
                 Text(item['description'] ?? "...", maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textDarkVariant, fontSize: 13, height: 1.4, fontWeight: FontWeight.w600)),
@@ -349,13 +323,11 @@ class _KelasPageState extends State<KelasPage> {
             return; 
           }
         } else {
-          // BARU: Penanganan error dari Microservice saat tap detail
           _showWarningSnack("Mohon maaf sistem sedang sibuk");
         }
       } catch (e) {
         if (mounted) Navigator.pop(context);
         debugPrint("Error Auto Navigate: $e");
-        // BARU: Penanganan error koneksi saat tap detail
         if (mounted) _showWarningSnack("Mohon maaf sistem sedang sibuk");
       }
     }

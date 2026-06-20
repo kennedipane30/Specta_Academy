@@ -13,15 +13,6 @@
             <h1>Manajemen Siswa</h1>
             <p>Kelola data siswa Spekta Academy secara efisien berdasarkan data pendaftaran dari aplikasi.</p>
         </div>
-        <div class="ss-header-actions">
-            <a href="{{ route('admin.siswa.pendaftaran') }}" class="ss-btn-primary">
-                <i class="fa-solid fa-circle-check"></i>
-                <span>Konfirmasi Kelas</span>
-                @if(($pendingEnrollment ?? 0) > 0)
-                    <em class="bounce-pulse">{{ $pendingEnrollment }}</em>
-                @endif
-            </a>
-        </div>
     </section>
 
     {{-- ── 2. STAT CARDS (TACO & GLOWING ACCENT) ── --}}
@@ -580,8 +571,8 @@
 .ss-table tbody tr {
     transition: background-color 0.15s ease;
 }
-.ss-table tbody tr:hover { 
-    background: #fafbfc; 
+.ss-table tbody tr:hover {
+    background: #fafbfc;
 }
 
 /* student cell */

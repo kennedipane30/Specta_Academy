@@ -42,7 +42,7 @@ func (h *PracticeHandler) GetPractice(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
-// Sync handles bulk import of practice questions from CSV
+// Sync handles bulk import of practice questions from CSV & Manual
 func (h *PracticeHandler) Sync(c *gin.Context) {
 	var req []models.PracticeQuestion
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -50,8 +50,10 @@ func (h *PracticeHandler) Sync(c *gin.Context) {
 		return
 	}
 
-	if len(req) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to sync"})
+	// ✨ MODIFIKASI: Mengubah validasi len(req) == 0 menjadi len(req) < 5
+	// Ini adalah keamanan lapis kedua untuk memastikan minimal 5 soal.
+	if len(req) < 5 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Minimal harus mengirimkan 5 soal untuk dapat diterbitkan"})
 		return
 	}
 
@@ -65,10 +67,6 @@ func (h *PracticeHandler) Sync(c *gin.Context) {
 }
 
 // DeleteWeek deletes all practice questions for a specific class, subject, and week
-// Supports subject from:
-// - Query string: ?subject=MATHEMATICS
-// - JSON body: {"subject": "MATHEMATICS"}
-// - Form data: subject=MATHEMATICS
 func (h *PracticeHandler) DeleteWeek(c *gin.Context) {
 	// Parse and validate class_id
 	classID, err := strconv.Atoi(c.Param("class_id"))

@@ -7,7 +7,7 @@ import (
 
 type PracticeUsecase interface {
 	SyncQuestions(questions []models.PracticeQuestion) error
-	GetListByClass(classID uint) ([]models.PracticeQuestion, error) // ✨ Tambahkan ini
+	GetListByClass(classID uint) ([]models.PracticeQuestion, error) 
 	GetList(classID uint, subject string, week int) ([]models.PracticeQuestion, error)
 	RemoveWeek(classID uint, subject string, week int) error
 }
@@ -24,7 +24,6 @@ func (uc *practiceUC) SyncQuestions(questions []models.PracticeQuestion) error {
 	return uc.repo.BulkInsert(questions)
 }
 
-// ✨ Tambahkan fungsi GetListByClass
 func (uc *practiceUC) GetListByClass(classID uint) ([]models.PracticeQuestion, error) {
 	return uc.repo.GetByClass(classID)
 }
