@@ -267,8 +267,9 @@ class TryoutController extends Controller
 
     /**
      * 5. HAPUS SATU DRAFT
+     * ✨ MODIFIKASI: Mengubah nama fungsi dari destroy menjadi destroyDraft agar cocok dengan web.php
      */
-    public function destroy($id)
+    public function destroyDraft($id)
     {
         $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
 
@@ -293,44 +294,41 @@ class TryoutController extends Controller
     /**
      * 6. HAPUS SEMUA DRAFT UNTUK SATU MAPEL
      */
-   /**
- * 6. HAPUS SEMUA DRAFT UNTUK SATU MAPEL
- */
-public function deleteAllDrafts(Request $request)
-{
-    $request->validate([
-        'class_id'     => 'required|integer',
-        'subject_name' => 'required|string'
-    ]);
+    public function deleteAllDrafts(Request $request)
+    {
+        $request->validate([
+            'class_id'     => 'required|integer',
+            'subject_name' => 'required|string'
+        ]);
 
-    if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
-        return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
-    }
-
-    $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
-    $userId = Auth::user()->usersID;
-
-    try {
-        // ✅ Kirim sebagai query string (bukan body array)
-        $response = Http::timeout(10)->delete($goUrl . '/api/tryouts/drafts?' . http_build_query([
-            'class_id' => $request->class_id,
-            'user_id' => $userId,
-            'subject_name' => $request->subject_name
-        ]));
-
-        if ($response->successful()) {
-            return back()->with('success', "Seluruh draf untuk mata pelajaran ini telah dihapus.");
-        } else {
-            $errorMsg = $response->json()['error'] ?? 'Gagal membersihkan draf';
-            return back()->with('error', $errorMsg);
+        if (!$this->hasAssignment($request->class_id, $request->subject_name)) {
+            return back()->with('error', 'Anda tidak ditugaskan untuk mata pelajaran ini.');
         }
 
-    } catch (\Illuminate\Http\Client\ConnectionException $e) {
-        Log::error("Koneksi ke Go service gagal: " . $e->getMessage());
-        return back()->with('error', 'Server tryout sedang bermasalah. Silakan coba lagi nanti.');
-    } catch (\Exception $e) {
-        Log::error("Delete All Drafts Error: " . $e->getMessage());
-        return back()->with('error', 'Gagal membersihkan draf: ' . $e->getMessage());
+        $goUrl = env('GO_TRYOUT_URL', 'http://localhost:9002');
+        $userId = Auth::user()->usersID;
+
+        try {
+            // ✅ Kirim sebagai query string (bukan body array)
+            $response = Http::timeout(10)->delete($goUrl . '/api/tryouts/drafts?' . http_build_query([
+                'class_id' => $request->class_id,
+                'user_id' => $userId,
+                'subject_name' => $request->subject_name
+            ]));
+
+            if ($response->successful()) {
+                return back()->with('success', "Seluruh draf untuk mata pelajaran ini telah dihapus.");
+            } else {
+                $errorMsg = $response->json()['error'] ?? 'Gagal membersihkan draf';
+                return back()->with('error', $errorMsg);
+            }
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Koneksi ke Go service gagal: " . $e->getMessage());
+            return back()->with('error', 'Server tryout sedang bermasalah. Silakan coba lagi nanti.');
+        } catch (\Exception $e) {
+            Log::error("Delete All Drafts Error: " . $e->getMessage());
+            return back()->with('error', 'Gagal membersihkan draf: ' . $e->getMessage());
+        }
     }
-}
 }
