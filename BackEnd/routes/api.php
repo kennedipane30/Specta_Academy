@@ -19,12 +19,10 @@ use Illuminate\Support\Facades\{Route, DB, Http};
 |--------------------------------------------------------------------------
 */
 
-// --- 0. HANDSHAKE (Cek API Aktif) ---
 Route::get('/', function () {
     return response()->json(['status' => 'success', 'message' => 'Specta Academy API is Ready']);
 });
 
-// --- 1. PUBLIC ROUTES (Tanpa Login) ---
 Route::post('/register', [AuthController::class, 'registerSiswa']);
 Route::post('/verify-registration', [AuthController::class, 'verifyRegistration']);
 Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
@@ -33,10 +31,8 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/validate-reset-otp', [AuthController::class, 'validateResetOtp']);
 
-// Webhook Midtrans (Dipanggil otomatis oleh Midtrans)
 Route::post('/midtrans-callback', [PaymentController::class, 'handleNotification']);
 
-// --- 2. PROTECTED ROUTES (Wajib Bearer Token / Login) ---
 Route::middleware('auth:sanctum')->group(function () {
 
     // ✅ PROFILE & GLOBAL DATA
@@ -54,10 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($user);
     });
 
-    // ✅ ENDPOINT KHUSUS PROFILE (untuk Mobile App - Format lengkap dengan joined_date & enrolled_classes)
     Route::get('/profile', [AuthController::class, 'getProfile']);
 
-    // ✅ UPLOAD FOTO PROFIL
     Route::post('/profile/photo', [AuthController::class, 'updatePhoto']);
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
@@ -67,15 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['status' => 'success', 'data' => Announcement::latest()->get()]);
     });
 
-    // ============================================================
-    // ✅ QUESTION BANK HUB (Fitur Berbagi Soal Siswa)
-    // ============================================================
+
     Route::prefix('question-bank')->group(function () {
         Route::get('/', [QuestionBankController::class, 'index']);
         Route::post('/upload', [QuestionBankController::class, 'store']);
     });
 
-    // ✅ NOTIFICATION SYSTEM
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
@@ -83,7 +74,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
     });
 
-    // ✅ KATALOG KELAS
     Route::get('/classes', function () {
         $classes = ClassModel::all()->map(function ($item) {
             $item->price = (int) $item->price;
@@ -93,44 +83,19 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['status' => 'success', 'data' => $classes]);
     });
 
-    // ✅ JADWAL SYSTEM
     Route::prefix('schedules')->group(function () {
         Route::get('/today', [ScheduleController::class, 'today']);
         Route::get('/all', [ScheduleController::class, 'index']);
     });
 
-    // // ✅ TRYOUT SYSTEM
-    // Route::prefix('tryouts')->group(function () {
-    //     Route::get('/', [TryoutController::class, 'index']);
-    //     Route::get('/history', [TryoutController::class, 'history']);
-    //     Route::get('/my', [TryoutController::class, 'history']);
-    //     Route::get('/questions', [TryoutController::class, 'questions']);
-    //     Route::get('/{id}/questions', [TryoutController::class, 'questions']);
-    //     Route::post('/{id}/submit', [TryoutController::class, 'submit']);
-    //     Route::get('/results/{id}', [TryoutController::class, 'results']);
-    // });
 
-    // ✅ KHUSUS ROLE SISWA
     Route::middleware('role:siswa')->group(function () {
 
-        // Report Grafik Belajar
-        // Route::get('/learning-report', function(Request $request) {
-        //     $data = TryoutResult::where('user_id', $request->user()->usersID)
-        //         ->latest()
-        //         ->take(7)
-        //         ->get()
-        //         ->reverse()
-        //         ->values();
-        //     return response()->json(['status' => 'success', 'data' => $data]);
-        // });
 
-        // 🔥 UBAH BARIS INI: Laravel bertindak sebagai jembatan/gateway ke Golang
         Route::get('/materials', function (Request $request) {
             try {
-                // Mengambil URL Golang Materi dari file .env (http://127.0.0.1:9001)
                 $goMateriUrl = env('GO_MATERI_URL', 'http://127.0.0.1:9001');
 
-                // Meneruskan tembakan ke Golang materi-service secara otomatis
                 $response = Http::withHeaders([
                     'Authorization' => $request->header('Authorization'),
                     'Accept'        => 'application/json',
@@ -147,19 +112,15 @@ Route::middleware('auth:sanctum')->group(function () {
             }
         });
 
-        // 🔥 TAMBAHKAN BLOK INI: Jembatan Gateway Laravel ke Golang Practice Service (Port 9003)
         Route::get('/practices', function (Request $request) {
             try {
-                // Mengambil URL Golang Practice dari file .env Laravel (http://127.0.0.1:9003)
                 $goPracticeUrl = env('GO_PRACTICE_URL', 'http://127.0.0.1:9003');
 
-                // Teruskan parameter class_id jika dikirim oleh Flutter
                 $queryParams = [];
                 if ($request->has('class_id')) {
                     $queryParams['class_id'] = $request->class_id;
                 }
 
-                // Meneruskan tembakan ke Golang practice-service secara otomatis
                 $response = Http::withHeaders([
                     'Authorization' => $request->header('Authorization'),
                     'Accept'        => 'application/json',
@@ -176,13 +137,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/class/content', [AuthController::class, 'getClassContent']);
 
-        // ============================================================
-        // ✅ DEDICATED TUTOR (Request & Sisa Kuota)
-        // ============================================================
-        // Endpoint untuk mengambil Riwayat, Daftar Topik, dan Info Sisa Kuota
         Route::get('/tutor/history', [DedicatedTutorController::class, 'index']);
 
-        // Endpoint untuk mengirim Request Sesi Tutor Baru
         Route::post('/tutor/submit', [DedicatedTutorController::class, 'store']);
     });
 

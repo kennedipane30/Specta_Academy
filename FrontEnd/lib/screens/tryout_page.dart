@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:async'; 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,12 +17,8 @@ class TryoutPage extends StatefulWidget {
 
 class _TryoutPageState extends State<TryoutPage> {
   static const String host = '10.0.2.2';
-  static const String baseUrl = 'http://$host:8000'; 
-  static const String tryoutServiceUrl = 'http://$host:9002/api'; 
-  
-  // ============================================================
-  // 🎨 PALET WARNA SPEKTA
-  // ============================================================
+  static const String baseUrl = 'http://$host:8000';
+  static const String tryoutServiceUrl = 'http://$host:9002/api';
   static const Color primaryRed      = Color(0xFFC5352C);
   static const Color accentTeal      = Color(0xFF2EA8AB);
   static const Color darkTeal        = Color(0xFF00696C);
@@ -35,8 +31,6 @@ class _TryoutPageState extends State<TryoutPage> {
 
   List _allTryouts = [];
   bool _loadingAll = false;
-  
-  // BARU: Penanda apakah request terakhir mengalami error
   bool _isError = false;
 
   bool get _hasClass => _classId != null;
@@ -65,7 +59,7 @@ class _TryoutPageState extends State<TryoutPage> {
     } catch (e) {
       debugPrint("❌ Gagal membaca User ID di TryoutPage: $e");
     }
-    return 0; 
+    return 0;
   }
 
   @override
@@ -80,31 +74,33 @@ class _TryoutPageState extends State<TryoutPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text("Mohon maaf sistem sedang sibuk", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text(
+          "Mohon maaf sistem sedang sibuk",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: primaryRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      )
+      ),
     );
   }
 
   Future<void> _fetchAllTryouts() async {
     if (!mounted) return;
-    
-    // Reset status error setiap kali melakukan request baru
+
     setState(() {
       _loadingAll = true;
-      _isError = false; 
+      _isError = false;
     });
-    
+
     try {
       final uri = Uri.parse('$tryoutServiceUrl/tryouts').replace(
         queryParameters: {
           if (_classId != null) 'class_id': _classId.toString(),
-          'user_id': _userId.toString(), 
+          'user_id': _userId.toString(),
         },
       );
-      
+
       final res = await http.get(uri, headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer ${widget.token}',
@@ -115,18 +111,26 @@ class _TryoutPageState extends State<TryoutPage> {
         if (mounted) {
           setState(() {
             _allTryouts = decoded['data'] ?? [];
-            _isError = false; // Sukses, tidak ada error
+            _isError = false;
           });
         }
       } else {
-        // Jika server membalas tapi dengan status gagal (500)
-        _isError = true; 
+        // FIX: Tandai error tapi jangan hapus data lama
+        if (mounted) {
+          setState(() {
+            _isError = true;
+          });
+        }
         _showErrorPopup();
       }
     } catch (e) {
       debugPrint('❌ TRYOUT ALL EXCEPTION: $e');
-      // Jika server mati total / koneksi terputus
-      _isError = true; 
+      // FIX: Tandai error tapi jangan hapus data lama
+      if (mounted) {
+        setState(() {
+          _isError = true;
+        });
+      }
       _showErrorPopup();
     } finally {
       if (mounted) setState(() => _loadingAll = false);
@@ -135,14 +139,18 @@ class _TryoutPageState extends State<TryoutPage> {
 
   void _openDetail(Map tryout, bool isDone) {
     Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => TryoutDetailPage(
-        tryoutData: tryout, 
-        token: widget.token,
-        isDone: isDone,
-        userId: _userId, 
-      )),
-    ).then((_) {
+      context,
+      MaterialPageRoute(
+        builder: (_) => TryoutDetailPage(
+          tryoutData: tryout,
+          token: widget.token,
+          isDone: isDone,
+          userId: _userId,
+        ),
+      ),
+    ).then((_) async {
+      // FIX: Tambah delay kecil agar server sempat update data sebelum di-fetch ulang
+      await Future.delayed(const Duration(milliseconds: 500));
       _fetchAllTryouts();
     });
   }
@@ -170,40 +178,102 @@ class _TryoutPageState extends State<TryoutPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context), 
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: !_hasClass
-          ? _buildNoClassState()
-          : _buildAllTryouts(),
+      body: !_hasClass ? _buildNoClassState() : _buildAllTryouts(),
     );
   }
 
   Widget _buildAllTryouts() {
-    if (_loadingAll) return const Center(child: CircularProgressIndicator(color: accentTeal));
-    
-    // BARU: Jika terjadi error, kembalikan tampilan yang BENAR-BENAR KOSONG
-    if (_isError) return const SizedBox.shrink(); 
-    
-    if (_allTryouts.isEmpty) return _buildEmptyState(icon: Icons.assignment_outlined, title: 'Belum Ada Tryout', subtitle: 'Cek apakah akun Anda sudah terdaftar di kelas yang benar.');
-    
+    if (_loadingAll) {
+      return const Center(child: CircularProgressIndicator(color: accentTeal));
+    }
+
+    // FIX: Kalau error tapi masih ada data lama, tetap tampilkan data lama
+    // Kalau error dan data kosong, tampilkan pesan error + tombol retry
+    if (_isError && _allTryouts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(25),
+                decoration: BoxDecoration(
+                  color: primaryRed.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.wifi_off_rounded, color: primaryRed, size: 60),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Gagal Memuat Data',
+                style: TextStyle(
+                  color: textDark,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Sistem sedang sibuk. Silakan coba lagi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: textDarkVariant),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentTeal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                  minimumSize: const Size(150, 48),
+                ),
+                onPressed: _fetchAllTryouts,
+                child: const Text(
+                  'COBA LAGI',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_allTryouts.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.assignment_outlined,
+        title: 'Belum Ada Tryout',
+        subtitle: 'Cek apakah akun Anda sudah terdaftar di kelas yang benar.',
+      );
+    }
+
     return RefreshIndicator(
-      color: accentTeal, 
+      color: accentTeal,
       onRefresh: _fetchAllTryouts,
       child: ListView.separated(
         padding: const EdgeInsets.all(18),
         itemCount: _allTryouts.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => _buildTryoutCard(_allTryouts[index] as Map, index),
+        itemBuilder: (context, index) =>
+            _buildTryoutCard(_allTryouts[index] as Map, index),
       ),
     );
   }
 
   Widget _buildTryoutCard(Map tryout, int index) {
     final title = tryout['title'] ?? 'Tryout UTBK';
-    final isActive = tryout['is_active'] != 0; 
-    final isCompleted = tryout['is_done'] == true || tryout['is_done'] == 1 || tryout['is_done'] == "1" || tryout['is_done'] == "true";
-    final score = tryout['score'] != null ? tryout['score'].toString() : '-';
+    final isActive = tryout['is_active'] != 0;
+    final isCompleted = tryout['is_done'] == true ||
+        tryout['is_done'] == 1 ||
+        tryout['is_done'] == "1" ||
+        tryout['is_done'] == "true";
+    final score =
+        tryout['score'] != null ? tryout['score'].toString() : '-';
 
     return GestureDetector(
       onTap: () {
@@ -213,24 +283,33 @@ class _TryoutPageState extends State<TryoutPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white, 
+          color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: outlineVariant.withOpacity(0.4)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
           ],
         ),
         child: Row(
           children: [
             Container(
-              height: 44, width: 44,
+              height: 44,
+              width: 44,
               decoration: BoxDecoration(
-                color: isCompleted ? const Color(0xFFE2F9FC) : lightBlueBg,
+                color: isCompleted
+                    ? const Color(0xFFE2F9FC)
+                    : lightBlueBg,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
-                color: isCompleted ? darkTeal : accentTeal, 
+                isCompleted
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: isCompleted ? darkTeal : accentTeal,
                 size: 22,
               ),
             ),
@@ -240,17 +319,21 @@ class _TryoutPageState extends State<TryoutPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title, 
-                    maxLines: 2, 
-                    overflow: TextOverflow.ellipsis, 
-                    style: TextStyle(color: isActive ? textDark : neutralGray, fontSize: 14, fontWeight: FontWeight.w900),
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isActive ? textDark : neutralGray,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isCompleted ? 'Sudah Dikerjakan' : 'Belum Dikerjakan', 
+                    isCompleted ? 'Sudah Dikerjakan' : 'Belum Dikerjakan',
                     style: TextStyle(
-                      color: isCompleted ? darkTeal : accentTeal, 
-                      fontSize: 12, 
+                      color: isCompleted ? darkTeal : accentTeal,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -264,7 +347,11 @@ class _TryoutPageState extends State<TryoutPage> {
               children: [
                 const Text(
                   'Nilai',
-                  style: TextStyle(color: neutralGray, fontSize: 11, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: neutralGray,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -286,9 +373,9 @@ class _TryoutPageState extends State<TryoutPage> {
   Widget _buildNoClassState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40), 
+        padding: const EdgeInsets.all(40),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, 
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(25),
@@ -300,53 +387,70 @@ class _TryoutPageState extends State<TryoutPage> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Akses Terkunci', 
-              style: TextStyle(color: textDark, fontSize: 20, fontWeight: FontWeight.w900)
+              'Akses Terkunci',
+              style: TextStyle(
+                color: textDark,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Akun Anda belum terdaftar di kelas manapun. Silakan hubungi Admin Spekta.', 
+              'Akun Anda belum terdaftar di kelas manapun. Silakan hubungi Admin Spekta.',
               textAlign: TextAlign.center,
               style: TextStyle(color: textDarkVariant),
             ),
             const SizedBox(height: 30),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: accentTeal, 
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: accentTeal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 0,
                 minimumSize: const Size(150, 48),
-              ), 
-              onPressed: () => Navigator.pop(context), 
+              ),
+              onPressed: () => Navigator.pop(context),
               child: const Text(
-                'KEMBALI', 
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)
-              )
-            )
-          ]
-        )
-      )
+                'KEMBALI',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEmptyState({required IconData icon, required String title, required String subtitle}) {
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, 
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: accentTeal.withOpacity(0.3), size: 60),
           const SizedBox(height: 20),
-          Text(title, style: const TextStyle(color: textDark, fontSize: 17, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: textDark,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40), 
+            padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              subtitle, 
-              textAlign: TextAlign.center, 
-              style: const TextStyle(color: neutralGray, fontSize: 13)
-            )
-          )
-        ]
-      )
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: neutralGray, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

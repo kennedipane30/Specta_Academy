@@ -73,9 +73,8 @@ class _QuizPageState extends State<QuizPage> {
           (data['correct'] ?? "0").toString(),
         );
       } else {
-        // BARU: Penanganan Error 500/Server dari API Submit Tryout
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text("Mohon maaf sistem sedang sibuk"), 
+          content: const Text("Mohon maaf sistem sedang sibuk"),
           backgroundColor: primaryRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -84,8 +83,7 @@ class _QuizPageState extends State<QuizPage> {
     } catch (e) {
       if (mounted) Navigator.pop(context);
       debugPrint("❌ Submit Error: $e");
-      
-      // BARU: Penanganan Error Koneksi/Mati Total saat Submit
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text("Mohon maaf sistem sedang sibuk"),
@@ -98,10 +96,13 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _showResultDialog(String score, String correct) {
+    // Simpan context sebelum dialog dibuka
+    final scaffoldContext = context;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: Colors.white,
         title: const Text(
@@ -151,17 +152,22 @@ class _QuizPageState extends State<QuizPage> {
               elevation: 0,
             ),
             onPressed: () {
+              // Inject user_answer ke setiap soal
               for (var i = 0; i < widget.questions.length; i++) {
                 var qData = widget.questions[i];
-                int qId = int.parse((qData['question_id'] ?? qData['QuestionID'] ?? qData['id'] ?? qData['ID'] ?? 0).toString());
+                int qId = int.parse(
+                  (qData['question_id'] ?? qData['QuestionID'] ?? qData['id'] ?? qData['ID'] ?? 0).toString(),
+                );
                 String userChoice = _myAnswers[qId] ?? "-";
                 widget.questions[i]['user_answer'] = userChoice;
               }
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
+
+              // FIX: Tutup dialog pakai dialogContext,
+              // lalu push ExplanationPage pakai scaffoldContext (QuizPage)
+              Navigator.of(dialogContext).pop(); // tutup dialog
+              Navigator.of(scaffoldContext).push(
                 MaterialPageRoute(
-                  builder: (context) => ExplanationPage(questions: widget.questions),
+                  builder: (_) => ExplanationPage(questions: widget.questions),
                 ),
               );
             },
@@ -174,8 +180,11 @@ class _QuizPageState extends State<QuizPage> {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context, true);
+              // FIX: Pop dialog, lalu pop QuizPage, lalu pop TryoutDetailPage
+              // sehingga langsung kembali ke TryoutPage (menu list)
+              Navigator.pop(dialogContext); // tutup dialog
+              Navigator.pop(context);       // tutup QuizPage
+              Navigator.pop(context, true); // tutup TryoutDetailPage → kembali ke menu
             },
             child: const Text(
               "KEMBALI KE MENU",
